@@ -1,0 +1,7 @@
+﻿clickhouse-driver==0.2.9
+cryptography==44.0.1
+Faker==37.0.0
+kafka-python==2.0.2
+pymongo==4.9.2
+python-dotenv==1.0.1
+requests==2.32.3
