@@ -103,7 +103,7 @@ make init-grafana
 - `make up`: запуск Docker-сервисов.
 - `make down`: остановка сервисов и удаление volumes.
 - `make generate-data`: запуск `src/generator/generate_data.py` и генерация JSON-файлов в `data/`.
-- `make load-nosql`: загрузка JSON в MongoDB.
+- `make load-nosql`: загрузка JSON в MongoDB через `docker compose run --rm app`.
 - `make init-ch`: создание объектов ClickHouse (RAW + Kafka + MV).
 - `make run-producer`: отправка нормализованных и зашифрованных payload в Kafka.
 - `make init-grafana`: ожидание готовности Grafana и provisioning.
@@ -220,7 +220,7 @@ make init-grafana
 - `make up`: start Docker services.
 - `make down`: stop services and remove volumes.
 - `make generate-data`: run `src/generator/generate_data.py` and generate JSON files under `data/`.
-- `make load-nosql`: load JSON files into MongoDB.
+- `make load-nosql`: load JSON files into MongoDB via `docker compose run --rm app`.
 - `make init-ch`: create ClickHouse RAW + Kafka + MV objects.
 - `make run-producer`: publish encrypted/normalized payloads to Kafka.
 - `make init-grafana`: wait for Grafana health and provisioning readiness.

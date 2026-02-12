@@ -13,7 +13,7 @@ generate-data:
 	$(PYTHON) src/generator/generate_data.py
 
 load-nosql:
-	PYTHONPATH=src $(PYTHON) -m probablyfresh.jobs.load_nosql
+	docker compose --env-file $(ENV_FILE) run --rm app sh -lc "pip install -r requirements.txt && python src/loader/load_to_mongo.py"
 
 init-ch:
 	PYTHONPATH=src $(PYTHON) -m probablyfresh.jobs.init_clickhouse

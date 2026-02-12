@@ -24,7 +24,7 @@ services:
       - ALLOW_PLAINTEXT_LISTENER=yes
 
   mongodb:
-    image: mongo:7.0
+    image: mongo:6
     ports:
       - "27017:27017"
     environment:
@@ -33,6 +33,18 @@ services:
       - MONGO_INITDB_DATABASE=${MONGO_DB}
     volumes:
       - mongodb_data:/data/db
+
+  app:
+    image: python:3.12-slim
+    depends_on:
+      - mongodb
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - MONGO_DB=${MONGO_DB}
+    command: ["sh", "-lc", "sleep infinity"]
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
