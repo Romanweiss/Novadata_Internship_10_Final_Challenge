@@ -10,7 +10,7 @@ down:
 	docker compose --env-file $(ENV_FILE) down -v
 
 generate-data:
-	PYTHONPATH=src $(PYTHON) -m probablyfresh.jobs.generate_data
+	$(PYTHON) src/generator/generate_data.py
 
 load-nosql:
 	PYTHONPATH=src $(PYTHON) -m probablyfresh.jobs.load_nosql
