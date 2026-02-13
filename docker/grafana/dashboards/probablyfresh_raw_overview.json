@@ -57,7 +57,7 @@
         {
           "editorMode": "code",
           "format": 1,
-          "rawSql": "SELECT count() AS value FROM probablyfresh_raw.stores_raw",
+          "rawSql": "SELECT count() FROM stores_raw",
           "refId": "A"
         }
       ],
@@ -113,7 +113,7 @@
         {
           "editorMode": "code",
           "format": 1,
-          "rawSql": "SELECT count() AS value FROM probablyfresh_raw.purchases_raw",
+          "rawSql": "SELECT count() FROM purchases_raw",
           "refId": "A"
         }
       ],
@@ -199,7 +199,7 @@
         {
           "editorMode": "code",
           "format": 1,
-          "rawSql": "SELECT store_network, count() AS stores_count FROM probablyfresh_raw.stores_raw GROUP BY store_network ORDER BY store_network",
+          "rawSql": "SELECT store_network, count() FROM stores_raw GROUP BY store_network",
           "refId": "A"
         }
       ],

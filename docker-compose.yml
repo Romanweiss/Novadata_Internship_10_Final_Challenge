@@ -76,7 +76,7 @@ services:
     depends_on:
       - clickhouse
     ports:
-      - "${GRAFANA_PORT:-3000}:3000"
+      - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}

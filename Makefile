@@ -22,4 +22,5 @@ run-producer:
 	docker compose --env-file $(ENV_FILE) run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"
 
 init-grafana:
-	PYTHONPATH=src $(PYTHON) -m probablyfresh.jobs.init_grafana
+	docker compose --env-file $(ENV_FILE) up -d grafana
+	@echo "Grafana provisioning is automatic on startup."

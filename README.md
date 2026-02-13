@@ -49,45 +49,17 @@ MVP-скелет аналитической платформы ProbablyFresh (э
     └── probablyfresh/
 ```
 
-### Container-First запуск (PowerShell, без make)
+### Quickstart
 
-Предполагается, что `.env` уже создан и `FERNET_KEY` заполнен.
+Строгий порядок запуска:
 
-1. Остановить и очистить окружение:
-
-```powershell
-docker compose --env-file .env down -v --remove-orphans
-```
-
-2. Поднять инфраструктуру:
-
-```powershell
-docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana
-```
-
-3. Сгенерировать demo JSON:
-
-```powershell
-docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/generator/generate_data.py"
-```
-
-4. Загрузить JSON в MongoDB:
-
-```powershell
-docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/loader/load_to_mongo.py"
-```
-
-5. Инициализировать ClickHouse (RAW + Kafka Engine + MV):
-
-```powershell
-Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
-```
-
-6. Запустить producer Mongo -> Kafka (`--once`):
-
-```powershell
-docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"
-```
+1. `cp .env.example .env`
+2. `make up`
+3. `make generate-data`
+4. `make load-nosql`
+5. `make init-ch`
+6. `make run-producer`
+7. Открыть Grafana и увидеть метрики в dashboard `ProbablyFresh RAW Overview`
 
 ### Проверка результата
 
@@ -156,18 +128,17 @@ SELECT 'purchases', count() FROM probablyfresh_raw.purchases_raw;
 
 MVP skeleton for ProbablyFresh analytics platform (Stage 1).
 
-### Container-first run (PowerShell, no make)
+### Quickstart
 
-Assumes `.env` is ready and `FERNET_KEY` is set.
+Strict run order:
 
-```powershell
-docker compose --env-file .env down -v --remove-orphans
-docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana
-docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/generator/generate_data.py"
-docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/loader/load_to_mongo.py"
-Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
-docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"
-```
+1. `cp .env.example .env`
+2. `make up`
+3. `make generate-data`
+4. `make load-nosql`
+5. `make init-ch`
+6. `make run-producer`
+7. Open Grafana and verify metrics on dashboard `ProbablyFresh RAW Overview`
 
 ### Validation query
 
