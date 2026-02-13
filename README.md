@@ -51,14 +51,14 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 
 ### Quickstart
 
-Строгий порядок запуска:
+Строгий порядок запуска (container-first, без make):
 
 1. `cp .env.example .env`
-2. `make up`
-3. `make generate-data`
-4. `make load-nosql`
-5. `make init-ch`
-6. `make run-producer`
+2. `docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana`
+3. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/generator/generate_data.py"`
+4. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/loader/load_to_mongo.py"`
+5. `Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
+6. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"`
 7. Открыть Grafana и увидеть метрики в dashboard `ProbablyFresh RAW Overview`
 
 ### Проверка результата
@@ -117,6 +117,20 @@ SELECT 'purchases', count() FROM probablyfresh_raw.purchases_raw;
 
 Это предупреждение, не блокирует запуск.
 
+4. Grafana datasource `Type: undefined` / `Plugin not found`
+
+Причина: в `grafana_data` мог сохраниться старый datasource с неверным типом `clickhouse`.
+
+Решение:
+
+- В provisioning используется правильный тип: `grafana-clickhouse-datasource`.
+- Если проблема осталась, перезапустить Grafana:
+  - `docker compose --env-file .env restart grafana`
+- Если не помогло, пересоздать только volume Grafana:
+  - `docker compose --env-file .env down`
+  - `docker volume rm probablyfresh-analytics-platform_grafana_data`
+  - `docker compose --env-file .env up -d grafana`
+
 ### Примечания
 
 - Генератор идемпотентный: очищает только `*.json` в `data/stores`, `data/products`, `data/customers`, `data/purchases`.
@@ -130,14 +144,14 @@ MVP skeleton for ProbablyFresh analytics platform (Stage 1).
 
 ### Quickstart
 
-Strict run order:
+Strict run order (container-first, no make):
 
 1. `cp .env.example .env`
-2. `make up`
-3. `make generate-data`
-4. `make load-nosql`
-5. `make init-ch`
-6. `make run-producer`
+2. `docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana`
+3. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/generator/generate_data.py"`
+4. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/loader/load_to_mongo.py"`
+5. `Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
+6. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"`
 7. Open Grafana and verify metrics on dashboard `ProbablyFresh RAW Overview`
 
 ### Validation query
@@ -175,3 +189,17 @@ Fix: use `kafka-python==2.1.2` (already pinned in `requirements.txt`).
 2. PowerShell `<` redirection fails for ClickHouse init command.
 
 Fix: use `Get-Content ... -Raw | docker compose ... clickhouse-client --multiquery`.
+
+3. Grafana datasource shows `Type: undefined` / `Plugin not found`.
+
+Cause: old datasource with wrong type `clickhouse` persisted in `grafana_data`.
+
+Fix:
+
+- Provisioning now uses `type: grafana-clickhouse-datasource`.
+- Restart Grafana:
+  - `docker compose --env-file .env restart grafana`
+- If still broken, recreate Grafana volume only:
+  - `docker compose --env-file .env down`
+  - `docker volume rm probablyfresh-analytics-platform_grafana_data`
+  - `docker compose --env-file .env up -d grafana`
