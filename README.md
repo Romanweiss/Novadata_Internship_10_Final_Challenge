@@ -36,9 +36,12 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 ├── requirements.txt
 ├── data/
 ├── docker/
-│   └── clickhouse/init/01_init.sql
-├── infra/
+│   ├── clickhouse/init/01_init.sql
 │   └── grafana/
+│       ├── dashboards/probablyfresh_raw_overview.json
+│       └── provisioning/
+│           ├── dashboards/dashboard.yaml
+│           └── datasources/clickhouse.yaml
 └── src/
     ├── generator/generate_data.py
     ├── loader/load_to_mongo.py
@@ -107,6 +110,16 @@ SELECT 'purchases', count() FROM probablyfresh_raw.purchases_raw;
 - `customers >= 45`
 - `purchases >= 200`
 
+Проверка в Grafana:
+
+1. Открыть `http://localhost:3000`.
+2. Войти под логином/паролем из `.env` (`GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`).
+3. Открыть dashboard `ProbablyFresh RAW Overview` (подхватывается автоматически через provisioning).
+4. Проверить значения:
+   - `Stores count` = `45`
+   - `Purchases count` >= `200`
+   - `Stores by network` содержит `ProbablyFresh Almost` и `ProbablyFresh Maybe`
+
 ### Подключение DBeaver (ClickHouse)
 
 - Host: `localhost`
@@ -169,6 +182,16 @@ SELECT 'purchases', count() FROM probablyfresh_raw.purchases_raw;
 ```
 
 Expected: `stores=45`, `products=100`, `customers>=45`, `purchases>=200`.
+
+Grafana validation:
+
+1. Open `http://localhost:3000`.
+2. Login with `.env` credentials (`GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`).
+3. Open dashboard `ProbablyFresh RAW Overview` (auto-provisioned).
+4. Validate:
+   - `Stores count` = `45`
+   - `Purchases count` >= `200`
+   - `Stores by network` shows `ProbablyFresh Almost` and `ProbablyFresh Maybe`
 
 ### Known compatibility issues
 

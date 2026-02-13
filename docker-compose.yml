@@ -83,8 +83,8 @@ services:
       - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./infra/grafana/provisioning:/etc/grafana/provisioning
-      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
 
 volumes:
   mongodb_data:
