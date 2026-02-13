@@ -4,34 +4,27 @@
 
 MVP-скелет аналитической платформы ProbablyFresh (этап 1).
 
-### Что покрывает этот скелет
+### Что покрывает проект
 
 - Генерация JSON-файлов на диск:
   - `stores`: 45 файлов (30 Almost + 15 Maybe)
-  - `products`: минимум 100 файлов (по 20 в каждой из 5 категорий)
-  - `customers`: минимум 1 покупатель на магазин
-  - `purchases`: минимум 200 покупок
-- Загрузка сгенерированных JSON в MongoDB.
-- Публикация 4 потоков сущностей в Kafka и загрузка в RAW-таблицы ClickHouse:
-  - `stores_raw`
-  - `products_raw`
-  - `customers_raw`
-  - `purchases_raw`
-- Сохранение payload в ClickHouse в исходном JSON-формате (без упрощения структуры).
-- Нормализация и шифрование `phone` и `email` перед отправкой в Kafka.
-- Provisioning Grafana-дашборда для проверок:
-  - количество магазинов = 45
-  - количество покупок >= 200
+  - `products`: 100 файлов (по 20 в каждой из 5 категорий)
+  - `customers`: >= 45
+  - `purchases`: >= 200
+- Загрузка JSON в MongoDB.
+- Ingestion MongoDB -> Kafka -> ClickHouse RAW.
+- Шифрование PII (`email`, `phone`) перед отправкой в Kafka для `customers` и `purchases`.
 
 ### Технологии
 
 - Docker Compose сервисы:
-  - Zookeeper
-  - Kafka
-  - MongoDB
-  - ClickHouse
-  - Grafana
-- Python-пакет в `src/` для генерации данных и шагов пайплайна.
+  - Zookeeper (`confluentinc/cp-zookeeper:7.7.1`)
+  - Kafka (`confluentinc/cp-kafka:7.7.1`)
+  - MongoDB (`mongo:6`)
+  - ClickHouse (`clickhouse/clickhouse-server:24.8`)
+  - Grafana (`grafana/grafana:11.1.0`)
+  - app (`python:3.12-slim`)
+- Python-скрипты в `src/`.
 
 ### Структура проекта
 
@@ -41,79 +34,108 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 ├── docker-compose.yml
 ├── Makefile
 ├── requirements.txt
+├── data/
+├── docker/
+│   └── clickhouse/init/01_init.sql
 ├── infra/
-│   ├── clickhouse/init.sql
 │   └── grafana/
-│       ├── dashboards/probablyfresh-overview.json
-│       └── provisioning/
-│           ├── dashboards/dashboard.yml
-│           └── datasources/clickhouse.yml
 └── src/
     ├── generator/generate_data.py
+    ├── loader/load_to_mongo.py
+    ├── streaming/produce_from_mongo.py
     └── probablyfresh/
-        ├── config.py
-        ├── core/
-        ├── integrations/
-        └── jobs/
 ```
 
-### Быстрый старт
+### Container-First запуск (PowerShell, без make)
 
-1. Создайте `.env` и задайте реальный ключ шифрования:
+Предполагается, что `.env` уже создан и `FERNET_KEY` заполнен.
 
-```bash
-cp .env.example .env
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+1. Остановить и очистить окружение:
+
+```powershell
+docker compose --env-file .env down -v --remove-orphans
 ```
 
-Вставьте полученный ключ в `FERNET_KEY` в `.env`.
+2. Поднять инфраструктуру:
 
-2. Установите Python-зависимости:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+```powershell
+docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana
 ```
 
-3. Поднимите инфраструктуру:
+3. Сгенерировать demo JSON:
 
-```bash
-make up
+```powershell
+docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/generator/generate_data.py"
 ```
 
-4. Запустите шаги пайплайна:
+4. Загрузить JSON в MongoDB:
 
-```bash
-make generate-data
-make load-nosql
-make init-ch
-make run-producer
-make init-grafana
+```powershell
+docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/loader/load_to_mongo.py"
 ```
 
-5. Откройте Grafana:
+5. Инициализировать ClickHouse (RAW + Kafka Engine + MV):
 
-- URL: `http://localhost:${GRAFANA_PORT}` (по умолчанию `http://localhost:3000`)
-- Логин: значения из `.env` (`GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`)
-- Дашборд: `ProbablyFresh MVP Checks`
+```powershell
+Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
+```
 
-### Команды Makefile
+6. Запустить producer Mongo -> Kafka (`--once`):
 
-- `make up`: запуск Docker-сервисов.
-- `make down`: остановка сервисов и удаление volumes.
-- `make generate-data`: запуск `src/generator/generate_data.py` и генерация JSON-файлов в `data/`.
-- `make load-nosql`: загрузка JSON в MongoDB через `docker compose run --rm app`.
-- `make init-ch`: создание объектов ClickHouse (RAW + Kafka + MV).
-- `make run-producer`: отправка нормализованных и зашифрованных payload в Kafka.
-- `make init-grafana`: ожидание готовности Grafana и provisioning.
+```powershell
+docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"
+```
+
+### Проверка результата
+
+Запрос в ClickHouse/DBeaver:
+
+```sql
+SELECT 'stores' AS t, count() AS c FROM probablyfresh_raw.stores_raw
+UNION ALL
+SELECT 'products', count() FROM probablyfresh_raw.products_raw
+UNION ALL
+SELECT 'customers', count() FROM probablyfresh_raw.customers_raw
+UNION ALL
+SELECT 'purchases', count() FROM probablyfresh_raw.purchases_raw;
+```
+
+Ожидаемо:
+
+- `stores = 45`
+- `products = 100`
+- `customers >= 45`
+- `purchases >= 200`
+
+### Подключение DBeaver (ClickHouse)
+
+- Host: `localhost`
+- Port: `9000` (native) или `8123` (HTTP)
+- Database: `probablyfresh_raw`
+- User/Password: из `.env` (`CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD`)
+
+### Известные несовместимости и частые ошибки
+
+1. `ModuleNotFoundError: kafka.vendor.six.moves`
+
+Причина: `kafka-python==2.0.2` с Python 3.12 в контейнере.
+
+Решение: использовать `kafka-python==2.1.2` (уже зафиксировано в `requirements.txt`).
+
+2. Ошибка PowerShell на шаге `init-ch` с символом `<`
+
+Причина: redirection `<` в PowerShell работает не как в bash для этой команды.
+
+Решение: использовать pipeline через `Get-Content -Raw` (см. шаг 5).
+
+3. Warning Docker Compose: `the attribute version is obsolete`
+
+Это предупреждение, не блокирует запуск.
 
 ### Примечания
 
-- Текущий коммит задает каркас проекта и bootstrap-процесс.
-- Детальная бизнес-логика и дополнительные проверки добавляются на следующих этапах.
-- Генератор идемпотентный: перед каждой генерацией очищаются только `*.json` в `data/stores`, `data/products`, `data/customers`, `data/purchases` (служебные файлы вроде `.gitkeep` сохраняются).
-- Детерминизм генератора: seed берется из `SEED` (по умолчанию `42`) или из CLI-аргумента `--seed`, который имеет приоритет.
+- Генератор идемпотентный: очищает только `*.json` в `data/stores`, `data/products`, `data/customers`, `data/purchases`.
+- Детерминизм генератора: seed берется из `SEED` (default `42`) или из CLI `--seed` (приоритет у CLI).
 
 ---
 
@@ -121,111 +143,41 @@ make init-grafana
 
 MVP skeleton for ProbablyFresh analytics platform (Stage 1).
 
-### Scope of this skeleton
+### Container-first run (PowerShell, no make)
 
-- Generate JSON files on disk for:
-  - `stores`: 45 files (30 Almost + 15 Maybe)
-  - `products`: 100 files minimum (20 in each of 5 categories)
-  - `customers`: at least one customer per store
-  - `purchases`: at least 200 purchases
-- Load generated JSON into MongoDB.
-- Publish 4 entity streams to Kafka and ingest to ClickHouse RAW tables:
-  - `stores_raw`
-  - `products_raw`
-  - `customers_raw`
-  - `purchases_raw`
-- Keep original payload shape as JSON in ClickHouse `payload` column.
-- Normalize and encrypt `phone` and `email` fields before publishing to Kafka.
-- Provision Grafana with a dashboard validating:
-  - stores count = 45
-  - purchases count >= 200
+Assumes `.env` is ready and `FERNET_KEY` is set.
 
-### Tech stack
-
-- Docker Compose services:
-  - Zookeeper
-  - Kafka
-  - MongoDB
-  - ClickHouse
-  - Grafana
-- Python package under `src/` for data generation and data movement tasks.
-
-### Project structure
-
-```text
-.
-├── .env.example
-├── docker-compose.yml
-├── Makefile
-├── requirements.txt
-├── infra/
-│   ├── clickhouse/init.sql
-│   └── grafana/
-│       ├── dashboards/probablyfresh-overview.json
-│       └── provisioning/
-│           ├── dashboards/dashboard.yml
-│           └── datasources/clickhouse.yml
-└── src/
-    ├── generator/generate_data.py
-    └── probablyfresh/
-        ├── config.py
-        ├── core/
-        ├── integrations/
-        └── jobs/
+```powershell
+docker compose --env-file .env down -v --remove-orphans
+docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana
+docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/generator/generate_data.py"
+docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/loader/load_to_mongo.py"
+Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
+docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"
 ```
 
-### Quick start
+### Validation query
 
-1. Create env file and set a real encryption key:
-
-```bash
-cp .env.example .env
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```sql
+SELECT 'stores' AS t, count() AS c FROM probablyfresh_raw.stores_raw
+UNION ALL
+SELECT 'products', count() FROM probablyfresh_raw.products_raw
+UNION ALL
+SELECT 'customers', count() FROM probablyfresh_raw.customers_raw
+UNION ALL
+SELECT 'purchases', count() FROM probablyfresh_raw.purchases_raw;
 ```
 
-Put generated key into `FERNET_KEY` in `.env`.
+Expected: `stores=45`, `products=100`, `customers>=45`, `purchases>=200`.
 
-2. Install Python dependencies:
+### Known compatibility issues
 
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+1. `ModuleNotFoundError: kafka.vendor.six.moves`
 
-3. Start infrastructure:
+Cause: `kafka-python==2.0.2` with Python 3.12.
 
-```bash
-make up
-```
+Fix: use `kafka-python==2.1.2` (already pinned in `requirements.txt`).
 
-4. Run pipeline steps:
+2. PowerShell `<` redirection fails for ClickHouse init command.
 
-```bash
-make generate-data
-make load-nosql
-make init-ch
-make run-producer
-make init-grafana
-```
-
-5. Open Grafana:
-
-- URL: `http://localhost:${GRAFANA_PORT}` (default `http://localhost:3000`)
-- Login: values from `.env` (`GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`)
-- Dashboard: `ProbablyFresh MVP Checks`
-
-### Make targets
-
-- `make up`: start Docker services.
-- `make down`: stop services and remove volumes.
-- `make generate-data`: run `src/generator/generate_data.py` and generate JSON files under `data/`.
-- `make load-nosql`: load JSON files into MongoDB via `docker compose run --rm app`.
-- `make init-ch`: create ClickHouse RAW + Kafka + MV objects.
-- `make run-producer`: publish encrypted/normalized payloads to Kafka.
-- `make init-grafana`: wait for Grafana health and provisioning readiness.
-
-### Notes
-
-- Generator is idempotent: before each run it removes only `*.json` files in `data/stores`, `data/products`, `data/customers`, `data/purchases` (service files like `.gitkeep` are preserved).
-- Generator determinism: seed is taken from `SEED` (default `42`) or CLI argument `--seed` (CLI takes precedence).
+Fix: use `Get-Content ... -Raw | docker compose ... clickhouse-client --multiquery`.
