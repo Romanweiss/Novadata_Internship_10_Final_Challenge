@@ -38,12 +38,19 @@ services:
     image: python:3.12-slim
     depends_on:
       - mongodb
+      - kafka
     working_dir: /workspace
     volumes:
       - ./:/workspace
     environment:
-      - MONGO_URI=${MONGO_URI}
+      - MONGO_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB}?authSource=admin
       - MONGO_DB=${MONGO_DB}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_TOPIC_STORES=${KAFKA_TOPIC_STORES}
+      - KAFKA_TOPIC_PRODUCTS=${KAFKA_TOPIC_PRODUCTS}
+      - KAFKA_TOPIC_CUSTOMERS=${KAFKA_TOPIC_CUSTOMERS}
+      - KAFKA_TOPIC_PURCHASES=${KAFKA_TOPIC_PURCHASES}
+      - FERNET_KEY=${FERNET_KEY}
     command: ["sh", "-lc", "sleep infinity"]
 
   clickhouse:

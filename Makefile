@@ -16,10 +16,10 @@ load-nosql:
 	docker compose --env-file $(ENV_FILE) run --rm app sh -lc "pip install -r requirements.txt && python src/loader/load_to_mongo.py"
 
 init-ch:
-	PYTHONPATH=src $(PYTHON) -m probablyfresh.jobs.init_clickhouse
+	docker compose --env-file $(ENV_FILE) exec -T clickhouse clickhouse-client --multiquery < docker/clickhouse/init/01_init.sql
 
 run-producer:
-	PYTHONPATH=src $(PYTHON) -m probablyfresh.jobs.run_producer
+	docker compose --env-file $(ENV_FILE) run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"
 
 init-grafana:
 	PYTHONPATH=src $(PYTHON) -m probablyfresh.jobs.init_grafana
