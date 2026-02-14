@@ -1,7 +1,7 @@
 ﻿PYTHON ?= python
 ENV_FILE ?= .env
 
-.PHONY: up down generate-data load-nosql init-ch run-producer init-grafana
+.PHONY: up down generate-data load-nosql init-ch mart-init run-producer init-grafana
 
 up:
 	docker compose --env-file $(ENV_FILE) up -d
@@ -17,6 +17,9 @@ load-nosql:
 
 init-ch:
 	docker compose --env-file $(ENV_FILE) exec -T clickhouse clickhouse-client --multiquery < docker/clickhouse/init/01_init.sql
+
+mart-init:
+	docker compose --env-file $(ENV_FILE) exec -T clickhouse clickhouse-client --multiquery < docker/clickhouse/init/02_mart.sql
 
 run-producer:
 	docker compose --env-file $(ENV_FILE) run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"
