@@ -61,6 +61,67 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 6. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"`
 7. Открыть Grafana и увидеть метрики в dashboard `ProbablyFresh RAW Overview`
 
+### Полная чистая проверка с нуля (PowerShell)
+
+Ниже сценарий для полностью чистого прогона без накопленных данных в RAW.
+
+1. `cd F:\DE_intern\probablyfresh-analytics-platform`  
+Переход в корень репозитория, чтобы все относительные пути (`docker/...`, `src/...`) работали корректно.
+
+2. `docker compose --env-file .env down -v`  
+Останавливает и удаляет контейнеры, сеть и volumes проекта.  
+Важно: удаляются накопленные данные MongoDB, ClickHouse и Grafana, поэтому это именно "чистый старт".
+
+3. `docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana`  
+Поднимает инфраструктуру в фоне:
+- `zookeeper` и `kafka` для стриминга,
+- `mongodb` как NoSQL источник,
+- `clickhouse` как RAW/MART хранилище,
+- `app` как контейнер-раннер Python-скриптов,
+- `grafana` для визуальной проверки.
+
+4. `Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`  
+Инициализирует RAW-слой в ClickHouse:
+- БД `probablyfresh_raw`,
+- RAW таблицы,
+- Kafka Engine таблицы,
+- Materialized Views Kafka -> RAW.
+
+5. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`  
+Инициализирует MART-слой:
+- БД `probablyfresh_mart`,
+- MART таблицы на `ReplacingMergeTree(ingested_at)`,
+- Materialized Views RAW -> MART с очисткой/валидацией,
+- таблицу качества `mart_quality_stats`,
+- стартовый snapshot quality-метрик.
+
+6. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/generator/generate_data.py"`  
+Генерирует JSON-файлы в `data/` (`stores`, `products`, `customers`, `purchases`) по правилам MVP.
+
+7. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/loader/load_to_mongo.py"`  
+Загружает сгенерированные JSON в MongoDB с upsert по бизнес-ключам.
+
+8. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"`  
+Читает данные из MongoDB и публикует их в Kafka по топикам сущностей.  
+Для `customers` и `purchases` перед публикацией выполняются:
+- нормализация `email`/`phone`,
+- шифрование `email`/`phone` через Fernet.
+
+9. `Start-Sleep -Seconds 5`  
+Короткая пауза, чтобы Kafka consumer в ClickHouse успел дочитать сообщения и записать их в RAW/MART.
+
+10. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`  
+Повторно выполняет `02_mart.sql` для обновления snapshot в `mart_quality_stats`.  
+Это нужно для актуальных значений `duplicates_rows` и `duplicates_ratio` на момент текущего прогона.
+
+Ожидаемый результат после одного чистого прогона:
+- `probablyfresh_raw.stores_raw = 45`
+- `probablyfresh_raw.products_raw = 100`
+- `probablyfresh_raw.customers_raw >= 45` (обычно `175`)
+- `probablyfresh_raw.purchases_raw = 200`
+- `probablyfresh_mart.purchases_mart FINAL = 200`
+- `duplicates_ratio` по `purchases` в последнем snapshot = `0`
+
 ### Проверка результата
 
 Запрос в ClickHouse/DBeaver:
