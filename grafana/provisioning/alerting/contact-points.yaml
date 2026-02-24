@@ -1,0 +1,15 @@
+﻿apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: rwss_grafana_bot
+    receivers:
+      - uid: rwss_grafana_bot_telegram
+        type: telegram
+        disableResolveMessage: false
+        settings:
+          bottoken: $__env{TELEGRAM_BOT_TOKEN}
+          chatid: "253807543"
+          parse_mode: "HTML"
+          disable_web_page_preview: true
+          message: '{{ template "probablyfresh.telegram.message" . }}'

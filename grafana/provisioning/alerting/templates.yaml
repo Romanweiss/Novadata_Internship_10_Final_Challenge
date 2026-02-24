@@ -1,0 +1,17 @@
+﻿apiVersion: 1
+
+templates:
+  - orgId: 1
+    name: probablyfresh.telegram.message
+    template: |
+      {{ define "probablyfresh.telegram.message" }}
+      {{- $status := "RESOLVED" -}}
+      {{- if eq .Status "firing" }}{{ $status = "FIRING" }}{{ end -}}
+      {{- range .Alerts }}
+      [{{ $status }}] {{ .Labels.alertname }} | value={{ or .Annotations.value "n/a" }}
+      folder: {{ or .Labels.grafana_folder "n/a" }}
+      entity: {{ or .Labels.entity "n/a" }}
+      value: {{ or .Annotations.value "n/a" }}
+      rule: {{ .GeneratorURL }}
+      {{ end -}}
+      {{ end }}

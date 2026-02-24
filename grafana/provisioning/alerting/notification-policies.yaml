@@ -1,0 +1,13 @@
+﻿apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: rwss_grafana_bot
+    group_by: ["alertname", "grafana_folder", "entity"]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 1h
+    routes:
+      - receiver: rwss_grafana_bot
+        object_matchers:
+          - ["grafana_folder", "=", "ProbablyFresh"]

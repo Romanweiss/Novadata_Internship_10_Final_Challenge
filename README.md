@@ -35,13 +35,14 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 ├── Makefile
 ├── requirements.txt
 ├── data/
+├── grafana/
+│   └── provisioning/
+│       ├── alerting/
+│       ├── dashboards/dashboard.yaml
+│       └── datasources/clickhouse.yaml
 ├── docker/
 │   ├── clickhouse/init/01_init.sql
-│   └── grafana/
-│       ├── dashboards/probablyfresh_raw_overview.json
-│       └── provisioning/
-│           ├── dashboards/dashboard.yaml
-│           └── datasources/clickhouse.yaml
+│   └── grafana/dashboards/probablyfresh_raw_overview.json
 └── src/
     ├── generator/generate_data.py
     ├── loader/load_to_mongo.py
@@ -60,6 +61,17 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 5. `Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
 6. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"`
 7. Открыть Grafana и увидеть метрики в dashboard `ProbablyFresh RAW Overview`
+
+### Telegram alerting (provisioning)
+
+1. Добавить в `.env` переменную:
+   - `TELEGRAM_BOT_TOKEN=<your_bot_token>`
+2. Поднять стек:
+   - `docker compose --env-file .env up -d`
+3. После старта Grafana автоматически создаст:
+   - contact point `rwss_grafana_bot`,
+   - notification policy,
+   - alert rule `Duplicates_ratio`.
 
 ### Полная чистая проверка с нуля (PowerShell)
 
@@ -214,6 +226,17 @@ Strict run order (container-first, no make):
 5. `Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
 6. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"`
 7. Open Grafana and verify metrics on dashboard `ProbablyFresh RAW Overview`
+
+### Telegram alerting (provisioning)
+
+1. Add to `.env`:
+   - `TELEGRAM_BOT_TOKEN=<your_bot_token>`
+2. Start the stack:
+   - `docker compose --env-file .env up -d`
+3. Grafana will auto-provision:
+   - contact point `rwss_grafana_bot`,
+   - notification policy,
+   - alert rule `Duplicates_ratio`.
 
 ### Validation query
 

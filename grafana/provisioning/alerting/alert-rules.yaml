@@ -1,0 +1,105 @@
+﻿apiVersion: 1
+
+deleteRules:
+  - orgId: 1
+    uid: duplicates_ratio_rule
+  - orgId: 1
+    uid: duplicates_ratio_rule_v2
+
+groups:
+  - orgId: 1
+    name: probablyfresh-alerts
+    folder: ProbablyFresh
+    interval: 1m
+    rules:
+      - uid: ffe86g41jp8u8b
+        title: Duplicates_ratio
+        condition: C
+        data:
+          - refId: A
+            queryType: table
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: clickhouse_raw
+            model:
+              datasource:
+                type: grafana-clickhouse-datasource
+                uid: clickhouse_raw
+              editorType: sql
+              format: 1
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: table
+              rawSql: "SELECT duplicates_ratio FROM probablyfresh_mart.mart_quality_stats WHERE entity='purchases' ORDER BY event_time DESC LIMIT 1"
+              refId: A
+          - refId: B
+            queryType: ""
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: []
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            queryType: ""
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0.5
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 1m
+        labels:
+          grafana_folder: ProbablyFresh
+          entity: purchases
+        annotations:
+          summary: "purchases duplicates_ratio is above threshold"
+          value: '{{ $values.B.Value }}'
+        notification_settings:
+          receiver: rwss_grafana_bot
+        isPaused: false
