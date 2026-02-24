@@ -36,6 +36,8 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 ├── PROGRAM_OVERVIEW.md
 ├── requirements.txt
 ├── data/
+├── jobs/
+│   └── features_etl.py
 ├── grafana/
 │   └── provisioning/
 │       ├── alerting/
@@ -81,6 +83,32 @@ MVP-скелет аналитической платформы ProbablyFresh (э
    - notification policy,
    - alert rule `Duplicates_ratio`,
    - notification template `probablyfresh.telegram.message`.
+
+### PySpark features ETL (Docker)
+
+Подготовка `.env` (если нужно поменять значения):
+
+- `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`, `CH_DATABASE=probablyfresh_mart`
+- `SPARK_MASTER=local[*]`
+- `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_OBJECT_PREFIX`
+
+Важно: для запуска job внутри Docker-контейнера `app` используйте `CH_HOST=clickhouse` (имя сервиса в compose), а не `localhost`.
+
+Запуск через Docker (без изменения существующего пайплайна):
+
+1. Поднять сервисы:
+   - `docker compose --env-file .env up -d clickhouse app`
+2. Убедиться, что `probablyfresh_mart.customers_mart` и `probablyfresh_mart.purchases_mart` уже заполнены.
+3. Запустить job:
+   - `docker compose --env-file .env run --rm app sh -lc "if ! command -v java >/dev/null 2>&1; then apt-get update && (apt-get install -y --no-install-recommends default-jre-headless || apt-get install -y --no-install-recommends openjdk-21-jre-headless); fi && pip install -r requirements.txt pyspark boto3 && python jobs/features_etl.py"`
+
+Альтернатива через Makefile:
+
+- `make features-etl`
+
+Результат:
+
+- в S3/MinIO загружается файл `analytic_result_YYYY_MM_DD.csv` в bucket из `.env`.
 
 ### Полная чистая проверка с нуля (PowerShell)
 
@@ -216,6 +244,7 @@ LIMIT 1;
 - `make mart-init` — инициализация MART и snapshot quality-метрик.
 - `make run-producer` — публикация Mongo -> Kafka (`--once`).
 - `make init-grafana` — поднять Grafana (provisioning автоматический).
+- `make features-etl` — PySpark ETL признаков и загрузка CSV в S3/MinIO.
 
 ### Известные несовместимости и частые ошибки
 
@@ -289,6 +318,32 @@ For MART and quality metrics (used by dashboard and alerting), also run:
    - notification policy,
    - alert rule `Duplicates_ratio`,
    - notification template `probablyfresh.telegram.message`.
+
+### PySpark features ETL (Docker)
+
+Prepare `.env` (adjust if needed):
+
+- `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`, `CH_DATABASE=probablyfresh_mart`
+- `SPARK_MASTER=local[*]`
+- `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_OBJECT_PREFIX`
+
+Important: when running the job inside Docker `app` container, use `CH_HOST=clickhouse` (compose service name), not `localhost`.
+
+Run via Docker:
+
+1. Start services:
+   - `docker compose --env-file .env up -d clickhouse app`
+2. Ensure `probablyfresh_mart.customers_mart` and `probablyfresh_mart.purchases_mart` are populated.
+3. Run job:
+   - `docker compose --env-file .env run --rm app sh -lc "if ! command -v java >/dev/null 2>&1; then apt-get update && (apt-get install -y --no-install-recommends default-jre-headless || apt-get install -y --no-install-recommends openjdk-21-jre-headless); fi && pip install -r requirements.txt pyspark boto3 && python jobs/features_etl.py"`
+
+Makefile shortcut:
+
+- `make features-etl`
+
+Output:
+
+- uploads `analytic_result_YYYY_MM_DD.csv` to S3/MinIO bucket from `.env`.
 
 ### Validation query
 
