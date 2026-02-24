@@ -33,6 +33,7 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 ├── .env.example
 ├── docker-compose.yml
 ├── Makefile
+├── PROGRAM_OVERVIEW.md
 ├── requirements.txt
 ├── data/
 ├── grafana/
@@ -42,6 +43,7 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 │       └── datasources/clickhouse.yaml
 ├── docker/
 │   ├── clickhouse/init/01_init.sql
+│   ├── clickhouse/init/02_mart.sql
 │   └── grafana/dashboards/probablyfresh_raw_overview.json
 └── src/
     ├── generator/generate_data.py
@@ -62,6 +64,12 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 6. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"`
 7. Открыть Grafana и увидеть метрики в dashboard `ProbablyFresh RAW Overview`
 
+Для MART и quality-метрик (используются на dashboard и в alerting) дополнительно выполнить:
+
+1. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
+2. `Start-Sleep -Seconds 5`
+3. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
+
 ### Telegram alerting (provisioning)
 
 1. Добавить в `.env` переменную:
@@ -71,7 +79,8 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 3. После старта Grafana автоматически создаст:
    - contact point `rwss_grafana_bot`,
    - notification policy,
-   - alert rule `Duplicates_ratio`.
+   - alert rule `Duplicates_ratio`,
+   - notification template `probablyfresh.telegram.message`.
 
 ### Полная чистая проверка с нуля (PowerShell)
 
@@ -155,6 +164,31 @@ SELECT 'purchases', count() FROM probablyfresh_raw.purchases_raw;
 - `customers >= 45`
 - `purchases >= 200`
 
+Проверка MART и alert-метрики:
+
+```sql
+SELECT
+  event_time,
+  entity,
+  total_rows_raw,
+  inserted_rows_mart,
+  invalid_rows,
+  duplicates_rows,
+  duplicates_ratio
+FROM probablyfresh_mart.mart_quality_stats
+WHERE entity = 'purchases'
+ORDER BY event_time DESC
+LIMIT 3;
+```
+
+```sql
+SELECT duplicates_ratio
+FROM probablyfresh_mart.mart_quality_stats
+WHERE entity = 'purchases'
+ORDER BY event_time DESC
+LIMIT 1;
+```
+
 Проверка в Grafana:
 
 1. Открыть `http://localhost:3000`.
@@ -169,8 +203,19 @@ SELECT 'purchases', count() FROM probablyfresh_raw.purchases_raw;
 
 - Host: `localhost`
 - Port: `9000` (native) или `8123` (HTTP)
-- Database: `probablyfresh_raw`
+- Database: `probablyfresh_raw` или `probablyfresh_mart`
 - User/Password: из `.env` (`CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD`)
+
+### Быстрые команды Makefile
+
+- `make up` — поднять все сервисы.
+- `make down` — остановить и удалить сервисы и volumes.
+- `make generate-data` — генерация JSON.
+- `make load-nosql` — загрузка JSON в MongoDB.
+- `make init-ch` — инициализация RAW в ClickHouse.
+- `make mart-init` — инициализация MART и snapshot quality-метрик.
+- `make run-producer` — публикация Mongo -> Kafka (`--once`).
+- `make init-grafana` — поднять Grafana (provisioning автоматический).
 
 ### Известные несовместимости и частые ошибки
 
@@ -227,6 +272,12 @@ Strict run order (container-first, no make):
 6. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"`
 7. Open Grafana and verify metrics on dashboard `ProbablyFresh RAW Overview`
 
+For MART and quality metrics (used by dashboard and alerting), also run:
+
+1. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
+2. `Start-Sleep -Seconds 5`
+3. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
+
 ### Telegram alerting (provisioning)
 
 1. Add to `.env`:
@@ -236,7 +287,8 @@ Strict run order (container-first, no make):
 3. Grafana will auto-provision:
    - contact point `rwss_grafana_bot`,
    - notification policy,
-   - alert rule `Duplicates_ratio`.
+   - alert rule `Duplicates_ratio`,
+   - notification template `probablyfresh.telegram.message`.
 
 ### Validation query
 
@@ -251,6 +303,31 @@ SELECT 'purchases', count() FROM probablyfresh_raw.purchases_raw;
 ```
 
 Expected: `stores=45`, `products=100`, `customers>=45`, `purchases>=200`.
+
+MART and alert-metric validation:
+
+```sql
+SELECT
+  event_time,
+  entity,
+  total_rows_raw,
+  inserted_rows_mart,
+  invalid_rows,
+  duplicates_rows,
+  duplicates_ratio
+FROM probablyfresh_mart.mart_quality_stats
+WHERE entity = 'purchases'
+ORDER BY event_time DESC
+LIMIT 3;
+```
+
+```sql
+SELECT duplicates_ratio
+FROM probablyfresh_mart.mart_quality_stats
+WHERE entity = 'purchases'
+ORDER BY event_time DESC
+LIMIT 1;
+```
 
 Grafana validation:
 
