@@ -72,6 +72,22 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 2. `Start-Sleep -Seconds 5`
 3. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
 
+### ETL to S3
+
+После построения MART (шаги выше), выполните:
+
+1. Заполнить `.env`:
+   - `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`
+   - `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
+2. Создать bucket `analytics` (если не создается автоматически):
+   - `mc alias set local http://localhost:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY`
+   - `mc ls local/$MINIO_BUCKET`
+3. Запустить ETL:
+   - `make run-etl`
+4. Проверить файл в MinIO:
+   - `mc ls local/$MINIO_BUCKET`
+   - `mc cat local/$MINIO_BUCKET/analytic_result_YYYY_MM_DD.csv | head`
+
 ### Telegram alerting (provisioning)
 
 1. Добавить в `.env` переменную:
@@ -90,7 +106,8 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 
 - `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`, `CH_DATABASE=probablyfresh_mart`
 - `SPARK_MASTER=local[*]`
-- `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_OBJECT_PREFIX`
+- `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_BUCKET`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_OBJECT_PREFIX`
+- (опционально, для обратной совместимости) `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_OBJECT_PREFIX`
 
 Важно: для запуска job внутри Docker-контейнера `app` используйте `CH_HOST=clickhouse` (имя сервиса в compose), а не `localhost`.
 
@@ -100,11 +117,11 @@ MVP-скелет аналитической платформы ProbablyFresh (э
    - `docker compose --env-file .env up -d clickhouse app`
 2. Убедиться, что `probablyfresh_mart.customers_mart` и `probablyfresh_mart.purchases_mart` уже заполнены.
 3. Запустить job:
-   - `docker compose --env-file .env run --rm app sh -lc "if ! command -v java >/dev/null 2>&1; then apt-get update && (apt-get install -y --no-install-recommends default-jre-headless || apt-get install -y --no-install-recommends openjdk-21-jre-headless); fi && pip install -r requirements.txt pyspark boto3 && python jobs/features_etl.py"`
+   - `make run-etl`
 
 Альтернатива через Makefile:
 
-- `make features-etl`
+- `make features-etl` (alias на `make run-etl`)
 
 Результат:
 
@@ -244,7 +261,8 @@ LIMIT 1;
 - `make mart-init` — инициализация MART и snapshot quality-метрик.
 - `make run-producer` — публикация Mongo -> Kafka (`--once`).
 - `make init-grafana` — поднять Grafana (provisioning автоматический).
-- `make features-etl` — PySpark ETL признаков и загрузка CSV в S3/MinIO.
+- `make run-etl` — PySpark ETL признаков (через `spark-submit`) и загрузка CSV в S3/MinIO.
+- `make features-etl` — alias на `make run-etl`.
 
 ### Известные несовместимости и частые ошибки
 
@@ -307,6 +325,22 @@ For MART and quality metrics (used by dashboard and alerting), also run:
 2. `Start-Sleep -Seconds 5`
 3. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
 
+### ETL to S3
+
+After MART is built (steps above), run:
+
+1. Fill `.env`:
+   - `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`
+   - `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
+2. Create bucket `analytics` (if not auto-created):
+   - `mc alias set local http://localhost:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY`
+   - `mc ls local/$MINIO_BUCKET`
+3. Run ETL:
+   - `make run-etl`
+4. Verify file in MinIO:
+   - `mc ls local/$MINIO_BUCKET`
+   - `mc cat local/$MINIO_BUCKET/analytic_result_YYYY_MM_DD.csv | head`
+
 ### Telegram alerting (provisioning)
 
 1. Add to `.env`:
@@ -325,7 +359,8 @@ Prepare `.env` (adjust if needed):
 
 - `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`, `CH_DATABASE=probablyfresh_mart`
 - `SPARK_MASTER=local[*]`
-- `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_OBJECT_PREFIX`
+- `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_BUCKET`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_OBJECT_PREFIX`
+- (optional, backward compatible) `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_OBJECT_PREFIX`
 
 Important: when running the job inside Docker `app` container, use `CH_HOST=clickhouse` (compose service name), not `localhost`.
 
@@ -335,11 +370,11 @@ Run via Docker:
    - `docker compose --env-file .env up -d clickhouse app`
 2. Ensure `probablyfresh_mart.customers_mart` and `probablyfresh_mart.purchases_mart` are populated.
 3. Run job:
-   - `docker compose --env-file .env run --rm app sh -lc "if ! command -v java >/dev/null 2>&1; then apt-get update && (apt-get install -y --no-install-recommends default-jre-headless || apt-get install -y --no-install-recommends openjdk-21-jre-headless); fi && pip install -r requirements.txt pyspark boto3 && python jobs/features_etl.py"`
+   - `make run-etl`
 
 Makefile shortcut:
 
-- `make features-etl`
+- `make features-etl` (alias to `make run-etl`)
 
 Output:
 

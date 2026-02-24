@@ -28,11 +28,27 @@ def _required_env(name: str) -> str:
     return value
 
 
+def _required_any_env(*names: str) -> str:
+    for name in names:
+        value = os.getenv(name, "").strip()
+        if value:
+            return value
+    raise RuntimeError(f"One of environment variables {', '.join(names)} is required")
+
+
 def _optional_env(name: str, default: str) -> str:
     value = os.getenv(name)
     if value is None:
         return default
     return value.strip() or default
+
+
+def _optional_any_env(default: str, *names: str) -> str:
+    for name in names:
+        value = os.getenv(name)
+        if value is not None and value.strip():
+            return value.strip()
+    return default
 
 
 def _build_spark_session() -> SparkSession:
@@ -182,12 +198,12 @@ def _normalize_endpoint(endpoint: str) -> str:
 
 
 def _upload_to_s3(local_csv_path: Path) -> str:
-    endpoint_url = _normalize_endpoint(_required_env("S3_ENDPOINT_URL"))
-    region = _optional_env("S3_REGION", "ru-3")
-    bucket = _required_env("S3_BUCKET")
-    access_key = _required_env("S3_ACCESS_KEY")
-    secret_key = _required_env("S3_SECRET_KEY")
-    prefix = _optional_env("S3_OBJECT_PREFIX", "")
+    endpoint_url = _normalize_endpoint(_required_any_env("MINIO_ENDPOINT", "S3_ENDPOINT_URL"))
+    region = _optional_any_env("ru-3", "MINIO_REGION", "S3_REGION")
+    bucket = _required_any_env("MINIO_BUCKET", "S3_BUCKET")
+    access_key = _required_any_env("MINIO_ACCESS_KEY", "S3_ACCESS_KEY")
+    secret_key = _required_any_env("MINIO_SECRET_KEY", "S3_SECRET_KEY")
+    prefix = _optional_any_env("", "MINIO_OBJECT_PREFIX", "S3_OBJECT_PREFIX")
 
     object_name = f"analytic_result_{datetime.now(timezone.utc):%Y_%m_%d}.csv"
     object_key = f"{prefix.strip('/')}/{object_name}" if prefix.strip("/") else object_name
