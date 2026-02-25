@@ -1,50 +1,66 @@
-ProbablyFresh: full start from zero (PowerShell, Docker only)
+﻿ProbablyFresh: полный запуск с нуля (PowerShell, Docker-only)
 
-1) Open project folder
+1) Открыть папку проекта
 cd F:\DE_intern\probablyfresh-analytics-platform
 
-2) Prepare env (one time)
+2) Подготовить env (один раз)
 copy .env.example .env
 
-3) Build app image (one time, or after requirements/Dockerfile changes)
+3) Собрать app-образ (один раз, либо после изменений requirements/Dockerfile)
 docker compose --env-file .env build app
 
-4) Full reset of infrastructure and data
+4) Полный сброс инфраструктуры и данных
 docker compose --env-file .env down -v
 
-5) Start all required services
-docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana
+5) Поднять сервисы
+docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana airflow-postgres airflow
 
-6) Wait until ClickHouse is ready (important)
+6) Дождаться готовности ClickHouse (обязательно)
 do { Start-Sleep -Seconds 2; docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 1" } while ($LASTEXITCODE -ne 0)
 
-7) Initialize ClickHouse RAW + MART
+7) Инициализировать RAW-слой ClickHouse (Kafka Engine + MV + RAW таблицы, включая purchase_items_raw)
 Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
+
+8) Инициализировать MART-слой ClickHouse (включая purchase_items_mart и mart_quality_stats)
 Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
 
-8) Generate demo JSON data
+9) Сгенерировать демо JSON
 docker compose --env-file .env run --rm app python src/generator/generate_data.py
 
-9) Load JSON into MongoDB
+10) Загрузить JSON в MongoDB
 docker compose --env-file .env run --rm app python src/loader/load_to_mongo.py
 
-10) Publish Mongo -> Kafka (once)
+11) Опубликовать Mongo -> Kafka (--once)
 docker compose --env-file .env run --rm app python src/streaming/produce_from_mongo.py --once
 
-11) Give ClickHouse time to consume Kafka messages
+12) Дать ClickHouse время дочитать Kafka
 Start-Sleep -Seconds 5
 
-12) Refresh quality snapshot (from 02_mart.sql)
+13) Обновить snapshot качества в MART (повторный запуск 02_mart.sql)
 Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
 
-13) Validate RAW/MART row counts
-docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 'stores_raw' AS t, count() AS c FROM probablyfresh_raw.stores_raw UNION ALL SELECT 'products_raw', count() FROM probablyfresh_raw.products_raw UNION ALL SELECT 'customers_raw', count() FROM probablyfresh_raw.customers_raw UNION ALL SELECT 'purchases_raw', count() FROM probablyfresh_raw.purchases_raw"
-docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 'customers_mart' AS t, count() AS c FROM probablyfresh_mart.customers_mart UNION ALL SELECT 'purchases_mart', count() FROM probablyfresh_mart.purchases_mart"
-
-14) Run ETL to S3/MinIO (no repeated pyspark install/download)
+14) Запустить ETL в S3/MinIO (Spark из app контейнера, без повторной загрузки pyspark)
 docker compose --env-file .env run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py
 
-15) Validate output file in MinIO/S3 via mc
-mc alias set local http://localhost:9000 $env:MINIO_ACCESS_KEY $env:MINIO_SECRET_KEY
-mc ls local/$env:MINIO_BUCKET
-mc cat local/$env:MINIO_BUCKET/analytic_result_YYYY_MM_DD.csv | Select-Object -First 10
+После пункта 14 — чистые команды (copy/paste)
+
+cd F:\DE_intern\probablyfresh-analytics-platform
+copy .env.example .env
+docker compose --env-file .env build app
+docker compose --env-file .env down -v
+docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana airflow-postgres airflow
+do { Start-Sleep -Seconds 2; docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 1" } while ($LASTEXITCODE -ne 0)
+Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
+Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
+docker compose --env-file .env run --rm app python src/generator/generate_data.py
+docker compose --env-file .env run --rm app python src/loader/load_to_mongo.py
+docker compose --env-file .env run --rm app python src/streaming/produce_from_mongo.py --once
+Start-Sleep -Seconds 5
+Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
+docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 'stores_raw' AS t, count() AS c FROM probablyfresh_raw.stores_raw UNION ALL SELECT 'products_raw', count() FROM probablyfresh_raw.products_raw UNION ALL SELECT 'customers_raw', count() FROM probablyfresh_raw.customers_raw UNION ALL SELECT 'purchases_raw', count() FROM probablyfresh_raw.purchases_raw UNION ALL SELECT 'purchase_items_raw', count() FROM probablyfresh_raw.purchase_items_raw"
+docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 'customers_mart_final' AS t, count() AS c FROM probablyfresh_mart.customers_mart FINAL UNION ALL SELECT 'purchases_mart_final', count() FROM probablyfresh_mart.purchases_mart FINAL UNION ALL SELECT 'purchase_items_mart_final', count() FROM probablyfresh_mart.purchase_items_mart FINAL"
+docker compose --env-file .env run --rm app python scripts/smoke_check.py
+docker compose --env-file .env run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py
+docker compose --env-file .env exec airflow airflow dags unpause etl_to_s3_daily
+docker compose --env-file .env exec airflow airflow dags trigger etl_to_s3_daily
+docker compose --env-file .env exec airflow airflow dags list-runs -d etl_to_s3_daily
