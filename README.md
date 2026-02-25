@@ -74,6 +74,15 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 2. `Start-Sleep -Seconds 5`
 3. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
 
+После MART и ETL (S3 выгрузка) включить и проверить Airflow DAG:
+
+1. `docker compose --env-file .env up -d airflow-postgres airflow`
+2. Открыть `http://localhost:8080` (логин/пароль: `admin/admin` или из `.env`)
+3. Включить DAG (unpause):
+   - `docker compose --env-file .env exec airflow airflow dags unpause etl_to_s3_daily`
+4. Запустить DAG вручную (Trigger DAG):
+   - `docker compose --env-file .env exec airflow airflow dags trigger etl_to_s3_daily`
+
 ### Airflow
 
 Airflow запускается отдельными сервисами `airflow-postgres` и `airflow`:
@@ -91,6 +100,19 @@ Airflow запускается отдельными сервисами `airflow-
 
 Примечание:
 - первый старт может занимать 1-2 минуты (миграции БД + создание admin пользователя).
+
+### Airflow DAG: etl_to_s3_daily
+
+DAG `etl_to_s3_daily` запускается ежедневно в `10:00` по timezone `Europe/Moscow` (`UTC+3`), `catchup=False`, `max_active_runs=1`.
+
+Что делает DAG:
+
+1. `wait_clickhouse` — проверяет доступность ClickHouse.
+2. `run_etl` — запускает `jobs/features_etl.py` внутри контейнера `app` через `docker exec`.
+3. `verify_minio` — проверяет наличие объекта `analytic_result_YYYY_MM_DD.csv` в bucket MinIO/S3.
+
+Примечание по timezone:
+- расписание считается в `UTC+3` (`Europe/Moscow`), поэтому запуск "в 10:00" относится к московскому времени.
 
 ### ETL to S3
 
@@ -377,6 +399,28 @@ For MART and quality metrics (used by dashboard and alerting), also run:
 1. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
 2. `Start-Sleep -Seconds 5`
 3. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
+
+After MART and ETL (S3 export), enable and test Airflow DAG:
+
+1. `docker compose --env-file .env up -d airflow-postgres airflow`
+2. Open `http://localhost:8080` (login/password: `admin/admin` or values from `.env`)
+3. Unpause DAG:
+   - `docker compose --env-file .env exec airflow airflow dags unpause etl_to_s3_daily`
+4. Trigger DAG manually:
+   - `docker compose --env-file .env exec airflow airflow dags trigger etl_to_s3_daily`
+
+### Airflow DAG: etl_to_s3_daily
+
+`etl_to_s3_daily` runs daily at `10:00` in timezone `Europe/Moscow` (`UTC+3`), with `catchup=False` and `max_active_runs=1`.
+
+What the DAG does:
+
+1. `wait_clickhouse` — checks ClickHouse availability.
+2. `run_etl` — runs `jobs/features_etl.py` inside the `app` container via `docker exec`.
+3. `verify_minio` — verifies `analytic_result_YYYY_MM_DD.csv` exists in MinIO/S3 bucket.
+
+Timezone note:
+- schedule is interpreted in `UTC+3` (`Europe/Moscow`), so "10:00 daily" means Moscow local time.
 
 ### ETL to S3
 
