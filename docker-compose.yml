@@ -130,6 +130,63 @@
       - CLICKHOUSE_JDBC_JAR=/opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar
     command: ["sh", "-lc", "sleep infinity"]
 
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    depends_on:
+      - clickhouse
+      - mongodb
+      - kafka
+      - airflow
+    working_dir: /workspace
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./:/workspace
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-dev-only-change-me}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-1}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      - API_TOKEN=${API_TOKEN:-}
+      - API_TOKEN_USER=${API_TOKEN_USER:-api}
+      - DATABASE_URL=${DATABASE_URL:-}
+      - JOB_WORKDIR=${JOB_WORKDIR:-/workspace}
+      - JOB_TIMEOUT_SECONDS=${JOB_TIMEOUT_SECONDS:-1800}
+      - MONGO_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB}?authSource=admin
+      - MONGO_DB=${MONGO_DB}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - CLICKHOUSE_HOST=${CLICKHOUSE_HOST:-clickhouse}
+      - CLICKHOUSE_PORT=${CLICKHOUSE_HTTP_PORT:-8123}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
+      - CLICKHOUSE_DB_RAW=${CLICKHOUSE_DB_RAW:-probablyfresh_raw}
+      - CLICKHOUSE_DB_MART=${CLICKHOUSE_DB_MART:-probablyfresh_mart}
+      - CH_HOST=${CH_HOST:-clickhouse}
+      - CH_PORT=${CH_PORT:-8123}
+      - CH_USER=${CH_USER:-default}
+      - CH_PASSWORD=${CH_PASSWORD:-}
+      - CH_DATABASE=${CH_DATABASE:-probablyfresh_mart}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-http://minio:9000}
+      - MINIO_REGION=${MINIO_REGION:-ru-3}
+      - MINIO_BUCKET=${MINIO_BUCKET:-analytics}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-}
+      - AIRFLOW_BASE_URL=${AIRFLOW_BASE_URL:-http://airflow:8080}
+      - AIRFLOW_USER=${AIRFLOW_USER:-admin}
+      - AIRFLOW_PASSWORD=${AIRFLOW_PASSWORD:-admin}
+      - AIRFLOW_DAG_ID=${AIRFLOW_DAG_ID:-etl_to_s3_daily}
+      - GRAFANA_URL=${GRAFANA_URL:-http://grafana:3000}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    command:
+      - sh
+      - -lc
+      - |
+        python backend/manage.py migrate &&
+        python backend/manage.py ensure_api_token &&
+        python backend/manage.py runserver 0.0.0.0:8001
+
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
     ports:

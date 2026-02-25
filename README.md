@@ -158,6 +158,50 @@ CSV check: 31 columns and binary feature values (0/1) on first 5 rows
 SMOKE CHECK PASSED
 ```
 
+### Backend API
+
+MVP backend (Django + DRF) обслуживает UI Control Panel и экшены пайплайна.
+
+Запуск:
+
+1. `docker compose --env-file .env build backend`
+2. `docker compose --env-file .env up -d backend`
+3. API доступен:
+   - в Docker сети: `http://backend:8001/api`
+   - с хоста: `http://localhost:8001/api`
+4. OpenAPI:
+   - schema: `http://localhost:8001/api/schema/`
+   - docs: `http://localhost:8001/api/docs/`
+
+Auth:
+
+- `TokenAuthentication`
+- header: `Authorization: Token <token>`
+- стартовый токен:
+  - либо задайте `API_TOKEN` в `.env` до запуска `backend`,
+  - либо получите автоматически созданный токен в логах `ensure_api_token`.
+
+Polling модель для UI:
+
+1. UI вызывает `POST /api/actions/<action-name>`
+2. backend возвращает `run_id`
+3. UI опрашивает `GET /api/runs/{run_id}` каждые 1-2 сек до `success|failed`
+
+Примеры `curl`:
+
+```bash
+curl -H "Authorization: Token $API_TOKEN" \
+  http://localhost:8001/api/overview/kpis
+
+curl -X POST -H "Authorization: Token $API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"seed":42}' \
+  http://localhost:8001/api/actions/generate-data
+
+curl -H "Authorization: Token $API_TOKEN" \
+  http://localhost:8001/api/runs/<run_id>
+```
+
 ### Telegram alerting (provisioning)
 
 1. Добавить в `.env` переменную:

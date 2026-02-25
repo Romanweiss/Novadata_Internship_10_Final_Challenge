@@ -1,0 +1,84 @@
+from django.urls import path
+
+from api.views import (
+    ActionTriggerView,
+    ExportsListView,
+    ExportsPresignView,
+    OverviewIngestionSeriesView,
+    OverviewKpisView,
+    OverviewLastRunsView,
+    OverviewPaymentsBreakdownView,
+    OverviewServicesHealthView,
+    PipelinesMapView,
+    PublicPingView,
+    QualityDuplicatesTrendView,
+    QualityMartStatsView,
+    QualityOverallView,
+    RunStatusView,
+    SettingsConnectionsView,
+    SettingsSafeModeView,
+)
+
+urlpatterns = [
+    path("healthz", PublicPingView.as_view(), name="api-healthz"),
+    path("overview/kpis", OverviewKpisView.as_view(), name="overview-kpis"),
+    path(
+        "overview/ingestion-series",
+        OverviewIngestionSeriesView.as_view(),
+        name="overview-ingestion-series",
+    ),
+    path(
+        "overview/payments-breakdown",
+        OverviewPaymentsBreakdownView.as_view(),
+        name="overview-payments-breakdown",
+    ),
+    path(
+        "overview/services-health",
+        OverviewServicesHealthView.as_view(),
+        name="overview-services-health",
+    ),
+    path("overview/last-runs", OverviewLastRunsView.as_view(), name="overview-last-runs"),
+    path("pipelines/map", PipelinesMapView.as_view(), name="pipelines-map"),
+    path("quality/overall", QualityOverallView.as_view(), name="quality-overall"),
+    path(
+        "quality/duplicates-trend",
+        QualityDuplicatesTrendView.as_view(),
+        name="quality-duplicates-trend",
+    ),
+    path("quality/mart-stats", QualityMartStatsView.as_view(), name="quality-mart-stats"),
+    path("exports", ExportsListView.as_view(), name="exports-list"),
+    path("exports/presign", ExportsPresignView.as_view(), name="exports-presign"),
+    path("settings/connections", SettingsConnectionsView.as_view(), name="settings-connections"),
+    path("settings/safe-mode", SettingsSafeModeView.as_view(), name="settings-safe-mode"),
+    path(
+        "actions/generate-data",
+        ActionTriggerView.as_view(action_name="generate-data"),
+        name="action-generate-data",
+    ),
+    path(
+        "actions/load-nosql",
+        ActionTriggerView.as_view(action_name="load-nosql"),
+        name="action-load-nosql",
+    ),
+    path(
+        "actions/run-producer",
+        ActionTriggerView.as_view(action_name="run-producer"),
+        name="action-run-producer",
+    ),
+    path(
+        "actions/mart-refresh",
+        ActionTriggerView.as_view(action_name="mart-refresh"),
+        name="action-mart-refresh",
+    ),
+    path(
+        "actions/run-etl",
+        ActionTriggerView.as_view(action_name="run-etl"),
+        name="action-run-etl",
+    ),
+    path(
+        "actions/trigger-airflow-dag",
+        ActionTriggerView.as_view(action_name="trigger-airflow-dag"),
+        name="action-trigger-airflow-dag",
+    ),
+    path("runs/<uuid:run_id>", RunStatusView.as_view(), name="run-status"),
+]
