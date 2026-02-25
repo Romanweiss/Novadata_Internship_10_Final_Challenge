@@ -45,6 +45,23 @@ CREATE TABLE IF NOT EXISTS probablyfresh_raw.purchases_raw
 ENGINE = MergeTree
 ORDER BY (purchase_id, ingested_at);
 
+CREATE TABLE IF NOT EXISTS probablyfresh_raw.purchase_items_raw
+(
+    purchase_id String,
+    customer_id String,
+    store_id String,
+    product_id String,
+    category String,
+    quantity Float64,
+    price_per_unit Float64,
+    total_price Float64,
+    purchase_dt Nullable(DateTime),
+    payload String,
+    ingested_at DateTime
+)
+ENGINE = ReplacingMergeTree(ingested_at)
+ORDER BY (purchase_id, product_id, ingested_at);
+
 CREATE TABLE IF NOT EXISTS probablyfresh_raw.stores_kafka
 (
     payload String
@@ -137,3 +154,39 @@ SELECT
     payload,
     now() AS ingested_at
 FROM probablyfresh_raw.purchases_kafka;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS probablyfresh_raw.mv_purchase_items_from_purchases_raw
+TO probablyfresh_raw.purchase_items_raw
+AS
+SELECT
+    purchase_id,
+    customer_id,
+    store_id,
+    product_id,
+    category,
+    quantity,
+    price_per_unit,
+    total_price,
+    purchase_dt,
+    item_payload AS payload,
+    ingested_at
+FROM
+(
+    SELECT
+        lowerUTF8(trimBoth(purchase_id)) AS purchase_id,
+        lowerUTF8(trimBoth(customer_id)) AS customer_id,
+        lowerUTF8(trimBoth(store_id)) AS store_id,
+        lowerUTF8(trimBoth(JSONExtractString(item_payload, 'product_id'))) AS product_id,
+        lowerUTF8(trimBoth(JSONExtractString(item_payload, 'category'))) AS category,
+        JSONExtractFloat(item_payload, 'quantity') AS quantity,
+        JSONExtractFloat(item_payload, 'price_per_unit') AS price_per_unit,
+        JSONExtractFloat(item_payload, 'total_price') AS total_price,
+        parseDateTimeBestEffortOrNull(purchase_datetime) AS purchase_dt,
+        item_payload,
+        ingested_at
+    FROM probablyfresh_raw.purchases_raw
+    ARRAY JOIN JSONExtractArrayRaw(payload, 'items') AS item_payload
+)
+WHERE
+    purchase_id != ''
+    AND product_id != '';

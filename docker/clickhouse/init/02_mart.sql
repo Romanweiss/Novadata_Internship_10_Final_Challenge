@@ -54,6 +54,23 @@ CREATE TABLE IF NOT EXISTS probablyfresh_mart.purchases_mart
 ENGINE = ReplacingMergeTree(ingested_at)
 ORDER BY purchase_id;
 
+CREATE TABLE IF NOT EXISTS probablyfresh_mart.purchase_items_mart
+(
+    purchase_id String,
+    customer_id String,
+    store_id String,
+    product_id String,
+    category String,
+    quantity Float64,
+    price_per_unit Float64,
+    total_price Float64,
+    purchase_dt Nullable(DateTime),
+    payload String,
+    ingested_at DateTime
+)
+ENGINE = ReplacingMergeTree(ingested_at)
+ORDER BY (purchase_id, product_id);
+
 CREATE TABLE IF NOT EXISTS probablyfresh_mart.mart_quality_stats
 (
     event_time DateTime,
@@ -160,6 +177,32 @@ WHERE
     AND store_id_norm != ''
     AND purchase_dt_parsed IS NOT NULL
     AND purchase_dt_parsed <= now();
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS probablyfresh_mart.mv_purchase_items_to_mart
+TO probablyfresh_mart.purchase_items_mart
+AS
+SELECT
+    lowerUTF8(trimBoth(purchase_id)) AS purchase_id,
+    lowerUTF8(trimBoth(customer_id)) AS customer_id,
+    lowerUTF8(trimBoth(store_id)) AS store_id,
+    lowerUTF8(trimBoth(product_id)) AS product_id,
+    lowerUTF8(trimBoth(category)) AS category,
+    quantity,
+    price_per_unit,
+    total_price,
+    purchase_dt,
+    payload,
+    ingested_at
+FROM probablyfresh_raw.purchase_items_raw
+WHERE
+    lowerUTF8(trimBoth(purchase_id)) != ''
+    AND lowerUTF8(trimBoth(customer_id)) != ''
+    AND lowerUTF8(trimBoth(store_id)) != ''
+    AND lowerUTF8(trimBoth(product_id)) != ''
+    AND purchase_dt IS NOT NULL
+    AND purchase_dt <= now()
+    AND quantity > 0
+    AND total_price >= 0;
 
 INSERT INTO probablyfresh_mart.mart_quality_stats
 SELECT

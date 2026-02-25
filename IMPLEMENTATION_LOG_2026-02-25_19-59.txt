@@ -1,0 +1,416 @@
+ProbablyFresh Analytics Platform
+Подробный технический лог реализации
+Снимок на: 2026-02-25 19:59 (локальное время)
+Ветка: main
+Последний коммит: 3322465 (chore: stabilize docker startup and speed up ETL runtime)
+
+====================================================================
+1) Что реализовано (итог по проекту)
+====================================================================
+
+Реализован полный MVP-пайплайн данных:
+
+1. Генерация демо-данных в JSON на диск:
+   - stores: 45 файлов (30 Almost + 15 Maybe)
+   - products: 100 файлов (20 на категорию, 5 категорий)
+   - customers: >=45 (фактически 175 при текущей конфигурации генератора)
+   - purchases: >=200 (фактически 200)
+
+2. Загрузка JSON в MongoDB:
+   - коллекции: stores, products, customers, purchases
+   - upsert по ключам:
+     stores.store_id
+     products.id
+     customers.customer_id
+     purchases.purchase_id
+   - логируется processed/inserted/updated
+
+3. Ingestion MongoDB -> Kafka -> ClickHouse RAW:
+   - Kafka топики:
+     probablyfresh.stores
+     probablyfresh.products
+     probablyfresh.customers
+     probablyfresh.purchases
+   - В ClickHouse создан RAW слой:
+     probablyfresh_raw.stores_raw
+     probablyfresh_raw.products_raw
+     probablyfresh_raw.customers_raw
+     probablyfresh_raw.purchases_raw
+   - Также созданы Kafka Engine таблицы и Materialized Views Kafka -> RAW
+
+4. Нормализация и шифрование PII до ClickHouse:
+   - для customers и purchases перед отправкой в Kafka:
+     email: trim + lower
+     phone: приведение к E.164-подобному виду
+   - далее шифрование через Fernet (cryptography), ключ из FERNET_KEY
+   - в RAW хранится уже зашифрованный email/phone
+
+5. MART слой в ClickHouse:
+   - база probablyfresh_mart
+   - таблицы на ReplacingMergeTree(ingested_at):
+     stores_mart
+     products_mart
+     customers_mart
+     purchases_mart
+   - Materialized Views RAW -> MART с очисткой/валидацией:
+     * trim/lower для строковых ключей
+     * фильтрация пустых ключей
+     * валидация дат (birth_date <= today, purchase_dt <= now)
+   - таблица качества:
+     mart_quality_stats
+     с метриками total/inserted/invalid/duplicates/duplicates_ratio
+
+6. Grafana:
+   - автоматическое provisioning datasource ClickHouse
+   - автоматическое provisioning dashboard
+   - dashboard "ProbablyFresh RAW Overview":
+     Stores count
+     Purchases count
+     Stores by network
+     метрики качества MART (duplicates/invalid/ratio)
+   - настроено provisioning alerting:
+     * contact point Telegram: rwss_grafana_bot
+     * notification policy
+     * alert rule Duplicates_ratio (>0.5, eval 1m, for 1m)
+     * telegram template
+
+7. PySpark ETL (jobs/features_etl.py):
+   - читает customers_mart и purchases_mart через JDBC (ClickHouse)
+   - считает customer-фичи (0/1):
+     recurrent_buyer
+     delivery_user
+     bulk_buyer
+     low_cost_buyer
+     prefers_cash
+     prefers_card
+     weekend_shopper
+     weekday_shopper
+     night_shopper
+     morning_shopper
+   - сохраняет один CSV (coalesce(1))
+   - грузит в S3/MinIO как analytic_result_YYYY_MM_DD.csv
+
+8. Оптимизирован Docker-run ETL:
+   - создан кастомный app image: docker/app/Dockerfile
+   - зависимости (включая pyspark) ставятся на этапе build, а не каждый запуск
+   - в образ заранее скачивается clickhouse-jdbc-0.9.6-all-dependencies.jar
+   - spark-submit использует локальный fat-jar (без постоянной подкачки с Maven)
+
+====================================================================
+2) Архитектура и поток данных
+====================================================================
+
+[JSON files] -> [MongoDB] -> [Kafka topics] -> [ClickHouse RAW] -> [ClickHouse MART] -> [Grafana + Alerts]
+                                                              \
+                                                               -> [PySpark ETL] -> [S3/MinIO CSV]
+
+Пояснение:
+- RAW накапливает события как пришли.
+- MART очищает/валидирует/дедуплицирует (на чтении через FINAL или после merge).
+- Duplicates рассчитываются в mart_quality_stats как snapshot по RAW.
+
+====================================================================
+3) Сервисы Docker и их назначение
+====================================================================
+
+Файл: docker-compose.yml
+
+Сервисы:
+- zookeeper (confluentinc/cp-zookeeper:7.7.1)
+  Координация Kafka.
+
+- kafka (confluentinc/cp-kafka:7.7.1)
+  Транспорт событий между producer и ClickHouse Kafka Engine.
+
+- mongodb (mongo:6)
+  NoSQL-хранилище исходного JSON.
+
+- clickhouse (clickhouse/clickhouse-server:24.8)
+  RAW/MART аналитический слой.
+
+- grafana (grafana/grafana:11.1.0)
+  Дашборды + alerting.
+  Плагин clickhouse устанавливается через GF_INSTALL_PLUGINS.
+
+- app (probablyfresh-app:local)
+  Кастомный контейнер для запуска Python скриптов и Spark job.
+  Построение через docker/app/Dockerfile.
+
+Volumes:
+- mongodb_data
+- clickhouse_data
+- grafana_data
+
+====================================================================
+4) Подробно по ключевым файлам
+====================================================================
+
+4.1 Генерация данных
+Файл: src/generator/generate_data.py
+
+Что делает:
+- Берет seed из --seed или SEED env (default 42).
+- Очищает только *.json в data/stores, data/products, data/customers, data/purchases.
+- Генерирует:
+  stores (45 шт)
+  products (100 шт)
+  customers (2..5 на магазин => обычно 175)
+  purchases (200)
+- В purchases delivery_address пишется только если is_delivery=true.
+- Делает self-check:
+  stores == 45
+  products == 100
+  ровно 20 на категорию
+  customers >= 45
+  purchases >= 200
+- В конце печатает итоговые количества.
+
+4.2 Загрузка в Mongo
+Файл: src/loader/load_to_mongo.py
+
+Что делает:
+- Читает MONGO_URI и MONGO_DB из env.
+- Сканирует data/stores, data/products, data/customers, data/purchases.
+- Пишет в коллекции stores/products/customers/purchases.
+- Upsert по ключам (см. выше).
+- Логирует processed/inserted/updated.
+
+4.3 Producer Mongo -> Kafka
+Файл: src/streaming/produce_from_mongo.py
+
+Что делает:
+- Режим --once.
+- Читает документы Mongo по коллекциям.
+- Для customers/purchases:
+  * рекурсивно ищет email/phone
+  * normalizes
+  * encrypts через Fernet
+- Публикует JSON в соответствующие топики.
+- Логирует количество отправленных записей.
+
+4.4 Нормализация и крипто
+Файлы:
+- src/probablyfresh/core/normalization.py
+- src/probablyfresh/core/crypto_utils.py
+
+Что делают:
+- normalize_email: trim + lower
+- normalize_phone: очистка нецифровых символов, базовые правила РФ
+- Encryptor: Fernet шифрование строки
+- generate_key(): генерация ключа Fernet
+
+4.5 SQL инициализация RAW
+Файл: docker/clickhouse/init/01_init.sql
+
+Содержит:
+- CREATE DATABASE probablyfresh_raw
+- CREATE TABLE *_raw (MergeTree)
+- CREATE TABLE *_kafka (Kafka Engine)
+- CREATE MATERIALIZED VIEW mv_*_raw (Kafka -> RAW)
+
+4.6 SQL инициализация MART
+Файл: docker/clickhouse/init/02_mart.sql
+
+Содержит:
+- CREATE DATABASE probablyfresh_mart
+- CREATE TABLE *_mart (ReplacingMergeTree(ingested_at))
+- CREATE MATERIALIZED VIEW mv_*_to_mart (RAW -> MART)
+- CREATE TABLE mart_quality_stats
+- INSERT snapshot метрик качества по каждой сущности
+
+4.7 PySpark ETL
+Файл: jobs/features_etl.py
+
+Что делает:
+- Загружает env через python-dotenv.
+- Строит SparkSession:
+  приоритет local JDBC jar (CLICKHOUSE_JDBC_JAR),
+  fallback на spark.jars.packages.
+- JDBC чтение таблиц purchases_mart/customers_mart.
+- Агрегация фич и бинаризация (int 0/1).
+- left join с customers, чтобы клиенты без покупок имели 0-фичи.
+- Выгрузка CSV в tmp, поиск part-*.csv, upload в S3/MinIO через boto3.
+
+4.8 Docker app image
+Файл: docker/app/Dockerfile
+
+Что делает:
+- База python:3.12-slim
+- Устанавливает Java runtime + curl
+- Устанавливает requirements.txt
+- Скачивает /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar
+- Это убирает повторную установку pyspark/jdbc на каждом запуске.
+
+4.9 Makefile (доступен, но можно не использовать)
+Файл: Makefile
+
+Цели:
+- up/down
+- generate-data
+- load-nosql
+- init-ch
+- mart-init
+- run-producer
+- init-grafana
+- run-etl
+- features-etl (alias)
+
+4.10 Grafana provisioning
+Файлы:
+- grafana/provisioning/datasources/clickhouse.yaml
+- grafana/provisioning/dashboards/dashboard.yaml
+- docker/grafana/dashboards/probablyfresh_raw_overview.json
+- grafana/provisioning/alerting/contact-points.yaml
+- grafana/provisioning/alerting/notification-policies.yaml
+- grafana/provisioning/alerting/alert-rules.yaml
+- grafana/provisioning/alerting/templates.yaml
+
+Что настроено:
+- datasource uid=clickhouse_raw, type=grafana-clickhouse-datasource
+- dashboard folder=ProbablyFresh
+- Telegram contact point + policy + rule + template
+
+====================================================================
+5) Переменные окружения (ключевые)
+====================================================================
+
+Файл: .env.example
+
+Обязательные для ядра пайплайна:
+- MONGO_INITDB_ROOT_USERNAME
+- MONGO_INITDB_ROOT_PASSWORD
+- MONGO_DB
+- FERNET_KEY
+- KAFKA_TOPIC_STORES/KAFKA_TOPIC_PRODUCTS/KAFKA_TOPIC_CUSTOMERS/KAFKA_TOPIC_PURCHASES
+
+Для Grafana:
+- GRAFANA_ADMIN_USER
+- GRAFANA_ADMIN_PASSWORD
+- TELEGRAM_BOT_TOKEN (если нужны алерты в Telegram)
+
+Для ETL -> S3/MinIO:
+- CH_HOST, CH_PORT, CH_USER, CH_PASSWORD, CH_DATABASE
+- MINIO_ENDPOINT, MINIO_REGION, MINIO_BUCKET, MINIO_ACCESS_KEY, MINIO_SECRET_KEY
+- (или S3_* альтернативы)
+
+Важно:
+- при запуске ETL внутри docker app: CH_HOST=clickhouse (а не localhost)
+
+====================================================================
+6) Что уже подтверждено проверками
+====================================================================
+
+Подтверждено в текущей рабочей среде:
+
+- После восстановления SQL-инициализации и повторной публикации:
+  RAW total:
+    stores_raw_total=90
+    products_raw_total=200
+    customers_raw_total=350
+    purchases_raw_total=400
+  RAW unique:
+    stores_raw_unique=45
+    products_raw_unique=100
+    customers_raw_unique=175
+    purchases_raw_unique=200
+
+- MART FINAL:
+  customers_mart_final=175
+  purchases_mart_final=200
+
+- mart_quality_stats (последний snapshot purchases):
+  total_rows_raw=400
+  inserted_rows_mart=400
+  invalid_rows=0
+  duplicates_rows=200
+  duplicates_ratio=0.5
+
+- ETL:
+  Loaded rows: purchases_mart=200, customers_mart=175
+  Feature rows to export: 175
+  CSV успешно загружается в S3/MinIO как analytic_result_2026_02_25.csv
+
+Комментарий по duplicates_ratio=0.5:
+- Это корректно, если producer запускался дважды на тех же данных:
+  duplicates_ratio = (400 - 200) / 400 = 0.5
+
+====================================================================
+7) Команды полного запуска с нуля (Docker-only)
+====================================================================
+
+Официальный runbook лежит в файле:
+- ZERO_START_DOCKER.txt
+
+Ключевые моменты:
+- Перед init SQL обязательно дождаться готовности ClickHouse:
+  do { Start-Sleep -Seconds 2; docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 1" } while ($LASTEXITCODE -ne 0)
+- Сначала 01_init.sql, потом 02_mart.sql
+- Затем generator -> loader -> producer
+- Потом пауза 5 сек и повторный запуск 02_mart.sql для актуального snapshot качества
+
+====================================================================
+8) Частые проблемы и как чинить
+====================================================================
+
+Проблема: Connection refused (localhost:9000) при init SQL
+Причина: ClickHouse еще не готов после up -d.
+Решение: добавить цикл ожидания SELECT 1 перед init.
+
+Проблема: Unknown table probablyfresh_raw.* при 02_mart.sql
+Причина: не применился 01_init.sql.
+Решение: применить 01_init.sql, затем 02_mart.sql.
+
+Проблема: ETL выгружает только header (0 строк)
+Причина: пустой MART.
+Решение: восстановить init SQL и прогнать producer, проверить counts.
+
+Проблема: "No data" в Grafana
+Причина: нет данных в таблицах или datasource/plugin не поднялись.
+Решение:
+- проверить counts в ClickHouse,
+- проверить datasource clickhouse_raw,
+- при необходимости restart grafana.
+
+Проблема: долгое ожидание на pyspark/jdbc каждый запуск
+Причина: runtime install/download.
+Решение: уже исправлено кастомным app image + fat JDBC jar.
+
+====================================================================
+9) Что важно НЕ ломать при следующих задачах
+====================================================================
+
+1. Не менять структуру RAW payload (это "как у заказчика").
+2. Не убирать шифрование email/phone перед Kafka для customers/purchases.
+3. Не заменять ReplacingMergeTree на обычный MergeTree в MART.
+4. Не удалять шаг ожидания готовности ClickHouse перед init SQL.
+5. Для ETL внутри Docker не ставить CH_HOST=localhost.
+6. Не убирать volume grafana_data и provisioning mounts в compose.
+
+====================================================================
+10) Что можно делать дальше (без регресса)
+====================================================================
+
+Безопасные следующие шаги:
+- добавить отдельный MART dashboard (не только RAW overview),
+- автоматизировать refresh snapshot метрик качества по расписанию,
+- добавить тесты smoke (генерация, загрузка, producer, counts),
+- добавить CI check для SQL и Python lint/format,
+- добавить отдельный docker profile для локального lightweight запуска.
+
+====================================================================
+11) Быстрая памятка для проверки за 5 минут
+====================================================================
+
+1. docker compose --env-file .env up -d ...
+2. дождаться ClickHouse SELECT 1
+3. 01_init.sql -> 02_mart.sql
+4. generate_data -> load_to_mongo -> producer --once
+5. sleep 5s -> повторно 02_mart.sql
+6. проверить counts RAW/MART
+7. spark-submit jobs/features_etl.py
+8. проверить файл analytic_result_YYYY_MM_DD.csv в bucket
+9. открыть Grafana dashboard ProbablyFresh RAW Overview
+
+====================================================================
+Конец лога
+====================================================================

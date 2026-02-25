@@ -97,8 +97,14 @@ def _load_table(jdbc_reader, table: str) -> DataFrame:
     return jdbc_reader.option("dbtable", table).load()
 
 
-def _build_features(customers_df: DataFrame, purchases_df: DataFrame) -> DataFrame:
+def _build_features(
+    customers_df: DataFrame,
+    purchases_df: DataFrame,
+    products_df: DataFrame,
+    purchase_items_df: DataFrame,
+) -> DataFrame:
     feature_cols = [
+        # Existing 10 features (kept as-is by name)
         "recurrent_buyer",
         "delivery_user",
         "bulk_buyer",
@@ -109,17 +115,39 @@ def _build_features(customers_df: DataFrame, purchases_df: DataFrame) -> DataFra
         "weekday_shopper",
         "night_shopper",
         "morning_shopper",
+        # Additional 20 features (total = 30)
+        "no_purchases",
+        "has_purchases_last_7d",
+        "has_purchases_last_14d",
+        "has_purchases_last_30d",
+        "has_purchases_last_90d",
+        "frequent_shopper_last_14d",
+        "high_ticket_last_90d",
+        "delivery_last_30d",
+        "cross_store_shopper_last_90d",
+        "mixed_payment_user_last_90d",
+        "bought_milk_last_7d",
+        "bought_milk_last_30d",
+        "bought_meat_last_7d",
+        "bought_meat_last_30d",
+        "bought_fruits_last_30d",
+        "bought_vegetables_last_30d",
+        "bought_bakery_last_30d",
+        "bought_organic_last_90d",
+        "high_quantity_buyer_last_30d",
+        "vegetarian_profile",
     ]
 
     customers_base = (
-        customers_df.select(F.trim(F.col("customer_id")).alias("customer_id"))
+        customers_df.select(F.lower(F.trim(F.col("customer_id"))).alias("customer_id"))
         .filter(F.col("customer_id").isNotNull() & (F.col("customer_id") != ""))
         .dropDuplicates(["customer_id"])
     )
 
     purchases_clean = (
         purchases_df.select(
-            F.trim(F.col("customer_id")).alias("customer_id"),
+            F.lower(F.trim(F.col("customer_id"))).alias("customer_id"),
+            F.lower(F.trim(F.col("store_id"))).alias("store_id"),
             F.col("total_amount").cast("double").alias("total_amount"),
             F.lower(F.trim(F.col("payment_method"))).alias("payment_method"),
             F.col("is_delivery").cast("int").alias("is_delivery"),
@@ -130,8 +158,26 @@ def _build_features(customers_df: DataFrame, purchases_df: DataFrame) -> DataFra
 
     purchases_metrics = (
         purchases_clean.withColumn(
+            "is_last_7d",
+            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 7 DAYS"), F.lit(1)).otherwise(
+                F.lit(0)
+            ),
+        )
+        .withColumn(
+            "is_last_14d",
+            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 14 DAYS"), F.lit(1)).otherwise(
+                F.lit(0)
+            ),
+        )
+        .withColumn(
             "is_last_30d",
             F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 30 DAYS"), F.lit(1)).otherwise(
+                F.lit(0)
+            ),
+        )
+        .withColumn(
+            "is_last_90d",
+            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 90 DAYS"), F.lit(1)).otherwise(
                 F.lit(0)
             ),
         )
@@ -149,8 +195,12 @@ def _build_features(customers_df: DataFrame, purchases_df: DataFrame) -> DataFra
         .withColumn("morning_flag", F.when(F.hour(F.col("purchase_dt")) < 10, F.lit(1)).otherwise(F.lit(0)))
     )
 
-    aggregated = purchases_metrics.groupBy("customer_id").agg(
+    purchases_agg = purchases_metrics.groupBy("customer_id").agg(
+        F.count(F.lit(1)).alias("purchases_all_time"),
+        F.sum("is_last_7d").alias("purchases_last_7d"),
+        F.sum("is_last_14d").alias("purchases_last_14d"),
         F.sum("is_last_30d").alias("purchases_last_30d"),
+        F.sum("is_last_90d").alias("purchases_last_90d"),
         F.avg("total_amount").alias("avg_total_amount"),
         F.avg("cash_flag").alias("cash_share"),
         F.avg("card_flag").alias("card_share"),
@@ -159,30 +209,222 @@ def _build_features(customers_df: DataFrame, purchases_df: DataFrame) -> DataFra
         F.avg("night_flag").alias("night_share"),
         F.avg("morning_flag").alias("morning_share"),
         F.max("is_delivery").alias("delivery_any"),
+        F.max(
+            F.when((F.col("is_last_30d") == 1) & (F.col("is_delivery") == 1), F.lit(1)).otherwise(F.lit(0))
+        ).alias("delivery_any_30d"),
+        F.max(F.when(F.col("is_last_90d") == 1, F.col("total_amount"))).alias("max_total_amount_90d"),
+        F.countDistinct(F.when(F.col("is_last_90d") == 1, F.col("store_id"))).alias("distinct_stores_90d"),
+        F.max(
+            F.when((F.col("is_last_90d") == 1) & (F.col("payment_method") == "cash"), F.lit(1)).otherwise(F.lit(0))
+        ).alias("used_cash_90d"),
+        F.max(
+            F.when((F.col("is_last_90d") == 1) & (F.col("payment_method") == "card"), F.lit(1)).otherwise(F.lit(0))
+        ).alias("used_card_90d"),
     )
 
-    purchase_features = aggregated.select(
+    product_group_expr = F.col("`group`") if "group" in products_df.columns else F.lit(None).cast("string")
+    if "is_organic" in products_df.columns:
+        organic_expr = F.col("is_organic").cast("int")
+    elif "payload" in products_df.columns:
+        organic_expr = F.when(F.lower(F.get_json_object(F.col("payload"), "$.is_organic")) == "true", F.lit(1)).otherwise(
+            F.lit(0)
+        )
+    else:
+        organic_expr = F.lit(0)
+
+    products_clean = (
+        products_df.select(
+            F.lower(F.trim(F.col("product_id"))).alias("product_id"),
+            F.lower(F.trim(product_group_expr)).alias("product_group"),
+            organic_expr.alias("is_organic_int"),
+        )
+        .filter(F.col("product_id").isNotNull() & (F.col("product_id") != ""))
+        .dropDuplicates(["product_id"])
+    )
+
+    item_category_expr = (
+        F.col("category")
+        if "category" in purchase_items_df.columns
+        else (F.col("`group`") if "group" in purchase_items_df.columns else F.lit(None).cast("string"))
+    )
+
+    items_clean = (
+        purchase_items_df.select(
+            F.lower(F.trim(F.col("customer_id"))).alias("customer_id"),
+            F.lower(F.trim(F.col("product_id"))).alias("product_id"),
+            F.lower(F.trim(item_category_expr)).alias("category_raw"),
+            F.col("quantity").cast("double").alias("quantity"),
+            F.col("total_price").cast("double").alias("total_price"),
+            F.col("purchase_dt").cast("timestamp").alias("purchase_dt"),
+        )
+        .filter(
+            F.col("customer_id").isNotNull()
+            & (F.col("customer_id") != "")
+            & F.col("product_id").isNotNull()
+            & (F.col("product_id") != "")
+        )
+    )
+
+    items_enriched = (
+        items_clean.join(products_clean, on="product_id", how="left")
+        .withColumn(
+            "category_norm",
+            F.coalesce(
+                F.when(F.length(F.col("category_raw")) > 0, F.col("category_raw")),
+                F.col("product_group"),
+            ),
+        )
+        .withColumn(
+            "is_last_7d",
+            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 7 DAYS"), F.lit(1)).otherwise(
+                F.lit(0)
+            ),
+        )
+        .withColumn(
+            "is_last_30d",
+            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 30 DAYS"), F.lit(1)).otherwise(
+                F.lit(0)
+            ),
+        )
+        .withColumn(
+            "is_last_90d",
+            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 90 DAYS"), F.lit(1)).otherwise(
+                F.lit(0)
+            ),
+        )
+    )
+
+    category_text = F.coalesce(F.col("category_norm"), F.lit(""))
+    items_flags = (
+        items_enriched.withColumn(
+            "is_milk_item",
+            F.when(category_text.rlike("молоч|dairy"), F.lit(1)).otherwise(F.lit(0)),
+        )
+        .withColumn(
+            "is_meat_item",
+            F.when(category_text.rlike("мяс|рыб|яйц|бобов|meat|fish|egg|bean|protein"), F.lit(1)).otherwise(F.lit(0)),
+        )
+        .withColumn(
+            "is_fruits_item",
+            F.when(category_text.rlike("фрукт|ягод|fruit|berry"), F.lit(1)).otherwise(F.lit(0)),
+        )
+        .withColumn(
+            "is_vegetables_item",
+            F.when(category_text.rlike("овощ|зел|vegetable|green"), F.lit(1)).otherwise(F.lit(0)),
+        )
+        .withColumn(
+            "is_bakery_item",
+            F.when(category_text.rlike("зернов|хлеб|grain|bakery|bread"), F.lit(1)).otherwise(F.lit(0)),
+        )
+    )
+
+    items_agg = items_flags.groupBy("customer_id").agg(
+        F.max(F.when((F.col("is_milk_item") == 1) & (F.col("is_last_7d") == 1), F.lit(1)).otherwise(F.lit(0))).alias(
+            "bought_milk_last_7d"
+        ),
+        F.max(F.when((F.col("is_milk_item") == 1) & (F.col("is_last_30d") == 1), F.lit(1)).otherwise(F.lit(0))).alias(
+            "bought_milk_last_30d"
+        ),
+        F.max(F.when((F.col("is_meat_item") == 1) & (F.col("is_last_7d") == 1), F.lit(1)).otherwise(F.lit(0))).alias(
+            "bought_meat_last_7d"
+        ),
+        F.max(F.when((F.col("is_meat_item") == 1) & (F.col("is_last_30d") == 1), F.lit(1)).otherwise(F.lit(0))).alias(
+            "bought_meat_last_30d"
+        ),
+        F.max(
+            F.when((F.col("is_fruits_item") == 1) & (F.col("is_last_30d") == 1), F.lit(1)).otherwise(F.lit(0))
+        ).alias("bought_fruits_last_30d"),
+        F.max(
+            F.when((F.col("is_vegetables_item") == 1) & (F.col("is_last_30d") == 1), F.lit(1)).otherwise(F.lit(0))
+        ).alias("bought_vegetables_last_30d"),
+        F.max(
+            F.when((F.col("is_bakery_item") == 1) & (F.col("is_last_30d") == 1), F.lit(1)).otherwise(F.lit(0))
+        ).alias("bought_bakery_last_30d"),
+        F.max(
+            F.when((F.col("is_organic_int") == 1) & (F.col("is_last_90d") == 1), F.lit(1)).otherwise(F.lit(0))
+        ).alias("bought_organic_last_90d"),
+        F.max(F.when((F.col("quantity") > 2) & (F.col("is_last_30d") == 1), F.lit(1)).otherwise(F.lit(0))).alias(
+            "high_quantity_buyer_last_30d"
+        ),
+        F.max(F.when((F.col("is_meat_item") == 1) & (F.col("is_last_90d") == 1), F.lit(1)).otherwise(F.lit(0))).alias(
+            "has_meat_last_90d"
+        ),
+        F.max(
+            F.when(
+                ((F.col("is_fruits_item") == 1) | (F.col("is_vegetables_item") == 1)) & (F.col("is_last_90d") == 1),
+                F.lit(1),
+            ).otherwise(F.lit(0))
+        ).alias("has_plant_last_90d"),
+    )
+
+    joined = customers_base.join(purchases_agg, on="customer_id", how="left").join(items_agg, on="customer_id", how="left")
+
+    result = joined.select(
         "customer_id",
-        (F.col("purchases_last_30d") > 2).cast("int").alias("recurrent_buyer"),
-        (F.col("delivery_any") > 0).cast("int").alias("delivery_user"),
-        (F.col("avg_total_amount") > 1000).cast("int").alias("bulk_buyer"),
-        (F.col("avg_total_amount") < 200).cast("int").alias("low_cost_buyer"),
-        (F.col("cash_share") >= 0.7).cast("int").alias("prefers_cash"),
-        (F.col("card_share") >= 0.7).cast("int").alias("prefers_card"),
-        (F.col("weekend_share") >= 0.6).cast("int").alias("weekend_shopper"),
-        (F.col("weekday_share") >= 0.6).cast("int").alias("weekday_shopper"),
-        (F.col("night_share") >= 0.5).cast("int").alias("night_shopper"),
-        (F.col("morning_share") >= 0.5).cast("int").alias("morning_shopper"),
+        (F.coalesce(F.col("purchases_last_30d"), F.lit(0)) > 2).cast("int").alias("recurrent_buyer"),
+        (F.coalesce(F.col("delivery_any"), F.lit(0)) > 0).cast("int").alias("delivery_user"),
+        (
+            (F.coalesce(F.col("avg_total_amount"), F.lit(0.0)) > 1000)
+            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
+        ).cast("int").alias("bulk_buyer"),
+        (
+            (F.coalesce(F.col("avg_total_amount"), F.lit(0.0)) < 200)
+            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
+        ).cast("int").alias("low_cost_buyer"),
+        (
+            (F.coalesce(F.col("cash_share"), F.lit(0.0)) >= 0.7)
+            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
+        ).cast("int").alias("prefers_cash"),
+        (
+            (F.coalesce(F.col("card_share"), F.lit(0.0)) >= 0.7)
+            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
+        ).cast("int").alias("prefers_card"),
+        (
+            (F.coalesce(F.col("weekend_share"), F.lit(0.0)) >= 0.6)
+            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
+        ).cast("int").alias("weekend_shopper"),
+        (
+            (F.coalesce(F.col("weekday_share"), F.lit(0.0)) >= 0.6)
+            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
+        ).cast("int").alias("weekday_shopper"),
+        (
+            (F.coalesce(F.col("night_share"), F.lit(0.0)) >= 0.5)
+            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
+        ).cast("int").alias("night_shopper"),
+        (
+            (F.coalesce(F.col("morning_share"), F.lit(0.0)) >= 0.5)
+            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
+        ).cast("int").alias("morning_shopper"),
+        (F.coalesce(F.col("purchases_all_time"), F.lit(0)) == 0).cast("int").alias("no_purchases"),
+        (F.coalesce(F.col("purchases_last_7d"), F.lit(0)) > 0).cast("int").alias("has_purchases_last_7d"),
+        (F.coalesce(F.col("purchases_last_14d"), F.lit(0)) > 0).cast("int").alias("has_purchases_last_14d"),
+        (F.coalesce(F.col("purchases_last_30d"), F.lit(0)) > 0).cast("int").alias("has_purchases_last_30d"),
+        (F.coalesce(F.col("purchases_last_90d"), F.lit(0)) > 0).cast("int").alias("has_purchases_last_90d"),
+        (F.coalesce(F.col("purchases_last_14d"), F.lit(0)) >= 3).cast("int").alias("frequent_shopper_last_14d"),
+        (F.coalesce(F.col("max_total_amount_90d"), F.lit(0.0)) > 1500).cast("int").alias("high_ticket_last_90d"),
+        (F.coalesce(F.col("delivery_any_30d"), F.lit(0)) > 0).cast("int").alias("delivery_last_30d"),
+        (F.coalesce(F.col("distinct_stores_90d"), F.lit(0)) >= 2).cast("int").alias("cross_store_shopper_last_90d"),
+        (
+            (F.coalesce(F.col("used_cash_90d"), F.lit(0)) == 1)
+            & (F.coalesce(F.col("used_card_90d"), F.lit(0)) == 1)
+        ).cast("int").alias("mixed_payment_user_last_90d"),
+        F.coalesce(F.col("bought_milk_last_7d"), F.lit(0)).cast("int").alias("bought_milk_last_7d"),
+        F.coalesce(F.col("bought_milk_last_30d"), F.lit(0)).cast("int").alias("bought_milk_last_30d"),
+        F.coalesce(F.col("bought_meat_last_7d"), F.lit(0)).cast("int").alias("bought_meat_last_7d"),
+        F.coalesce(F.col("bought_meat_last_30d"), F.lit(0)).cast("int").alias("bought_meat_last_30d"),
+        F.coalesce(F.col("bought_fruits_last_30d"), F.lit(0)).cast("int").alias("bought_fruits_last_30d"),
+        F.coalesce(F.col("bought_vegetables_last_30d"), F.lit(0)).cast("int").alias("bought_vegetables_last_30d"),
+        F.coalesce(F.col("bought_bakery_last_30d"), F.lit(0)).cast("int").alias("bought_bakery_last_30d"),
+        F.coalesce(F.col("bought_organic_last_90d"), F.lit(0)).cast("int").alias("bought_organic_last_90d"),
+        F.coalesce(F.col("high_quantity_buyer_last_30d"), F.lit(0)).cast("int").alias("high_quantity_buyer_last_30d"),
+        (
+            (F.coalesce(F.col("has_meat_last_90d"), F.lit(0)) == 0)
+            & (F.coalesce(F.col("has_plant_last_90d"), F.lit(0)) == 1)
+            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
+        ).cast("int").alias("vegetarian_profile"),
     )
 
-    result = customers_base.join(purchase_features, on="customer_id", how="left")
-
-    result = result.select(
-        "customer_id",
-        *[F.coalesce(F.col(name), F.lit(0)).cast("int").alias(name) for name in feature_cols],
-    )
-
-    return result
+    return result.select("customer_id", *feature_cols)
 
 
 def _write_single_csv(features_df: DataFrame) -> Path:
@@ -242,11 +484,28 @@ def main() -> None:
 
         purchases_df = _load_table(jdbc_reader, "purchases_mart")
         customers_df = _load_table(jdbc_reader, "customers_mart")
+        products_df = _load_table(jdbc_reader, "products_mart")
+        purchase_items_df = _load_table(jdbc_reader, "purchase_items_mart")
 
-        logging.info("Loaded rows: purchases_mart=%s, customers_mart=%s", purchases_df.count(), customers_df.count())
+        logging.info(
+            "Loaded rows: purchases_mart=%s, customers_mart=%s, products_mart=%s, purchase_items_mart=%s",
+            purchases_df.count(),
+            customers_df.count(),
+            products_df.count(),
+            purchase_items_df.count(),
+        )
 
-        features_df = _build_features(customers_df, purchases_df)
+        features_df = _build_features(customers_df, purchases_df, products_df, purchase_items_df)
+        logging.info("Feature columns count (with customer_id): %s", len(features_df.columns))
         logging.info("Feature rows to export: %s", features_df.count())
+
+        if _optional_env("FEATURES_DEBUG", "0") == "1":
+            features_df.printSchema()
+            features_df.show(5, truncate=False)
+            logging.info(
+                "Customers with no_purchases=1: %s",
+                features_df.filter(F.col("no_purchases") == 1).count(),
+            )
 
         temp_csv_path = _write_single_csv(features_df)
         object_key = _upload_to_s3(temp_csv_path)

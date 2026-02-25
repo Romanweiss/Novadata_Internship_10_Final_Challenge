@@ -1,7 +1,7 @@
 ﻿PYTHON ?= python
 ENV_FILE ?= .env
 
-.PHONY: up down generate-data load-nosql init-ch mart-init run-producer init-grafana features-etl run-etl
+.PHONY: up down generate-data load-nosql init-ch mart-init run-producer init-grafana features-etl run-etl smoke verify
 
 up:
 	docker compose --env-file $(ENV_FILE) up -d
@@ -34,3 +34,9 @@ run-etl:
 	docker compose --env-file $(ENV_FILE) run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py
 
 features-etl: run-etl
+
+smoke:
+	docker compose --env-file $(ENV_FILE) up -d clickhouse app
+	docker compose --env-file $(ENV_FILE) run --rm app python scripts/smoke_check.py
+
+verify: smoke
