@@ -1,0 +1,99 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f4f5f2;
+  --bg-gradient-top: rgba(15, 23, 42, 0.04);
+  --bg-gradient-bottom: rgba(14, 116, 144, 0.05);
+  --surface: #ffffff;
+  --surface-muted: #f8f8f7;
+  --surface-elevated: #fefefe;
+  --text: #10131a;
+  --text-muted: #6b7280;
+  --border: rgba(17, 24, 39, 0.09);
+  --border-strong: rgba(17, 24, 39, 0.16);
+  --shadow-color: rgba(15, 23, 42, 0.22);
+  --chip: #f1f4f7;
+  --accent-green: #22c55e;
+  --accent-green-bg: rgba(34, 197, 94, 0.14);
+  --accent-orange: #f97316;
+  --accent-red: #ef4444;
+  --accent-blue: #2563eb;
+}
+
+.dark {
+  --bg: #05080f;
+  --bg-gradient-top: rgba(30, 41, 59, 0.18);
+  --bg-gradient-bottom: rgba(14, 165, 233, 0.06);
+  --surface: #0a0f1a;
+  --surface-muted: #0d1322;
+  --surface-elevated: #111827;
+  --text: #e5e7eb;
+  --text-muted: #98a4b7;
+  --border: rgba(148, 163, 184, 0.2);
+  --border-strong: rgba(148, 163, 184, 0.35);
+  --shadow-color: rgba(0, 0, 0, 0.58);
+  --chip: #0f172a;
+  --accent-green: #22c55e;
+  --accent-green-bg: rgba(34, 197, 94, 0.18);
+  --accent-orange: #fb923c;
+  --accent-red: #f87171;
+  --accent-blue: #60a5fa;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at 20% 0%, var(--bg-gradient-top), transparent 45%),
+    radial-gradient(circle at 100% 100%, var(--bg-gradient-bottom), transparent 40%), var(--bg);
+  color: var(--text);
+  transition: background-color 250ms ease, color 250ms ease;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-transition {
+  transition: background-color 250ms ease, border-color 250ms ease, color 250ms ease, box-shadow 250ms ease;
+}
+
+.card-surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.1rem;
+  box-shadow: 0 8px 26px -20px var(--shadow-color);
+}
+
+.subtle-grid {
+  background-image: linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.pill {
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--chip);
+}
