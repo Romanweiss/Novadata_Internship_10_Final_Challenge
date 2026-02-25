@@ -23,7 +23,7 @@ MVP-скелет аналитической платформы ProbablyFresh (э
   - MongoDB (`mongo:6`)
   - ClickHouse (`clickhouse/clickhouse-server:24.8`)
   - Grafana (`grafana/grafana:11.1.0`)
-  - app (`python:3.12-slim`)
+  - app (custom image from `docker/app/Dockerfile`, Python 3.12 + Java + deps)
 - Python-скрипты в `src/`.
 
 ### Структура проекта
@@ -59,12 +59,14 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 Строгий порядок запуска (container-first, без make):
 
 1. `cp .env.example .env`
-2. `docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana`
-3. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/generator/generate_data.py"`
-4. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/loader/load_to_mongo.py"`
+2. `docker compose --env-file .env build app`
+3. `docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana`
+4. `do { Start-Sleep -Seconds 2; docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 1" } while ($LASTEXITCODE -ne 0)`
 5. `Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
-6. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"`
-7. Открыть Grafana и увидеть метрики в dashboard `ProbablyFresh RAW Overview`
+6. `docker compose --env-file .env run --rm app python src/generator/generate_data.py`
+7. `docker compose --env-file .env run --rm app python src/loader/load_to_mongo.py`
+8. `docker compose --env-file .env run --rm app python src/streaming/produce_from_mongo.py --once`
+9. Открыть Grafana и увидеть метрики в dashboard `ProbablyFresh RAW Overview`
 
 Для MART и quality-метрик (используются на dashboard и в alerting) дополнительно выполнить:
 
@@ -87,6 +89,9 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 4. Проверить файл в MinIO:
    - `mc ls local/$MINIO_BUCKET`
    - `mc cat local/$MINIO_BUCKET/analytic_result_YYYY_MM_DD.csv | head`
+
+Примечание:
+- после `docker compose --env-file .env build app` зависимости (включая `pyspark`) и JDBC jar уже внутри образа, поэтому при каждом запуске они не скачиваются заново.
 
 ### Telegram alerting (provisioning)
 
@@ -146,14 +151,17 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 - `app` как контейнер-раннер Python-скриптов,
 - `grafana` для визуальной проверки.
 
-4. `Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`  
+4. `do { Start-Sleep -Seconds 2; docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 1" } while ($LASTEXITCODE -ne 0)`  
+Ждем готовности ClickHouse. Если этот шаг пропустить, следующие SQL могут упасть с `Connection refused`.
+
+5. `Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`  
 Инициализирует RAW-слой в ClickHouse:
 - БД `probablyfresh_raw`,
 - RAW таблицы,
 - Kafka Engine таблицы,
 - Materialized Views Kafka -> RAW.
 
-5. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`  
+6. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`  
 Инициализирует MART-слой:
 - БД `probablyfresh_mart`,
 - MART таблицы на `ReplacingMergeTree(ingested_at)`,
@@ -161,22 +169,22 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 - таблицу качества `mart_quality_stats`,
 - стартовый snapshot quality-метрик.
 
-6. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/generator/generate_data.py"`  
+7. `docker compose --env-file .env run --rm app python src/generator/generate_data.py`  
 Генерирует JSON-файлы в `data/` (`stores`, `products`, `customers`, `purchases`) по правилам MVP.
 
-7. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/loader/load_to_mongo.py"`  
+8. `docker compose --env-file .env run --rm app python src/loader/load_to_mongo.py`  
 Загружает сгенерированные JSON в MongoDB с upsert по бизнес-ключам.
 
-8. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"`  
+9. `docker compose --env-file .env run --rm app python src/streaming/produce_from_mongo.py --once`  
 Читает данные из MongoDB и публикует их в Kafka по топикам сущностей.  
 Для `customers` и `purchases` перед публикацией выполняются:
 - нормализация `email`/`phone`,
 - шифрование `email`/`phone` через Fernet.
 
-9. `Start-Sleep -Seconds 5`  
+10. `Start-Sleep -Seconds 5`  
 Короткая пауза, чтобы Kafka consumer в ClickHouse успел дочитать сообщения и записать их в RAW/MART.
 
-10. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`  
+11. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`  
 Повторно выполняет `02_mart.sql` для обновления snapshot в `mart_quality_stats`.  
 Это нужно для актуальных значений `duplicates_rows` и `duplicates_ratio` на момент текущего прогона.
 
@@ -312,12 +320,14 @@ MVP skeleton for ProbablyFresh analytics platform (Stage 1).
 Strict run order (container-first, no make):
 
 1. `cp .env.example .env`
-2. `docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana`
-3. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/generator/generate_data.py"`
-4. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/loader/load_to_mongo.py"`
+2. `docker compose --env-file .env build app`
+3. `docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana`
+4. `do { Start-Sleep -Seconds 2; docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 1" } while ($LASTEXITCODE -ne 0)`
 5. `Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
-6. `docker compose --env-file .env run --rm app sh -lc "pip install -r requirements.txt && python src/streaming/produce_from_mongo.py --once"`
-7. Open Grafana and verify metrics on dashboard `ProbablyFresh RAW Overview`
+6. `docker compose --env-file .env run --rm app python src/generator/generate_data.py`
+7. `docker compose --env-file .env run --rm app python src/loader/load_to_mongo.py`
+8. `docker compose --env-file .env run --rm app python src/streaming/produce_from_mongo.py --once`
+9. Open Grafana and verify metrics on dashboard `ProbablyFresh RAW Overview`
 
 For MART and quality metrics (used by dashboard and alerting), also run:
 
@@ -340,6 +350,9 @@ After MART is built (steps above), run:
 4. Verify file in MinIO:
    - `mc ls local/$MINIO_BUCKET`
    - `mc cat local/$MINIO_BUCKET/analytic_result_YYYY_MM_DD.csv | head`
+
+Note:
+- after `docker compose --env-file .env build app`, dependencies (including `pyspark`) and the JDBC jar are already inside the image, so they are not downloaded on each run.
 
 ### Telegram alerting (provisioning)
 

@@ -38,7 +38,10 @@
       - mongodb_data:/data/db
 
   app:
-    image: python:3.12-slim
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    image: probablyfresh-app:local
     depends_on:
       - mongodb
       - kafka
@@ -54,6 +57,7 @@
       - KAFKA_TOPIC_CUSTOMERS=${KAFKA_TOPIC_CUSTOMERS}
       - KAFKA_TOPIC_PURCHASES=${KAFKA_TOPIC_PURCHASES}
       - FERNET_KEY=${FERNET_KEY}
+      - CLICKHOUSE_JDBC_JAR=/opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar
     command: ["sh", "-lc", "sleep infinity"]
 
   clickhouse:

@@ -53,15 +53,23 @@ def _optional_any_env(default: str, *names: str) -> str:
 
 def _build_spark_session() -> SparkSession:
     master = _optional_env("SPARK_MASTER", "local[*]")
+    jdbc_jar = _optional_env("CLICKHOUSE_JDBC_JAR", "/opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar")
     logging.info("Starting SparkSession with master=%s", master)
 
-    spark = (
-        SparkSession.builder.appName("probablyfresh-features-etl")
-        .master(master)
-        .config("spark.jars.packages", "com.clickhouse:clickhouse-jdbc:0.9.6")
-        .config("spark.sql.session.timeZone", "UTC")
-        .getOrCreate()
-    )
+    builder = SparkSession.builder.appName("probablyfresh-features-etl").master(master)
+
+    # Prefer local JDBC jar baked into the Docker image to avoid network downloads on each run.
+    if Path(jdbc_jar).exists():
+        logging.info("Using local ClickHouse JDBC jar: %s", jdbc_jar)
+        builder = builder.config("spark.jars", jdbc_jar)
+    else:
+        logging.warning(
+            "Local ClickHouse JDBC jar was not found at %s, falling back to Maven package resolution",
+            jdbc_jar,
+        )
+        builder = builder.config("spark.jars.packages", "com.clickhouse:clickhouse-jdbc:0.9.6")
+
+    spark = builder.config("spark.sql.session.timeZone", "UTC").getOrCreate()
     return spark
 
 
