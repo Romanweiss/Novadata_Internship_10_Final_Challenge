@@ -84,9 +84,10 @@ Airflow запускается отдельными сервисами `airflow-
 
 Запуск:
 
-1. `docker compose --env-file .env up -d airflow-postgres airflow`
-2. Открыть `http://localhost:8080`
-3. Логин: `admin/admin` (или значения из `.env`: `AIRFLOW_ADMIN_USER` / `AIRFLOW_ADMIN_PASSWORD`)
+1. `docker compose --env-file .env up -d airflow airflow-postgres`
+2. (альтернатива, если `.env` уже подхватывается автоматически) `docker compose up -d airflow airflow-postgres`
+3. Открыть `http://localhost:8080`
+4. Логин: `admin/admin` (или значения из `.env`: `AIRFLOW_ADMIN_USER` / `AIRFLOW_ADMIN_PASSWORD`)
 
 Примечание:
 - первый старт может занимать 1-2 минуты (миграции БД + создание admin пользователя).

@@ -88,13 +88,17 @@
       - -lc
       - |
         airflow db migrate &&
-        airflow users create \
-          --username "$${AIRFLOW_ADMIN_USER}" \
-          --password "$${AIRFLOW_ADMIN_PASSWORD}" \
-          --firstname Admin \
-          --lastname User \
-          --role Admin \
-          --email "$${AIRFLOW_ADMIN_EMAIL}" || true
+        if airflow users list | grep -E "^[[:space:]]*[0-9]+[[:space:]]*\\|[[:space:]]*$${AIRFLOW_ADMIN_USER}[[:space:]]*\\|" >/dev/null; then
+          echo "Airflow admin user '$${AIRFLOW_ADMIN_USER}' already exists, skipping create."
+        else
+          airflow users create \
+            --username "$${AIRFLOW_ADMIN_USER}" \
+            --password "$${AIRFLOW_ADMIN_PASSWORD}" \
+            --firstname Admin \
+            --lastname User \
+            --role Admin \
+            --email "$${AIRFLOW_ADMIN_EMAIL}"
+        fi
         airflow scheduler &
         exec airflow webserver
     healthcheck:
