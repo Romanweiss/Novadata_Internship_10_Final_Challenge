@@ -74,6 +74,23 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 2. `Start-Sleep -Seconds 5`
 3. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
 
+### Airflow
+
+Airflow запускается отдельными сервисами `airflow-postgres` и `airflow`:
+- executor: `LocalExecutor`
+- examples: отключены (`AIRFLOW__CORE__LOAD_EXAMPLES=false`)
+- DAG-монтаж: `./airflow/dags -> /opt/airflow/dags`
+- docker socket: `/var/run/docker.sock` примонтирован в контейнер `airflow`
+
+Запуск:
+
+1. `docker compose --env-file .env up -d airflow-postgres airflow`
+2. Открыть `http://localhost:8080`
+3. Логин: `admin/admin` (или значения из `.env`: `AIRFLOW_ADMIN_USER` / `AIRFLOW_ADMIN_PASSWORD`)
+
+Примечание:
+- первый старт может занимать 1-2 минуты (миграции БД + создание admin пользователя).
+
 ### ETL to S3
 
 После построения MART (шаги выше), выполните:
@@ -92,6 +109,31 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 
 Примечание:
 - после `docker compose --env-file .env build app` зависимости (включая `pyspark`) и JDBC jar уже внутри образа, поэтому при каждом запуске они не скачиваются заново.
+
+### Verification / Smoke test
+
+Одна команда для быстрой верификации всего контура (ClickHouse + S3 CSV):
+
+- `make smoke`
+
+Что проверяет `scripts/smoke_check.py`:
+- RAW uniq counts: `stores=45`, `products=100`, `purchases=200`, `customers>=45`
+- MART FINAL counts: `customers`, `purchases`, `purchase_items` (`purchase_items > purchases`)
+- Последний snapshot `mart_quality_stats` для `purchases` (`invalid_rows`, `duplicates_ratio`)
+- Наличие объекта `analytic_result_YYYY_MM_DD.csv` в S3/MinIO и размер `>1KB`
+- Первые 5 строк CSV: ровно 31 колонка, все фичи только `0/1`
+
+Пример ожидаемого вывода:
+
+```text
+== ProbablyFresh smoke check ==
+RAW uniq counts: stores=45, products=100, purchases=200, customers=175
+MART FINAL counts: customers=175, purchases=200, purchase_items=<N>, where N > 200
+mart_quality_stats (latest purchases): event_time=..., invalid_rows=0, duplicates_ratio=0.500000
+S3 object: s3://final-project-nova-data/analytic_result_2026_02_25.csv, size=5580 bytes
+CSV check: 31 columns and binary feature values (0/1) on first 5 rows
+SMOKE CHECK PASSED
+```
 
 ### Telegram alerting (provisioning)
 
