@@ -7,21 +7,28 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
 from api.services.errors import ServiceError
-from api.services.settings import env_int, env_str
+from api.services.settings import env_int
+from api.services.storage import (
+    storage_access_key,
+    storage_bucket,
+    storage_endpoint,
+    storage_region,
+    storage_secret_key,
+)
 
 
 def _s3_client():
     return boto3.client(
         "s3",
-        endpoint_url=env_str("MINIO_ENDPOINT", ""),
-        aws_access_key_id=env_str("MINIO_ACCESS_KEY", ""),
-        aws_secret_access_key=env_str("MINIO_SECRET_KEY", ""),
-        region_name=env_str("MINIO_REGION", "ru-3"),
+        endpoint_url=storage_endpoint() or None,
+        aws_access_key_id=storage_access_key() or None,
+        aws_secret_access_key=storage_secret_key() or None,
+        region_name=storage_region(),
     )
 
 
 def _bucket() -> str:
-    return env_str("MINIO_BUCKET", "analytics")
+    return storage_bucket()
 
 
 def _derive_status(key: str, size_bytes: int) -> str:

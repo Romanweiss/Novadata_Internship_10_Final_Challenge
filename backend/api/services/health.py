@@ -11,7 +11,14 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
 from api.services.clickhouse import ping as clickhouse_ping
-from api.services.settings import env_int, env_str
+from api.services.settings import env_str
+from api.services.storage import (
+    storage_access_key,
+    storage_bucket,
+    storage_endpoint,
+    storage_region,
+    storage_secret_key,
+)
 
 
 def _iso_now() -> str:
@@ -90,17 +97,15 @@ def _check_airflow() -> None:
         raise RuntimeError(f"Airflow health status {response.status_code}")
 
 
-def _check_minio() -> None:
-    endpoint = env_str("MINIO_ENDPOINT", "http://minio:9000")
-    bucket = env_str("MINIO_BUCKET", "analytics")
+def _check_storage() -> None:
     client = boto3.client(
         "s3",
-        endpoint_url=endpoint,
-        aws_access_key_id=env_str("MINIO_ACCESS_KEY"),
-        aws_secret_access_key=env_str("MINIO_SECRET_KEY"),
-        region_name=env_str("MINIO_REGION", "ru-3"),
+        endpoint_url=storage_endpoint() or None,
+        aws_access_key_id=storage_access_key() or None,
+        aws_secret_access_key=storage_secret_key() or None,
+        region_name=storage_region(),
     )
-    client.list_objects_v2(Bucket=bucket, MaxKeys=1)
+    client.list_objects_v2(Bucket=storage_bucket(), MaxKeys=1)
 
 
 def collect_services_health() -> dict:
@@ -110,6 +115,6 @@ def collect_services_health() -> dict:
         _service_result("MongoDB", _check_mongo),
         _service_result("Grafana", _check_grafana),
         _service_result("Airflow", _check_airflow),
-        _service_result("MinIO", _check_minio),
+        _service_result("S3/MinIO", _check_storage),
     ]
     return {"services": services}
