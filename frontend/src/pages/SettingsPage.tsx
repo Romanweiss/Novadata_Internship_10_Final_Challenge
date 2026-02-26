@@ -1,9 +1,13 @@
-﻿import { AlertTriangle, ChartSpline, Cloud, Database, Info, Workflow } from 'lucide-react';
+import { AlertTriangle, ChartSpline, Cloud, Database, Info, Workflow } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
 import { useAppState } from '../app/useAppState';
+import { apiClient } from '../api/client';
+import { mapConnections } from '../api/mappers';
 import { Card } from '../components/common/Card';
 import { serviceConnections } from '../mocks/data';
+import type { ServiceConnection } from '../types/ui';
 
 const iconByConnection = {
   database: Database,
@@ -14,6 +18,25 @@ const iconByConnection = {
 
 export function SettingsPage() {
   const { safeMode, setSafeMode } = useAppState();
+  const [connections, setConnections] = useState<ServiceConnection[]>(serviceConnections);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const payload = await apiClient.fetchSettingsConnections();
+        if (!mounted) return;
+        setConnections(mapConnections(payload));
+      } catch {
+        // Keep mock connections if backend is unavailable.
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <motion.div
@@ -59,7 +82,7 @@ export function SettingsPage() {
       <section>
         <h2 className="mb-3 text-3xl text-[1.9rem] font-extrabold tracking-tight">Service Connections</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          {serviceConnections.map((item) => {
+          {connections.map((item) => {
             const Icon = iconByConnection[item.icon];
             return (
               <Card key={item.key} className="p-4">

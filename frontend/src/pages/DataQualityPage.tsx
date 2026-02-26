@@ -1,11 +1,89 @@
-﻿import { BellRing, CheckCircle2 } from 'lucide-react';
+import { BellRing, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEffect, useMemo, useState } from 'react';
 
-import { Card } from '../components/common/Card';
+import { apiClient } from '../api/client';
+import { mapDuplicatesTrend, mapMartStats } from '../api/mappers';
 import { DuplicatesTrendChart } from '../components/charts/DuplicatesTrendChart';
+import { Card } from '../components/common/Card';
 import { duplicatesRatio, duplicatesTrend, martQualityRows } from '../mocks/data';
+import type { DuplicateTrendPoint, MartQualityRow } from '../types/ui';
+
+function formatDateTime(value: string | null): string {
+  if (!value) return 'No alerts';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+}
+
+function parsePercent(value: string): number {
+  return Number(value.replace('%', '').replace(',', '.'));
+}
 
 export function DataQualityPage() {
+  const [ratioPercent, setRatioPercent] = useState<number>(duplicatesRatio);
+  const [targetPercent, setTargetPercent] = useState<number>(10);
+  const [qualityStatus, setQualityStatus] = useState<'good' | 'warn' | 'bad'>('good');
+  const [lastAlertAt, setLastAlertAt] = useState<string | null>('2026-02-24T14:30:00Z');
+  const [telegramEnabled, setTelegramEnabled] = useState<boolean>(true);
+  const [trend, setTrend] = useState<DuplicateTrendPoint[]>(duplicatesTrend);
+  const [tableRows, setTableRows] = useState<MartQualityRow[]>(martQualityRows);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const [overall, trendPayload, martStatsPayload] = await Promise.all([
+          apiClient.fetchQualityOverall(),
+          apiClient.fetchQualityTrend(10),
+          apiClient.fetchMartStats(),
+        ]);
+
+        if (!mounted) return;
+
+        setRatioPercent(Number((overall.duplicates_ratio * 100).toFixed(2)));
+        setTargetPercent(Number((overall.target_ratio * 100).toFixed(2)));
+        setQualityStatus(overall.status);
+        setLastAlertAt(overall.last_alert_at);
+        setTelegramEnabled(overall.telegram_enabled);
+        setTrend(mapDuplicatesTrend(trendPayload.points));
+        setTableRows(mapMartStats(martStatsPayload.rows));
+      } catch {
+        // Keep mock values if backend is unavailable.
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const statusInfo = useMemo(() => {
+    if (qualityStatus === 'bad') {
+      return {
+        title: 'Quality is Bad',
+        description: 'Duplicates ratio is above the allowed threshold and needs action.',
+        icon: ShieldX,
+      };
+    }
+    if (qualityStatus === 'warn') {
+      return {
+        title: 'Quality Needs Attention',
+        description: 'Duplicates ratio is close to the target threshold.',
+        icon: ShieldAlert,
+      };
+    }
+    return {
+      title: 'Quality is Good',
+      description: 'The current duplication ratio is within acceptable limits.',
+      icon: ShieldCheck,
+    };
+  }, [qualityStatus]);
+
+  const progressWidth = Math.min(Math.max(ratioPercent, 0), 100);
+  const StatusIcon = statusInfo.icon;
+
   return (
     <motion.div
       key="data-quality"
@@ -19,22 +97,22 @@ export function DataQualityPage() {
           <div className="grid gap-4 lg:grid-cols-[1fr_240px] lg:items-center">
             <div>
               <h3 className="text-[1.75rem] text-2xl font-bold">Overall Duplicates Ratio</h3>
-              <p className="mt-2 text-[3.1rem] text-5xl font-extrabold leading-none">{duplicatesRatio.toFixed(1)}%</p>
+              <p className="mt-2 text-[3.1rem] text-5xl font-extrabold leading-none">{ratioPercent.toFixed(1)}%</p>
 
               <div className="mt-4 flex items-center gap-4">
                 <div className="h-3 w-full max-w-[380px] overflow-hidden rounded-full bg-[var(--surface-muted)]">
-                  <div className="h-full rounded-full bg-[#111827] dark:bg-white" style={{ width: `${duplicatesRatio}%` }} />
+                  <div className="h-full rounded-full bg-[#111827] dark:bg-white" style={{ width: `${progressWidth}%` }} />
                 </div>
-                <span className="text-sm text-[var(--text-muted)]">Target: &lt; 10%</span>
+                <span className="text-sm text-[var(--text-muted)]">Target: &lt; {targetPercent.toFixed(1)}%</span>
               </div>
             </div>
 
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-4">
               <p className="inline-flex items-center gap-2 text-lg font-bold">
-                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                Quality is Good
+                <StatusIcon className="h-6 w-6 text-emerald-500" />
+                {statusInfo.title}
               </p>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">The current duplication ratio is within acceptable limits.</p>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">{statusInfo.description}</p>
             </div>
           </div>
         </Card>
@@ -48,14 +126,14 @@ export function DataQualityPage() {
           <div className="mb-4 flex items-center justify-between border-b border-[var(--border)] pb-4">
             <p className="font-semibold">Telegram Alerts</p>
             <span className="inline-flex rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-300">
-              ENABLED
+              {telegramEnabled ? 'ENABLED' : 'DISABLED'}
             </span>
           </div>
 
           <div className="space-y-3">
             <div>
               <p className="text-sm text-[var(--text-muted)]">Last Alert Triggered</p>
-              <p className="mt-1 font-semibold">2026-02-24 14:30:00</p>
+              <p className="mt-1 font-semibold">{formatDateTime(lastAlertAt)}</p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-sm text-[var(--text-muted)]">
               Alerts are dispatched when ratio exceeds 10% for 2 consecutive runs.
@@ -66,7 +144,7 @@ export function DataQualityPage() {
 
       <Card className="p-5">
         <h3 className="mb-3 text-xl font-bold">Duplicates Trend (Last 10 runs)</h3>
-        <DuplicatesTrendChart data={duplicatesTrend} />
+        <DuplicatesTrendChart data={trend} />
       </Card>
 
       <Card className="overflow-hidden p-0">
@@ -87,20 +165,28 @@ export function DataQualityPage() {
               </tr>
             </thead>
             <tbody>
-              {martQualityRows.map((row) => (
-                <tr key={row.entity} className="border-t border-[var(--border)]">
-                  <td className="px-4 py-3 font-semibold">{row.entity}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{row.totalRaw}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-300">{row.validMart}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-orange-600 dark:text-orange-300">{row.duplicates}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-red-600 dark:text-red-300">{row.invalid}</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="inline-flex rounded-full bg-emerald-500/15 px-2.5 py-1 font-semibold text-emerald-700 dark:text-emerald-300">
-                      {row.ratio}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {tableRows.map((row) => {
+                const ratioValue = parsePercent(row.ratio);
+                const ratioClass =
+                  ratioValue >= 10
+                    ? 'bg-red-500/15 text-red-700 dark:text-red-300'
+                    : ratioValue >= 5
+                      ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                      : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300';
+
+                return (
+                  <tr key={row.entity} className="border-t border-[var(--border)]">
+                    <td className="px-4 py-3 font-semibold">{row.entity}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{row.totalRaw}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-300">{row.validMart}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-orange-600 dark:text-orange-300">{row.duplicates}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-red-600 dark:text-red-300">{row.invalid}</td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 font-semibold ${ratioClass}`}>{row.ratio}</span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

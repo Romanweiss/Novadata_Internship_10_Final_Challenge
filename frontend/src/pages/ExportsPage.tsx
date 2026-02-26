@@ -1,24 +1,79 @@
-﻿import { motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Download, Eye, File, Filter, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
+import { apiClient } from '../api/client';
+import { mapExports } from '../api/mappers';
 import { Card } from '../components/common/Card';
 import { exportsList } from '../mocks/data';
+import type { ExportFile } from '../types/ui';
 import { cn } from '../utils/format';
 
 export function ExportsPage() {
   const [query, setQuery] = useState('');
+  const [exportsData, setExportsData] = useState<ExportFile[]>(exportsList);
+  const [loading, setLoading] = useState(false);
 
-  const filtered = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) {
-      return exportsList;
-    }
+  useEffect(() => {
+    let mounted = true;
 
-    return exportsList.filter(
-      (row) => row.filename.toLowerCase().includes(normalized) || row.date.includes(normalized),
-    );
+    (async () => {
+      setLoading(true);
+      try {
+        const payload = await apiClient.fetchExports(query, 50, 0);
+        if (!mounted) return;
+        setExportsData(mapExports(payload.items));
+      } catch {
+        if (!mounted) return;
+        // Fallback to local mocks if API is unavailable.
+        const normalized = query.trim().toLowerCase();
+        if (!normalized) {
+          setExportsData(exportsList);
+        } else {
+          setExportsData(
+            exportsList.filter(
+              (row) => row.filename.toLowerCase().includes(normalized) || row.date.includes(normalized),
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, [query]);
+
+  const filtered = useMemo(() => exportsData, [exportsData]);
+
+  const handleView = async (row: ExportFile) => {
+    if (!row.key) return;
+    try {
+      const { url } = await apiClient.fetchExportPresign(row.key);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : `Cannot open ${row.filename}`);
+    }
+  };
+
+  const handleDownload = async (row: ExportFile) => {
+    if (!row.key) return;
+    try {
+      const { url } = await apiClient.fetchExportPresign(row.key);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = row.filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : `Cannot download ${row.filename}`);
+    }
+  };
 
   return (
     <motion.div
@@ -93,15 +148,17 @@ export function ExportsPage() {
                     <div className="flex justify-end gap-1.5">
                       <button
                         type="button"
-                        onClick={() => alert(`View: ${row.filename}`)}
+                        onClick={() => handleView(row)}
                         className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-black/5 hover:text-[var(--text)] dark:hover:bg-white/10"
+                        title="View"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
-                        onClick={() => alert(`Download: ${row.filename}`)}
+                        onClick={() => handleDownload(row)}
                         className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-black/5 hover:text-[var(--text)] dark:hover:bg-white/10"
+                        title="Download"
                       >
                         <Download className="h-4 w-4" />
                       </button>
@@ -109,6 +166,13 @@ export function ExportsPage() {
                   </td>
                 </tr>
               ))}
+              {!loading && filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-3 py-8 text-center text-sm text-[var(--text-muted)]">
+                    No exports found.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

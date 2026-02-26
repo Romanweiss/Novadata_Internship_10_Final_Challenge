@@ -1,8 +1,10 @@
-﻿import { createContext, useCallback, useEffect, useMemo, useReducer } from 'react';
+import { createContext, useCallback, useEffect, useMemo, useReducer } from 'react';
 
+import { apiClient } from '../api/client';
+import { mapRun, mapRuns } from '../api/mappers';
 import { initialLastRuns } from '../mocks/data';
 import type { JobAction, JobRun, JobRunStatus, ThemeMode, ToastMessage } from '../types/ui';
-import { randomFromRange, sleep } from '../utils/format';
+import { sleep } from '../utils/format';
 
 interface AppState {
   theme: ThemeMode;
@@ -14,7 +16,8 @@ interface AppState {
 type AppAction =
   | { type: 'SET_THEME'; payload: ThemeMode }
   | { type: 'SET_SAFE_MODE'; payload: boolean }
-  | { type: 'ADD_RUN'; payload: JobRun }
+  | { type: 'SET_LAST_RUNS'; payload: JobRun[] }
+  | { type: 'UPSERT_RUN'; payload: JobRun }
   | { type: 'UPDATE_RUN_STATUS'; payload: { id: string; status: JobRunStatus } }
   | { type: 'ADD_TOAST'; payload: ToastMessage }
   | { type: 'DISMISS_TOAST'; payload: string };
@@ -22,7 +25,7 @@ type AppAction =
 interface AppContextValue extends AppState {
   setTheme: (theme: ThemeMode) => void;
   toggleTheme: () => void;
-  setSafeMode: (value: boolean) => void;
+  setSafeMode: (value: boolean) => Promise<void>;
   runJob: (job: JobAction) => Promise<JobRunStatus>;
   dismissToast: (id: string) => void;
 }
@@ -50,8 +53,12 @@ function reducer(state: AppState, action: AppAction): AppState {
       return { ...state, theme: action.payload };
     case 'SET_SAFE_MODE':
       return { ...state, safeMode: action.payload };
-    case 'ADD_RUN':
-      return { ...state, lastRuns: [action.payload, ...state.lastRuns].slice(0, 10) };
+    case 'SET_LAST_RUNS':
+      return { ...state, lastRuns: action.payload.slice(0, 10) };
+    case 'UPSERT_RUN': {
+      const next = [action.payload, ...state.lastRuns.filter((run) => run.id !== action.payload.id)];
+      return { ...state, lastRuns: next.slice(0, 10) };
+    }
     case 'UPDATE_RUN_STATUS':
       return {
         ...state,
@@ -79,13 +86,6 @@ function makeToast(title: string, description: string, tone: ToastMessage['tone'
   };
 }
 
-function shouldFailJob(jobKey: string) {
-  if (jobKey === 'mart-refresh') {
-    return Math.random() < 0.28;
-  }
-  return false;
-}
-
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
@@ -93,6 +93,30 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEY, state.theme);
     document.documentElement.classList.toggle('dark', state.theme === 'dark');
   }, [state.theme]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const [connections, lastRunsPayload] = await Promise.all([
+          apiClient.fetchSettingsConnections(),
+          apiClient.fetchLastRuns(10),
+        ]);
+
+        if (!mounted) return;
+
+        dispatch({ type: 'SET_SAFE_MODE', payload: connections.safe_mode });
+        dispatch({ type: 'SET_LAST_RUNS', payload: mapRuns(lastRunsPayload.runs) });
+      } catch {
+        // Keep fallback mock state when API is unavailable/unauthorized.
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const setTheme = useCallback((theme: ThemeMode) => {
     dispatch({ type: 'SET_THEME', payload: theme });
@@ -102,52 +126,94 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_THEME', payload: state.theme === 'dark' ? 'light' : 'dark' });
   }, [state.theme]);
 
-  const setSafeMode = useCallback((value: boolean) => {
-    dispatch({ type: 'SET_SAFE_MODE', payload: value });
-  }, []);
+  const setSafeMode = useCallback(
+    async (value: boolean) => {
+      const previous = state.safeMode;
+      dispatch({ type: 'SET_SAFE_MODE', payload: value });
+
+      try {
+        const payload = await apiClient.updateSafeMode(value);
+        dispatch({ type: 'SET_SAFE_MODE', payload: payload.enabled });
+        dispatch({
+          type: 'ADD_TOAST',
+          payload: makeToast('Safe mode updated', `Safe mode is now ${payload.enabled ? 'enabled' : 'disabled'}.`, 'success'),
+        });
+      } catch (error) {
+        dispatch({ type: 'SET_SAFE_MODE', payload: previous });
+        dispatch({
+          type: 'ADD_TOAST',
+          payload: makeToast(
+            'Safe mode update failed',
+            error instanceof Error ? error.message : 'Unable to update safe mode.',
+            'error',
+          ),
+        });
+      }
+    },
+    [state.safeMode],
+  );
 
   const dismissToast = useCallback((id: string) => {
     dispatch({ type: 'DISMISS_TOAST', payload: id });
   }, []);
 
   const runJob = useCallback(async (job: JobAction) => {
-    const runId = `run-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`;
-    const now = Date.now();
+    try {
+      const started = await apiClient.triggerAction(job.key, {});
+      const runId = started.run_id;
 
-    dispatch({
-      type: 'ADD_RUN',
-      payload: {
-        id: runId,
-        key: job.key,
-        name: job.key,
-        status: 'running',
-        startedAt: now,
-      },
-    });
+      dispatch({
+        type: 'UPSERT_RUN',
+        payload: {
+          id: runId,
+          key: job.key,
+          name: job.key,
+          status: 'running',
+          startedAt: Date.now(),
+        },
+      });
 
-    dispatch({
-      type: 'ADD_TOAST',
-      payload: makeToast('Job started', `${job.title} was queued and is running.`, 'info'),
-    });
+      dispatch({
+        type: 'ADD_TOAST',
+        payload: makeToast('Job started', `${job.title} was queued and is running.`, 'info'),
+      });
 
-    await sleep(randomFromRange(1200, 2100));
+      const maxPollAttempts = 1200; // ~30 minutes with 1.5s polling
+      for (let attempt = 0; attempt < maxPollAttempts; attempt += 1) {
+        await sleep(1500);
+        const run = await apiClient.fetchRun(runId);
+        const mapped = mapRun(run);
+        dispatch({ type: 'UPSERT_RUN', payload: mapped });
 
-    const finalStatus: JobRunStatus = shouldFailJob(job.key) ? 'failed' : 'success';
+        if (mapped.status === 'success' || mapped.status === 'failed') {
+          dispatch({
+            type: 'ADD_TOAST',
+            payload:
+              mapped.status === 'success'
+                ? makeToast('Job completed', `${job.title} finished successfully.`, 'success')
+                : makeToast('Job failed', `${job.title} failed. Check logs before retry.`, 'error'),
+          });
+          return mapped.status;
+        }
+      }
 
-    dispatch({
-      type: 'UPDATE_RUN_STATUS',
-      payload: { id: runId, status: finalStatus },
-    });
-
-    dispatch({
-      type: 'ADD_TOAST',
-      payload:
-        finalStatus === 'success'
-          ? makeToast('Job completed', `${job.title} finished successfully.`, 'success')
-          : makeToast('Job failed', `${job.title} failed. Check logs before retry.`, 'error'),
-    });
-
-    return finalStatus;
+      dispatch({ type: 'UPDATE_RUN_STATUS', payload: { id: runId, status: 'failed' } });
+      dispatch({
+        type: 'ADD_TOAST',
+        payload: makeToast('Job timeout', `${job.title} exceeded polling timeout.`, 'error'),
+      });
+      return 'failed';
+    } catch (error) {
+      dispatch({
+        type: 'ADD_TOAST',
+        payload: makeToast(
+          'Job start failed',
+          error instanceof Error ? error.message : 'Failed to trigger backend action.',
+          'error',
+        ),
+      });
+      return 'failed';
+    }
   }, []);
 
   const value = useMemo<AppContextValue>(

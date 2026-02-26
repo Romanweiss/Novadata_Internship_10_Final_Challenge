@@ -61,6 +61,7 @@ export interface MartQualityRow {
 
 export interface ExportFile {
   id: string;
+  key?: string;
   filename: string;
   date: string;
   rows: string;
