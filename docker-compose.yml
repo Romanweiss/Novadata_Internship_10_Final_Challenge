@@ -193,6 +193,31 @@
         python backend/manage.py ensure_api_token &&
         python backend/manage.py runserver 0.0.0.0:8001
 
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    depends_on:
+      - backend
+    working_dir: /workspace/frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./:/workspace
+      - frontend_node_modules:/workspace/frontend/node_modules
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8001/api}
+      - VITE_API_TOKEN=${API_TOKEN:-}
+      - CHOKIDAR_USEPOLLING=true
+    command:
+      - sh
+      - -lc
+      - |
+        if [ ! -d node_modules ] || [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
+          npm ci
+        fi
+        npm run dev -- --host 0.0.0.0 --port 5173 --strictPort
+
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
     ports:
@@ -227,3 +252,4 @@ volumes:
   airflow_postgres_data:
   clickhouse_data:
   grafana_data:
+  frontend_node_modules:

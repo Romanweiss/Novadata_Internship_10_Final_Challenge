@@ -202,6 +202,20 @@ curl -H "Authorization: Token $API_TOKEN" \
   http://localhost:8001/api/runs/<run_id>
 ```
 
+### Frontend (Docker)
+
+Frontend теперь можно запускать как отдельный контейнер (Vite dev server), без `cd frontend` и `npm install` на хосте.
+
+Запуск:
+
+1. `docker compose --env-file .env up -d backend frontend`
+2. Открыть UI: `http://localhost:5173`
+
+Переменные:
+
+- `VITE_API_BASE_URL` (по умолчанию `http://localhost:8001/api`)
+- `VITE_API_TOKEN` (если пусто, фронт будет работать в fallback-mode на моках при 401/ошибках API)
+
 ### Telegram alerting (provisioning)
 
 1. Добавить в `.env` переменную:

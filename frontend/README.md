@@ -21,6 +21,17 @@ npm run dev
 
 App URL: `http://localhost:5173`
 
+## Run In Docker
+
+From repository root:
+
+```bash
+docker compose --env-file .env up -d backend frontend
+```
+
+Frontend URL: `http://localhost:5173`  
+Backend API URL: `http://localhost:8001/api`
+
 ## API Integration
 
 Frontend reads data from backend API if available:
