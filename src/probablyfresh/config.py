@@ -51,6 +51,7 @@ class Settings:
     grafana_admin_user: str
     grafana_admin_password: str
 
+    pii_hash_salt: str
     fernet_key: str
 
 
@@ -86,5 +87,6 @@ def get_settings() -> Settings:
         grafana_port=_env_int("GRAFANA_PORT", 3000),
         grafana_admin_user=os.getenv("GRAFANA_ADMIN_USER", "admin").strip(),
         grafana_admin_password=os.getenv("GRAFANA_ADMIN_PASSWORD", "admin").strip(),
+        pii_hash_salt=os.getenv("PII_HASH_SALT", os.getenv("FERNET_KEY", "")).strip(),
         fernet_key=os.getenv("FERNET_KEY", "").strip(),
     )

@@ -1,7 +1,7 @@
 ﻿PYTHON ?= python
 ENV_FILE ?= .env
 
-.PHONY: up down generate-data load-nosql init-ch mart-init run-producer init-grafana features-etl run-etl smoke verify
+.PHONY: up down generate-data load-nosql init-ch mart-init run-producer init-grafana features-etl run-etl smoke verify pii-check
 
 up:
 	docker compose --env-file $(ENV_FILE) up -d
@@ -40,3 +40,6 @@ smoke:
 	docker compose --env-file $(ENV_FILE) run --rm app python scripts/smoke_check.py
 
 verify: smoke
+
+pii-check:
+	docker compose --env-file $(ENV_FILE) run --rm app python scripts/pii_hash_selfcheck.py

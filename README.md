@@ -13,7 +13,7 @@ MVP-скелет аналитической платформы ProbablyFresh (э
   - `purchases`: >= 200
 - Загрузка JSON в MongoDB.
 - Ingestion MongoDB -> Kafka -> ClickHouse RAW.
-- Шифрование PII (`email`, `phone`) перед отправкой в Kafka для `customers` и `purchases`.
+- One-way обезличивание PII (`email`, `phone`) перед отправкой в Kafka для `customers` и `purchases`.
 
 ### Технологии
 
@@ -132,6 +132,25 @@ DAG `etl_to_s3_daily` запускается ежедневно в `10:00` по 
 
 Примечание:
 - после `docker compose --env-file .env build app` зависимости (включая `pyspark`) и JDBC jar уже внутри образа, поэтому при каждом запуске они не скачиваются заново.
+
+### PII anonymization
+
+PII обрабатывается автоматически до записи в Kafka/ClickHouse:
+
+1. normalize:
+   - `email` -> `trim + lower`
+   - `phone` -> E.164-подобный формат
+2. anonymize (one-way):
+   - `sha256((salt + \":\" + normalized_value).encode(\"utf-8\")).hexdigest()`
+   - salt задаётся через `.env`: `PII_HASH_SALT` (минимум 16 символов)
+   - результат: hex-строка длиной `64`
+   - пустое значение -> пустая строка `\"\"`
+
+Это соответствует ТЗ по необратимому обезличиванию (one-way hash).
+
+Быстрый локальный self-check:
+
+- `make pii-check`
 
 ### Verification / Smoke test
 
@@ -302,7 +321,7 @@ Frontend теперь можно запускать как отдельный к
 Читает данные из MongoDB и публикует их в Kafka по топикам сущностей.  
 Для `customers` и `purchases` перед публикацией выполняются:
 - нормализация `email`/`phone`,
-- шифрование `email`/`phone` через Fernet.
+- one-way хэширование `email`/`phone` через `SHA-256 + PII_HASH_SALT`.
 
 10. `Start-Sleep -Seconds 5`  
 Короткая пауза, чтобы Kafka consumer в ClickHouse успел дочитать сообщения и записать их в RAW/MART.
@@ -364,6 +383,18 @@ WHERE entity = 'purchases'
 ORDER BY event_time DESC
 LIMIT 1;
 ```
+
+Проверка PII в MART (хэш длиной 64):
+
+```sql
+SELECT
+  length(email_enc) AS email_len,
+  length(phone_enc) AS phone_len
+FROM probablyfresh_mart.customers_mart
+LIMIT 5;
+```
+
+Ожидаемо: `email_len` и `phone_len` равны `64` (или `0`, если исходное поле было пустым).
 
 Проверка в Grafana:
 
