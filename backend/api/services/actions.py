@@ -92,6 +92,12 @@ def _execute_job_run(run_id: str) -> None:
             if returncode != 0:
                 status = JobRun.Status.FAILED
                 error_message = f"Command exited with code {returncode}"
+    except ServiceError as exc:
+        status = JobRun.Status.FAILED
+        error_message = exc.message
+        if exc.details:
+            details_json = json.dumps(exc.details, ensure_ascii=True)
+            stderr_text = f"{stderr_text}\n{details_json}" if stderr_text else details_json
     except Exception as exc:  # noqa: BLE001
         status = JobRun.Status.FAILED
         error_message = str(exc)

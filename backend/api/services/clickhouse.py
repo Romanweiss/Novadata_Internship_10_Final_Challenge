@@ -97,17 +97,79 @@ def query_scalar(sql: str, database: str | None = None, default: Any = None, tim
 def execute_sql(sql: str, database: str | None = None, timeout: int = 60) -> None:
     db_name = database or _db_mart()
     url = f"{_base_url()}/"
-    try:
-        response = requests.post(
-            url,
-            params={"database": db_name, "multiquery": "1"},
-            data=sql.encode("utf-8"),
-            auth=_auth(),
-            timeout=timeout,
-        )
-        response.raise_for_status()
-    except requests.RequestException as exc:
-        raise ServiceError("CLICKHOUSE_EXEC_FAILED", "ClickHouse SQL execution failed.", 500) from exc
+    statements = _split_sql_statements(sql)
+    if not statements:
+        return
+
+    for index, statement in enumerate(statements, start=1):
+        try:
+            response = requests.post(
+                url,
+                params={"database": db_name},
+                data=statement.encode("utf-8"),
+                auth=_auth(),
+                timeout=timeout,
+            )
+            if response.status_code >= 400:
+                body = (response.text or "").strip().replace("\n", " ")
+                short_body = body[:1000]
+                raise ServiceError(
+                    "CLICKHOUSE_EXEC_FAILED",
+                    (
+                        f"ClickHouse SQL execution failed at statement {index}/{len(statements)} "
+                        f"(HTTP {response.status_code}): {short_body}"
+                    ),
+                    500,
+                )
+        except requests.RequestException as exc:
+            raise ServiceError(
+                "CLICKHOUSE_EXEC_FAILED",
+                f"ClickHouse SQL execution failed at statement {index}/{len(statements)}.",
+                500,
+            ) from exc
+
+
+def _split_sql_statements(sql: str) -> list[str]:
+    statements: list[str] = []
+    current: list[str] = []
+    in_single_quote = False
+    in_double_quote = False
+    escape_next = False
+
+    for ch in sql:
+        if escape_next:
+            current.append(ch)
+            escape_next = False
+            continue
+
+        if ch == "\\" and (in_single_quote or in_double_quote):
+            current.append(ch)
+            escape_next = True
+            continue
+
+        if ch == "'" and not in_double_quote:
+            in_single_quote = not in_single_quote
+            current.append(ch)
+            continue
+
+        if ch == '"' and not in_single_quote:
+            in_double_quote = not in_double_quote
+            current.append(ch)
+            continue
+
+        if ch == ";" and not in_single_quote and not in_double_quote:
+            statement = "".join(current).strip()
+            if statement:
+                statements.append(statement)
+            current = []
+            continue
+
+        current.append(ch)
+
+    tail = "".join(current).strip()
+    if tail:
+        statements.append(tail)
+    return statements
 
 
 def db_raw_name() -> str:
