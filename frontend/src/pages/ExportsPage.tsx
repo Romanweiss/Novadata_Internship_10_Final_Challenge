@@ -85,7 +85,7 @@ export function ExportsPage() {
     >
       <section className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <h1 className="text-4xl text-[2.1rem] font-extrabold tracking-tight">S3 / MinIO Exports</h1>
+          <h1 className="text-4xl text-[2.1rem] font-extrabold tracking-tight">S3 Exports</h1>
         </div>
 
         <div className="flex w-full items-center gap-2 md:w-auto">

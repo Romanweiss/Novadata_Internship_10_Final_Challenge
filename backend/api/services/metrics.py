@@ -131,7 +131,7 @@ def get_last_runs(limit: int = 10) -> dict:
 
 
 def get_pipeline_map() -> dict:
-    return {"nodes": ["JSON", "MongoDB", "Kafka", "ClickHouse RAW", "ClickHouse MART", "Spark", "MinIO"]}
+    return {"nodes": ["JSON", "MongoDB", "Kafka", "ClickHouse RAW", "ClickHouse MART", "Spark", "S3"]}
 
 
 def get_quality_overall() -> dict:

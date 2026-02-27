@@ -29,7 +29,7 @@ init-grafana:
 	@echo "Grafana provisioning is automatic on startup."
 
 run-etl:
-	@echo "Fill .env before ETL: CH_HOST, CH_PORT, CH_USER, CH_PASSWORD, MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET."
+	@echo "Fill .env before ETL: CH_HOST, CH_PORT, CH_USER, CH_PASSWORD, S3_ENDPOINT_URL, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET."
 	docker compose --env-file $(ENV_FILE) up -d clickhouse app
 	docker compose --env-file $(ENV_FILE) run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py
 

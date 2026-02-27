@@ -113,7 +113,7 @@ DAG `etl_to_s3_daily` запускается ежедневно в `10:00` по 
 
 1. `wait_clickhouse` — проверяет доступность ClickHouse.
 2. `run_etl` — запускает `jobs/features_etl.py` внутри контейнера `app` через `docker exec`.
-3. `verify_minio` — проверяет наличие объекта `analytic_result_YYYY_MM_DD.csv` в bucket MinIO/S3.
+3. `verify_s3` — проверяет наличие объекта `analytic_result_YYYY_MM_DD.csv` в S3 bucket.
 
 Примечание по timezone:
 - расписание считается в `UTC+3` (`Europe/Moscow`), поэтому запуск "в 10:00" относится к московскому времени.
@@ -124,15 +124,11 @@ DAG `etl_to_s3_daily` запускается ежедневно в `10:00` по 
 
 1. Заполнить `.env`:
    - `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`
-   - `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
-2. Создать bucket `analytics` (если не создается автоматически):
-   - `mc alias set local http://localhost:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY`
-   - `mc ls local/$MINIO_BUCKET`
+   - `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`
+2. Убедиться, что bucket существует в S3.
 3. Запустить ETL:
    - `docker compose --env-file .env run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py`
-4. Проверить файл в MinIO:
-   - `mc ls local/$MINIO_BUCKET`
-   - `mc cat local/$MINIO_BUCKET/analytic_result_YYYY_MM_DD.csv | head`
+4. Проверить файл в bucket (`analytic_result_YYYY_MM_DD.csv`) через S3 UI/CLI.
 
 Примечание:
 - после `docker compose --env-file .env build app` зависимости (включая `pyspark`) и JDBC jar уже внутри образа, поэтому при каждом запуске они не скачиваются заново.
@@ -167,7 +163,7 @@ PII обрабатывается автоматически до записи в
 - RAW uniq counts: `stores=45`, `products=100`, `purchases=200`, `customers>=45`
 - MART FINAL counts: `customers`, `purchases`, `purchase_items` (`purchase_items > purchases`)
 - Последний snapshot `mart_quality_stats` для `purchases` (`invalid_rows`, `duplicates_ratio`)
-- Наличие объекта `analytic_result_YYYY_MM_DD.csv` в S3/MinIO и размер `>1KB`
+- Наличие объекта `analytic_result_YYYY_MM_DD.csv` в S3 и размер `>1KB`
 - Первые 5 строк CSV: ровно 31 колонка, все фичи только `0/1`
 
 Пример ожидаемого вывода:
@@ -234,6 +230,7 @@ Frontend теперь можно запускать как отдельный к
 
 1. `docker compose --env-file .env up -d backend frontend`
 2. Открыть UI: `http://localhost:5173`
+3. Готовый набор команд вынесен в `START_BACKEND_FRONTEND.txt`
 
 Переменные:
 
@@ -246,6 +243,7 @@ Frontend теперь можно запускать как отдельный к
    - `TELEGRAM_BOT_TOKEN=<your_bot_token>`
 2. Поднять стек:
    - `docker compose --env-file .env up -d`
+   - если `TELEGRAM_BOT_TOKEN` пустой, Grafana стартует с локальным placeholder токеном (алерты в Telegram при этом не отправляются)
 3. После старта Grafana автоматически создаст:
    - contact point `rwss_grafana_bot`,
    - notification policy,
@@ -258,8 +256,8 @@ Frontend теперь можно запускать как отдельный к
 
 - `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`, `CH_DATABASE=probablyfresh_mart`
 - `SPARK_MASTER=local[*]`
-- `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_BUCKET`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_OBJECT_PREFIX`
-- (опционально, для обратной совместимости) `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_OBJECT_PREFIX`
+- `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_OBJECT_PREFIX`
+- (опционально, для обратной совместимости) `AWS_DEFAULT_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
 
 Важно: для запуска job внутри Docker-контейнера `app` используйте `CH_HOST=clickhouse` (имя сервиса в compose), а не `localhost`.
 
@@ -277,7 +275,7 @@ Frontend теперь можно запускать как отдельный к
 
 Результат:
 
-- в S3/MinIO загружается файл `analytic_result_YYYY_MM_DD.csv` в bucket из `.env`.
+- в S3 загружается файл `analytic_result_YYYY_MM_DD.csv` в bucket из `.env`.
 
 ### Полная чистая проверка с нуля (PowerShell)
 
@@ -430,7 +428,7 @@ LIMIT 5;
 - `make mart-init` — инициализация MART и snapshot quality-метрик.
 - `make run-producer` — публикация Mongo -> Kafka (`--once`).
 - `make init-grafana` — поднять Grafana (provisioning автоматический).
-- `make run-etl` — PySpark ETL признаков (через `spark-submit`) и загрузка CSV в S3/MinIO.
+- `make run-etl` — PySpark ETL признаков (через `spark-submit`) и загрузка CSV в S3.
 - `make features-etl` — alias на `make run-etl`.
 
 ### Известные несовместимости и частые ошибки
@@ -525,7 +523,7 @@ What the DAG does:
 
 1. `wait_clickhouse` — checks ClickHouse availability.
 2. `run_etl` — runs `jobs/features_etl.py` inside the `app` container via `docker exec`.
-3. `verify_minio` — verifies `analytic_result_YYYY_MM_DD.csv` exists in MinIO/S3 bucket.
+3. `verify_s3` — verifies `analytic_result_YYYY_MM_DD.csv` exists in the S3 bucket.
 
 Timezone note:
 - schedule is interpreted in `UTC+3` (`Europe/Moscow`), so "10:00 daily" means Moscow local time.
@@ -536,15 +534,11 @@ After MART is built (steps above), run:
 
 1. Fill `.env`:
    - `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`
-   - `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
-2. Create bucket `analytics` (if not auto-created):
-   - `mc alias set local http://localhost:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY`
-   - `mc ls local/$MINIO_BUCKET`
+   - `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`
+2. Ensure the bucket exists in S3.
 3. Run ETL:
    - `docker compose --env-file .env run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py`
-4. Verify file in MinIO:
-   - `mc ls local/$MINIO_BUCKET`
-   - `mc cat local/$MINIO_BUCKET/analytic_result_YYYY_MM_DD.csv | head`
+4. Verify `analytic_result_YYYY_MM_DD.csv` in your S3 bucket (UI/CLI).
 
 Note:
 - after `docker compose --env-file .env build app`, dependencies (including `pyspark`) and the JDBC jar are already inside the image, so they are not downloaded on each run.
@@ -556,6 +550,7 @@ Note:
    - `TELEGRAM_BOT_TOKEN=<your_bot_token>`
 2. Start the stack:
    - `docker compose --env-file .env up -d`
+   - if `TELEGRAM_BOT_TOKEN` is empty, Grafana starts with a local placeholder token (Telegram delivery will be disabled)
 3. Grafana will auto-provision:
    - contact point `rwss_grafana_bot`,
    - notification policy,
@@ -568,8 +563,8 @@ Prepare `.env` (adjust if needed):
 
 - `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`, `CH_DATABASE=probablyfresh_mart`
 - `SPARK_MASTER=local[*]`
-- `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_BUCKET`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_OBJECT_PREFIX`
-- (optional, backward compatible) `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_OBJECT_PREFIX`
+- `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_OBJECT_PREFIX`
+- (optional, backward compatible) `AWS_DEFAULT_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
 
 Important: when running the job inside Docker `app` container, use `CH_HOST=clickhouse` (compose service name), not `localhost`.
 
@@ -587,7 +582,7 @@ Makefile shortcut:
 
 Output:
 
-- uploads `analytic_result_YYYY_MM_DD.csv` to S3/MinIO bucket from `.env`.
+- uploads `analytic_result_YYYY_MM_DD.csv` to S3 bucket from `.env`.
 
 ### Validation query
 

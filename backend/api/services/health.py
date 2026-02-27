@@ -115,6 +115,6 @@ def collect_services_health() -> dict:
         _service_result("MongoDB", _check_mongo),
         _service_result("Grafana", _check_grafana),
         _service_result("Airflow", _check_airflow),
-        _service_result("S3/MinIO", _check_storage),
+        _service_result("S3", _check_storage),
     ]
     return {"services": services}

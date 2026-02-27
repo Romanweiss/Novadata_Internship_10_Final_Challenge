@@ -42,7 +42,7 @@ export const serviceHealth: ServiceHealthItem[] = [
   { id: 'mongo', name: 'MongoDB', status: 'healthy', checkedAgo: '1s ago' },
   { id: 'grafana', name: 'Grafana', status: 'warning', checkedAgo: '1m ago' },
   { id: 'airflow', name: 'Airflow', status: 'healthy', checkedAgo: '10s ago' },
-  { id: 'minio', name: 'MinIO', status: 'healthy', checkedAgo: '2s ago' },
+  { id: 's3', name: 'S3', status: 'healthy', checkedAgo: '2s ago' },
 ];
 
 export const paymentBreakdown: PaymentBreakdownItem[] = [
@@ -71,7 +71,7 @@ export const pipelineActions: JobAction[] = [
   { key: 'trigger-airflow-dag', title: 'Trigger Airflow DAG', description: 'Runs the nightly orchestration DAG', icon: 'play' },
 ];
 
-export const pipelineMapSteps = ['JSON', 'MongoDB', 'Kafka', 'ClickHouse RAW', 'ClickHouse MART', 'Spark', 'MinIO'];
+export const pipelineMapSteps = ['JSON', 'MongoDB', 'Kafka', 'ClickHouse RAW', 'ClickHouse MART', 'Spark', 'S3'];
 
 export const duplicatesRatio = 5.0;
 
@@ -152,7 +152,7 @@ export const exportsList: ExportFile[] = [
 
 export const serviceConnections: ServiceConnection[] = [
   { key: 'ch', title: 'ClickHouse JDBC', value: 'jdbc:clickhouse://ch-server:8123/default', icon: 'database' },
-  { key: 'minio', title: 'MinIO Endpoint', value: 'http://minio:9000', icon: 'cloud' },
+  { key: 's3', title: 'S3 Endpoint', value: 'https://s3.ru-3.storage.selcloud.ru', icon: 'cloud' },
   { key: 'grafana', title: 'Grafana URL', value: 'http://grafana:3000', icon: 'chart' },
   { key: 'airflow', title: 'Airflow URL', value: 'http://airflow:8080', icon: 'workflow' },
 ];

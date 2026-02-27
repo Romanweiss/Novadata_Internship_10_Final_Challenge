@@ -10,7 +10,7 @@
 4. Запись событий в ClickHouse RAW.
 5. Очистка и дедупликация в ClickHouse MART.
 6. Мониторинг в Grafana + alerting.
-7. Ежедневный запуск ETL в S3/MinIO через Airflow.
+7. Ежедневный запуск ETL в S3 через Airflow.
 8. Smoke-проверка целостности всего контура.
 
 Проект ориентирован на запуск в Docker и проверку всего тракта «от источника до витрины и выгрузки признаков».
@@ -85,7 +85,7 @@
 - Читает MART через JDBC (`products_mart`, `purchase_items_mart`, `customers_mart`, `purchases_mart`).
 - Считает **30 бинарных признаков** (0/1 int) на клиента.
 - Результат: CSV (31 колонка: `customer_id` + 30 фич).
-- Загружает файл в MinIO/S3 как `analytic_result_YYYY_MM_DD.csv`.
+- Загружает файл в S3 как `analytic_result_YYYY_MM_DD.csv`.
 
 ### 2.8 Smoke-check
 
@@ -94,7 +94,7 @@
 - RAW uniq counts (stores/products/purchases/customers).
 - MART FINAL counts (`customers`, `purchases`, `purchase_items`).
 - Последний `mart_quality_stats` для `purchases`.
-- Наличие файла ETL в MinIO/S3 (сегодняшняя дата, размер > 1KB).
+- Наличие файла ETL в S3 (сегодняшняя дата, размер > 1KB).
 - CSV: 31 колонка и только `0/1` в feature-колонках.
 
 ### 2.9 Airflow
@@ -106,7 +106,7 @@ DAG `etl_to_s3_daily` (`airflow/dags/etl_to_s3_daily.py`):
 - таски:
   - `wait_clickhouse`
   - `run_etl`
-  - `verify_minio`
+  - `verify_s3`
 
 ---
 
@@ -120,7 +120,7 @@ JSON files
             -> ClickHouse MART
                -> Grafana dashboards/alerts
                -> PySpark ETL
-                  -> S3/MinIO CSV
+                  -> S3 CSV
 
 Airflow DAG (daily) orchestrates ETL + verification.
 ```
@@ -156,7 +156,7 @@ Airflow DAG (daily) orchestrates ETL + verification.
 - `src/generator/generate_data.py` — генератор JSON датасета.
 - `src/loader/load_to_mongo.py` — загрузка JSON в Mongo.
 - `src/streaming/produce_from_mongo.py` — публикация Mongo -> Kafka + PII нормализация/шифрование.
-- `jobs/features_etl.py` — расчет 30 признаков + upload CSV в MinIO/S3.
+- `jobs/features_etl.py` — расчет 30 признаков + upload CSV в S3.
 - `scripts/smoke_check.py` — smoke-проверка всего контура.
 
 ### 5.3 ClickHouse SQL
@@ -234,7 +234,7 @@ Airflow DAG (daily) orchestrates ETL + verification.
 - После изменений в `01_init.sql`/`02_mart.sql` нужна полная переинициализация (`docker compose --env-file .env down -v` + повторный init), иначе старые MV/таблицы могут остаться без обновления definition.
 - Для ETL в Docker: `CH_HOST=clickhouse`, не `localhost`.
 - `purchase_items_mart FINAL` должен быть больше `purchases_mart FINAL`.
-- Файл ETL в MinIO/S3 должен быть >1KB и содержать данные, не только header.
+- Файл ETL в S3 должен быть >1KB и содержать данные, не только header.
 
 ---
 

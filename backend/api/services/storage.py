@@ -12,24 +12,24 @@ def _normalize_endpoint(endpoint: str) -> str:
 
 
 def storage_endpoint() -> str:
-    return _normalize_endpoint(env_str("S3_ENDPOINT_URL", env_str("MINIO_ENDPOINT", "")))
+    return _normalize_endpoint(env_str("S3_ENDPOINT_URL", ""))
 
 
 def storage_region() -> str:
-    return env_str("S3_REGION", env_str("MINIO_REGION", "ru-3"))
+    return env_str("S3_REGION", env_str("AWS_DEFAULT_REGION", "ru-3"))
 
 
 def storage_bucket() -> str:
-    return env_str("S3_BUCKET", env_str("MINIO_BUCKET", "analytics"))
+    return env_str("S3_BUCKET", "analytics")
 
 
 def storage_access_key() -> str:
-    return env_str("S3_ACCESS_KEY", env_str("MINIO_ACCESS_KEY", ""))
+    return env_str("S3_ACCESS_KEY", env_str("AWS_ACCESS_KEY_ID", ""))
 
 
 def storage_secret_key() -> str:
-    return env_str("S3_SECRET_KEY", env_str("MINIO_SECRET_KEY", ""))
+    return env_str("S3_SECRET_KEY", env_str("AWS_SECRET_ACCESS_KEY", ""))
 
 
 def storage_prefix() -> str:
-    return env_str("S3_OBJECT_PREFIX", env_str("MINIO_OBJECT_PREFIX", ""))
+    return env_str("S3_OBJECT_PREFIX", "")

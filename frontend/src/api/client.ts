@@ -85,7 +85,7 @@ export type ApiExportItem = {
 
 export type ApiConnections = {
   clickhouse_jdbc: string;
-  minio_endpoint: string;
+  s3_endpoint: string;
   grafana_url: string;
   airflow_url: string;
   safe_mode: boolean;

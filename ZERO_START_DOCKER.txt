@@ -42,7 +42,7 @@ Start-Sleep -Seconds 5
 13) Обновить snapshot качества в MART (повторный запуск 02_mart.sql)
 Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
 
-14) Запустить ETL в S3/MinIO (Spark из app контейнера, без повторной загрузки pyspark)
+14) Запустить ETL в S3 (Spark из app контейнера, без повторной загрузки pyspark)
 docker compose --env-file .env run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py
 
 После пункта 14 — чистые команды (copy/paste)

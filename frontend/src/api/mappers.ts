@@ -188,7 +188,7 @@ export function mapExports(items: ApiExportItem[]): ExportFile[] {
 export function mapConnections(payload: ApiConnections): ServiceConnection[] {
   return [
     { key: 'ch', title: 'ClickHouse JDBC', value: payload.clickhouse_jdbc, icon: 'database' },
-    { key: 'minio', title: 'S3 / MinIO Endpoint', value: payload.minio_endpoint, icon: 'cloud' },
+    { key: 's3', title: 'S3 Endpoint', value: payload.s3_endpoint, icon: 'cloud' },
     { key: 'grafana', title: 'Grafana URL', value: payload.grafana_url, icon: 'chart' },
     { key: 'airflow', title: 'Airflow URL', value: payload.airflow_url, icon: 'workflow' },
   ];

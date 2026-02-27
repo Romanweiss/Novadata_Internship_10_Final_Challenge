@@ -448,12 +448,12 @@ def _normalize_endpoint(endpoint: str) -> str:
 
 
 def _upload_to_s3(local_csv_path: Path) -> str:
-    endpoint_url = _normalize_endpoint(_required_any_env("MINIO_ENDPOINT", "S3_ENDPOINT_URL"))
-    region = _optional_any_env("ru-3", "MINIO_REGION", "S3_REGION")
-    bucket = _required_any_env("MINIO_BUCKET", "S3_BUCKET")
-    access_key = _required_any_env("MINIO_ACCESS_KEY", "S3_ACCESS_KEY")
-    secret_key = _required_any_env("MINIO_SECRET_KEY", "S3_SECRET_KEY")
-    prefix = _optional_any_env("", "MINIO_OBJECT_PREFIX", "S3_OBJECT_PREFIX")
+    endpoint_url = _normalize_endpoint(_required_env("S3_ENDPOINT_URL"))
+    region = _optional_any_env("ru-3", "S3_REGION", "AWS_DEFAULT_REGION")
+    bucket = _required_env("S3_BUCKET")
+    access_key = _required_any_env("S3_ACCESS_KEY", "AWS_ACCESS_KEY_ID")
+    secret_key = _required_any_env("S3_SECRET_KEY", "AWS_SECRET_ACCESS_KEY")
+    prefix = _optional_any_env("", "S3_OBJECT_PREFIX")
 
     object_name = f"analytic_result_{datetime.now(timezone.utc):%Y_%m_%d}.csv"
     object_key = f"{prefix.strip('/')}/{object_name}" if prefix.strip("/") else object_name
