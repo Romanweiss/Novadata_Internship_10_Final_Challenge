@@ -221,7 +221,7 @@ Airflow DAG (daily) orchestrates ETL + verification.
 Рекомендуемый порядок:
 
 1. `ZERO_START_DOCKER.txt` — полный прогон с нуля.
-2. `python scripts/smoke_check.py` (через `app` контейнер) — интеграционная проверка.
+2. `docker compose --env-file .env run --rm app python scripts/smoke_check.py` — интеграционная проверка.
 3. Проверка Grafana dashboard `ProbablyFresh RAW Overview`.
 4. Проверка Airflow DAG `etl_to_s3_daily` (unpause + trigger).
 
@@ -231,6 +231,7 @@ Airflow DAG (daily) orchestrates ETL + verification.
 
 - Перед SQL init обязательно ждать `SELECT 1` от ClickHouse.
 - Если пропустить `01_init.sql`, `02_mart.sql` упадет по отсутствию RAW таблиц.
+- После изменений в `01_init.sql`/`02_mart.sql` нужна полная переинициализация (`docker compose --env-file .env down -v` + повторный init), иначе старые MV/таблицы могут остаться без обновления definition.
 - Для ETL в Docker: `CH_HOST=clickhouse`, не `localhost`.
 - `purchase_items_mart FINAL` должен быть больше `purchases_mart FINAL`.
 - Файл ETL в MinIO/S3 должен быть >1KB и содержать данные, не только header.

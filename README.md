@@ -74,6 +74,10 @@ MVP-скелет аналитической платформы ProbablyFresh (э
 2. `Start-Sleep -Seconds 5`
 3. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
 
+Важно:
+- `02_mart.sql` всегда выполняется только после `01_init.sql`.
+- Если меняли `docker/clickhouse/init/01_init.sql` или `docker/clickhouse/init/02_mart.sql`, сделайте `docker compose --env-file .env down -v` и прогоните init заново, иначе старые `CREATE ... IF NOT EXISTS` могут оставить прежние определения.
+
 После MART и ETL (S3 выгрузка) включить и проверить Airflow DAG:
 
 1. `docker compose --env-file .env up -d airflow-postgres airflow`
@@ -125,13 +129,14 @@ DAG `etl_to_s3_daily` запускается ежедневно в `10:00` по 
    - `mc alias set local http://localhost:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY`
    - `mc ls local/$MINIO_BUCKET`
 3. Запустить ETL:
-   - `make run-etl`
+   - `docker compose --env-file .env run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py`
 4. Проверить файл в MinIO:
    - `mc ls local/$MINIO_BUCKET`
    - `mc cat local/$MINIO_BUCKET/analytic_result_YYYY_MM_DD.csv | head`
 
 Примечание:
 - после `docker compose --env-file .env build app` зависимости (включая `pyspark`) и JDBC jar уже внутри образа, поэтому при каждом запуске они не скачиваются заново.
+- если на хосте есть `make`, можно использовать эквивалент: `make run-etl`.
 
 ### PII anonymization
 
@@ -150,13 +155,13 @@ PII обрабатывается автоматически до записи в
 
 Быстрый локальный self-check:
 
-- `make pii-check`
+- `docker compose --env-file .env run --rm app python scripts/pii_hash_selfcheck.py`
 
 ### Verification / Smoke test
 
 Одна команда для быстрой верификации всего контура (ClickHouse + S3 CSV):
 
-- `make smoke`
+- `docker compose --env-file .env run --rm app python scripts/smoke_check.py`
 
 Что проверяет `scripts/smoke_check.py`:
 - RAW uniq counts: `stores=45`, `products=100`, `purchases=200`, `customers>=45`
@@ -264,7 +269,7 @@ Frontend теперь можно запускать как отдельный к
    - `docker compose --env-file .env up -d clickhouse app`
 2. Убедиться, что `probablyfresh_mart.customers_mart` и `probablyfresh_mart.purchases_mart` уже заполнены.
 3. Запустить job:
-   - `make run-etl`
+   - `docker compose --env-file .env run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py`
 
 Альтернатива через Makefile:
 
@@ -415,6 +420,8 @@ LIMIT 5;
 
 ### Быстрые команды Makefile
 
+Если у вас Windows PowerShell без `make`, используйте Docker-команды из `ZERO_START_DOCKER.txt`.
+
 - `make up` — поднять все сервисы.
 - `make down` — остановить и удалить сервисы и volumes.
 - `make generate-data` — генерация JSON.
@@ -440,11 +447,19 @@ LIMIT 5;
 
 Решение: использовать pipeline через `Get-Content -Raw` (см. шаг 5).
 
-3. Warning Docker Compose: `the attribute version is obsolete`
+3. `UNKNOWN_TABLE probablyfresh_raw.*` при `02_mart.sql` / в Grafana
+
+Причина: не был выполнен `01_init.sql` или были изменены SQL-файлы без полной переинициализации.
+
+Решение:
+- строго соблюдать порядок `01_init.sql -> 02_mart.sql`;
+- после изменений в `01_init.sql`/`02_mart.sql` выполнить `docker compose --env-file .env down -v` и заново прогнать init.
+
+4. Warning Docker Compose: `the attribute version is obsolete`
 
 Это предупреждение, не блокирует запуск.
 
-4. Grafana datasource `Type: undefined` / `Plugin not found`
+5. Grafana datasource `Type: undefined` / `Plugin not found`
 
 Причина: в `grafana_data` мог сохраниться старый datasource с неверным типом `clickhouse`.
 
@@ -489,6 +504,10 @@ For MART and quality metrics (used by dashboard and alerting), also run:
 2. `Start-Sleep -Seconds 5`
 3. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
 
+Important:
+- always run `02_mart.sql` only after `01_init.sql`;
+- if `docker/clickhouse/init/01_init.sql` or `docker/clickhouse/init/02_mart.sql` changed, run `docker compose --env-file .env down -v` and re-initialize, otherwise previous `CREATE ... IF NOT EXISTS` definitions may remain active.
+
 After MART and ETL (S3 export), enable and test Airflow DAG:
 
 1. `docker compose --env-file .env up -d airflow-postgres airflow`
@@ -522,13 +541,14 @@ After MART is built (steps above), run:
    - `mc alias set local http://localhost:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY`
    - `mc ls local/$MINIO_BUCKET`
 3. Run ETL:
-   - `make run-etl`
+   - `docker compose --env-file .env run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py`
 4. Verify file in MinIO:
    - `mc ls local/$MINIO_BUCKET`
    - `mc cat local/$MINIO_BUCKET/analytic_result_YYYY_MM_DD.csv | head`
 
 Note:
 - after `docker compose --env-file .env build app`, dependencies (including `pyspark`) and the JDBC jar are already inside the image, so they are not downloaded on each run.
+- if `make` is available on your host, equivalent shortcut is `make run-etl`.
 
 ### Telegram alerting (provisioning)
 
@@ -559,7 +579,7 @@ Run via Docker:
    - `docker compose --env-file .env up -d clickhouse app`
 2. Ensure `probablyfresh_mart.customers_mart` and `probablyfresh_mart.purchases_mart` are populated.
 3. Run job:
-   - `make run-etl`
+   - `docker compose --env-file .env run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py`
 
 Makefile shortcut:
 
@@ -630,7 +650,15 @@ Fix: use `kafka-python==2.1.2` (already pinned in `requirements.txt`).
 
 Fix: use `Get-Content ... -Raw | docker compose ... clickhouse-client --multiquery`.
 
-3. Grafana datasource shows `Type: undefined` / `Plugin not found`.
+3. `UNKNOWN_TABLE probablyfresh_raw.*` while applying `02_mart.sql` or in Grafana.
+
+Cause: `01_init.sql` was skipped, or SQL was changed without full re-initialization.
+
+Fix:
+- always follow `01_init.sql -> 02_mart.sql`;
+- after SQL changes in `01_init.sql`/`02_mart.sql`, run `docker compose --env-file .env down -v` and initialize again.
+
+4. Grafana datasource shows `Type: undefined` / `Plugin not found`.
 
 Cause: old datasource with wrong type `clickhouse` persisted in `grafana_data`.
 

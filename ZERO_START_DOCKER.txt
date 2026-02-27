@@ -5,6 +5,7 @@ cd F:\DE_intern\probablyfresh-analytics-platform
 
 2) Подготовить env (один раз)
 copy .env.example .env
+Проверь, что в `.env` задан `PII_HASH_SALT` (>=16 символов), иначе producer перейдет на fallback-соль и выдаст warning.
 
 3) Собрать app-образ (один раз, либо после изменений requirements/Dockerfile)
 docker compose --env-file .env build app
@@ -23,6 +24,8 @@ Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file 
 
 8) Инициализировать MART-слой ClickHouse (включая purchase_items_mart и mart_quality_stats)
 Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
+Важно: `02_mart.sql` выполняется только после `01_init.sql`.
+Если менялись `01_init.sql` или `02_mart.sql`, сначала делай `docker compose --env-file .env down -v`, затем повторяй init.
 
 9) Сгенерировать демо JSON
 docker compose --env-file .env run --rm app python src/generator/generate_data.py

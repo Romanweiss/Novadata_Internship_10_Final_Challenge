@@ -100,7 +100,11 @@ SELECT
     payload,
     ingested_at
 FROM probablyfresh_raw.stores_raw
-WHERE store_id_norm != '';
+WHERE
+    store_id_norm != ''
+    AND match(store_id_norm, '^store-[0-9]{3}$')
+    AND store_network_norm != ''
+    AND city_norm != '';
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS probablyfresh_mart.mv_products_to_mart
 TO probablyfresh_mart.products_mart
@@ -120,7 +124,11 @@ SELECT
     payload,
     ingested_at
 FROM probablyfresh_raw.products_raw
-WHERE product_id_norm != '';
+WHERE
+    product_id_norm != ''
+    AND match(product_id_norm, '^prd-[0-9]{4}$')
+    AND price_value >= 0
+    AND unit_norm != '';
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS probablyfresh_mart.mv_customers_to_mart
 TO probablyfresh_mart.customers_mart
@@ -145,6 +153,11 @@ SELECT
 FROM probablyfresh_raw.customers_raw
 WHERE
     customer_id_norm != ''
+    AND match(customer_id_norm, '^cus-[0-9]{6}$')
+    AND store_id_norm != ''
+    AND match(store_id_norm, '^store-[0-9]{3}$')
+    AND (email_enc_norm = '' OR match(email_enc_norm, '^[0-9a-f]{64}$'))
+    AND (phone_enc_norm = '' OR match(phone_enc_norm, '^[0-9a-f]{64}$'))
     AND birth_date_parsed IS NOT NULL
     AND birth_date_parsed <= today()
     AND (registration_raw = '' OR registration_dt_parsed IS NOT NULL);
@@ -173,8 +186,13 @@ SELECT
 FROM probablyfresh_raw.purchases_raw
 WHERE
     purchase_id_norm != ''
+    AND match(purchase_id_norm, '^ord-[0-9]{6}$')
     AND customer_id_norm != ''
+    AND match(customer_id_norm, '^cus-[0-9]{6}$')
     AND store_id_norm != ''
+    AND match(store_id_norm, '^store-[0-9]{3}$')
+    AND total_amount_value >= 0
+    AND payment_method_norm IN ('card', 'cash', 'online_wallet', 'sbp', 'other')
     AND purchase_dt_parsed IS NOT NULL
     AND purchase_dt_parsed <= now();
 
@@ -196,12 +214,18 @@ SELECT
 FROM probablyfresh_raw.purchase_items_raw
 WHERE
     lowerUTF8(trimBoth(purchase_id)) != ''
+    AND match(lowerUTF8(trimBoth(purchase_id)), '^ord-[0-9]{6}$')
     AND lowerUTF8(trimBoth(customer_id)) != ''
+    AND match(lowerUTF8(trimBoth(customer_id)), '^cus-[0-9]{6}$')
     AND lowerUTF8(trimBoth(store_id)) != ''
+    AND match(lowerUTF8(trimBoth(store_id)), '^store-[0-9]{3}$')
     AND lowerUTF8(trimBoth(product_id)) != ''
+    AND match(lowerUTF8(trimBoth(product_id)), '^prd-[0-9]{4}$')
+    AND lowerUTF8(trimBoth(category)) != ''
     AND purchase_dt IS NOT NULL
     AND purchase_dt <= now()
     AND quantity > 0
+    AND price_per_unit >= 0
     AND total_price >= 0;
 
 INSERT INTO probablyfresh_mart.mart_quality_stats
@@ -217,11 +241,19 @@ FROM
 (
     SELECT
         count() AS total_rows_raw,
-        countIf(store_id_norm != '') AS inserted_rows_mart,
+        countIf(
+            store_id_norm != ''
+            AND match(store_id_norm, '^store-[0-9]{3}$')
+            AND store_network_norm != ''
+            AND city_norm != ''
+        ) AS inserted_rows_mart,
         count() - countDistinct(store_id_norm) AS duplicates_rows
     FROM
     (
-        SELECT lowerUTF8(trimBoth(JSONExtractString(payload, 'store_id'))) AS store_id_norm
+        SELECT
+            lowerUTF8(trimBoth(JSONExtractString(payload, 'store_id'))) AS store_id_norm,
+            lowerUTF8(trimBoth(JSONExtractString(payload, 'store_network'))) AS store_network_norm,
+            lowerUTF8(trimBoth(JSONExtractString(payload, 'location', 'city'))) AS city_norm
         FROM probablyfresh_raw.stores_raw
     )
 );
@@ -239,11 +271,19 @@ FROM
 (
     SELECT
         count() AS total_rows_raw,
-        countIf(product_id_norm != '') AS inserted_rows_mart,
+        countIf(
+            product_id_norm != ''
+            AND match(product_id_norm, '^prd-[0-9]{4}$')
+            AND price_value >= 0
+            AND unit_norm != ''
+        ) AS inserted_rows_mart,
         count() - countDistinct(product_id_norm) AS duplicates_rows
     FROM
     (
-        SELECT lowerUTF8(trimBoth(JSONExtractString(payload, 'id'))) AS product_id_norm
+        SELECT
+            lowerUTF8(trimBoth(JSONExtractString(payload, 'id'))) AS product_id_norm,
+            JSONExtractFloat(payload, 'price') AS price_value,
+            lowerUTF8(trimBoth(JSONExtractString(payload, 'unit'))) AS unit_norm
         FROM probablyfresh_raw.products_raw
     )
 );
@@ -263,6 +303,11 @@ FROM
         count() AS total_rows_raw,
         countIf(
             customer_id_norm != ''
+            AND match(customer_id_norm, '^cus-[0-9]{6}$')
+            AND store_id_norm != ''
+            AND match(store_id_norm, '^store-[0-9]{3}$')
+            AND (email_enc_norm = '' OR match(email_enc_norm, '^[0-9a-f]{64}$'))
+            AND (phone_enc_norm = '' OR match(phone_enc_norm, '^[0-9a-f]{64}$'))
             AND birth_date_parsed IS NOT NULL
             AND birth_date_parsed <= today()
             AND (registration_raw = '' OR registration_dt_parsed IS NOT NULL)
@@ -272,6 +317,9 @@ FROM
     (
         SELECT
             lowerUTF8(trimBoth(JSONExtractString(payload, 'customer_id'))) AS customer_id_norm,
+            lowerUTF8(trimBoth(JSONExtractString(payload, 'purchase_location', 'store_id'))) AS store_id_norm,
+            trimBoth(JSONExtractString(payload, 'email')) AS email_enc_norm,
+            trimBoth(JSONExtractString(payload, 'phone')) AS phone_enc_norm,
             toDateOrNull(trimBoth(JSONExtractString(payload, 'birth_date'))) AS birth_date_parsed,
             trimBoth(JSONExtractString(payload, 'registration_date')) AS registration_raw,
             parseDateTimeBestEffortOrNull(registration_raw) AS registration_dt_parsed
@@ -294,8 +342,13 @@ FROM
         count() AS total_rows_raw,
         countIf(
             purchase_id_norm != ''
+            AND match(purchase_id_norm, '^ord-[0-9]{6}$')
             AND customer_id_norm != ''
+            AND match(customer_id_norm, '^cus-[0-9]{6}$')
             AND store_id_norm != ''
+            AND match(store_id_norm, '^store-[0-9]{3}$')
+            AND total_amount_value >= 0
+            AND payment_method_norm IN ('card', 'cash', 'online_wallet', 'sbp', 'other')
             AND purchase_dt_parsed IS NOT NULL
             AND purchase_dt_parsed <= now()
         ) AS inserted_rows_mart,
@@ -306,6 +359,8 @@ FROM
             lowerUTF8(trimBoth(JSONExtractString(payload, 'purchase_id'))) AS purchase_id_norm,
             lowerUTF8(trimBoth(JSONExtractString(payload, 'customer', 'customer_id'))) AS customer_id_norm,
             lowerUTF8(trimBoth(JSONExtractString(payload, 'store', 'store_id'))) AS store_id_norm,
+            JSONExtractFloat(payload, 'total_amount') AS total_amount_value,
+            lowerUTF8(trimBoth(JSONExtractString(payload, 'payment_method'))) AS payment_method_norm,
             parseDateTimeBestEffortOrNull(trimBoth(JSONExtractString(payload, 'purchase_datetime'))) AS purchase_dt_parsed
         FROM probablyfresh_raw.purchases_raw
     )
