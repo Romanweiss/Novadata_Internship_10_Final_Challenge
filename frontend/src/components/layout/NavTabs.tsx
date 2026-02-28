@@ -1,6 +1,7 @@
-﻿import { Download, Gauge, ShieldAlert, Settings, Workflow } from 'lucide-react';
+import { Download, Gauge, ShieldAlert, Settings, Workflow } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
+import { useAppState } from '../../app/useAppState';
 import { navItems } from '../../mocks/data';
 import { cn } from '../../utils/format';
 
@@ -13,6 +14,8 @@ const iconByKey = {
 } as const;
 
 export function NavTabs() {
+  const { t } = useAppState();
+
   return (
     <nav className="mb-8 mt-8 inline-flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-card app-transition">
       {navItems.map((item) => {
@@ -32,7 +35,7 @@ export function NavTabs() {
             }
           >
             <Icon className="h-4 w-4" />
-            {item.label}
+            {t(`nav.${item.key}`)}
           </NavLink>
         );
       })}

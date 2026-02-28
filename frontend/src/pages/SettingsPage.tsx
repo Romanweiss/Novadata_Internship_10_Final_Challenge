@@ -17,7 +17,7 @@ const iconByConnection = {
 } as const;
 
 export function SettingsPage() {
-  const { safeMode, setSafeMode } = useAppState();
+  const { safeMode, setSafeMode, t } = useAppState();
   const [connections, setConnections] = useState<ServiceConnection[]>(serviceConnections);
 
   useEffect(() => {
@@ -47,8 +47,8 @@ export function SettingsPage() {
       className="space-y-6"
     >
       <section>
-        <h1 className="text-4xl text-[2.1rem] font-extrabold tracking-tight">System Settings</h1>
-        <p className="mt-1 text-[0.98rem] text-[var(--text-muted)]">Configure connections and security preferences.</p>
+        <h1 className="text-4xl text-[2.1rem] font-extrabold tracking-tight">{t('settings.title')}</h1>
+        <p className="mt-1 text-[0.98rem] text-[var(--text-muted)]">{t('settings.subtitle')}</p>
       </section>
 
       <Card className="border-orange-500/35 p-5">
@@ -56,23 +56,27 @@ export function SettingsPage() {
           <div>
             <p className="inline-flex items-center gap-2 text-2xl text-[1.8rem] font-bold">
               <AlertTriangle className="h-5 w-5 text-orange-500" />
-              Safe Mode
+              {t('settings.safeMode')}
             </p>
-            <p className="mt-2 text-[0.98rem] text-[var(--text-muted)]">
-              When enabled, destructive actions (like dropping tables or force-refreshing MART) are blocked.
-            </p>
+            <p className="mt-2 text-[0.98rem] text-[var(--text-muted)]">{t('settings.safeModeDescription')}</p>
           </div>
 
           <button
             type="button"
             onClick={() => setSafeMode(!safeMode)}
-            className={`app-transition relative h-7 w-14 rounded-full border ${
-              safeMode ? 'border-orange-500/40 bg-orange-500/25' : 'border-[var(--border)] bg-[var(--surface-muted)]'
+            aria-pressed={safeMode}
+            aria-label={t('settings.safeMode')}
+            className={`app-transition relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border ${
+              safeMode
+                ? 'border-orange-500/45 bg-orange-500/25'
+                : 'border-[var(--border-strong)] bg-[var(--surface-muted)]'
             }`}
           >
             <span
-              className={`app-transition absolute top-0.5 h-5.5 w-5.5 rounded-full bg-orange-500 shadow ${
-                safeMode ? 'left-7' : 'left-1 bg-slate-400'
+              className={`app-transition pointer-events-none inline-block h-6 w-6 rounded-full shadow ${
+                safeMode
+                  ? 'translate-x-7 bg-orange-500 shadow-orange-500/35'
+                  : 'translate-x-1 bg-slate-400 shadow-slate-500/30 dark:bg-slate-500'
               }`}
             />
           </button>
@@ -80,7 +84,7 @@ export function SettingsPage() {
       </Card>
 
       <section>
-        <h2 className="mb-3 text-3xl text-[1.9rem] font-extrabold tracking-tight">Service Connections</h2>
+        <h2 className="mb-3 text-3xl text-[1.9rem] font-extrabold tracking-tight">{t('settings.serviceConnections')}</h2>
         <div className="grid gap-4 md:grid-cols-2">
           {connections.map((item) => {
             const Icon = iconByConnection[item.icon];
@@ -107,19 +111,17 @@ export function SettingsPage() {
       <section className="border-t border-[var(--border)] pt-4">
         <h2 className="inline-flex items-center gap-2 text-[1.8rem] text-3xl font-extrabold tracking-tight">
           <Info className="h-5 w-5" />
-          About ProbablyFresh
+          {t('settings.about')}
         </h2>
 
         <Card className="mt-3 p-0">
           <p className="border-b border-[var(--border)] px-4 py-4 text-[0.98rem] leading-relaxed text-[var(--text-muted)]">
-            ProbablyFresh Control Panel is the centralized management dashboard for observing and operating the data
-            platform. It provides real-time visibility into ingestion pipelines, data quality metrics in the MART
-            layer, and easy access to analytical exports.
+            {t('settings.aboutDescription')}
           </p>
 
           <div className="flex flex-wrap gap-2 px-4 py-3 text-xs font-semibold text-[var(--text-muted)]">
-            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1">Version: 2.1.0-mock</span>
-            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1">Environment: Staging</span>
+            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1">{t('settings.version')}</span>
+            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1">{t('settings.environment')}</span>
           </div>
         </Card>
       </section>

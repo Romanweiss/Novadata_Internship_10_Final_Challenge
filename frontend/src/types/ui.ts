@@ -81,4 +81,5 @@ export interface ToastMessage {
   title: string;
   description: string;
   tone: 'info' | 'success' | 'error';
+  durationMs?: number;
 }

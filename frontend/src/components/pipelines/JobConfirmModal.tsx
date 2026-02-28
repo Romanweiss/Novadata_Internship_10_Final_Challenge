@@ -1,6 +1,7 @@
-﻿import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Play, X } from 'lucide-react';
 
+import { useAppState } from '../../app/useAppState';
 import type { JobAction } from '../../types/ui';
 
 interface JobConfirmModalProps {
@@ -11,6 +12,21 @@ interface JobConfirmModalProps {
 }
 
 export function JobConfirmModal({ action, open, onClose, onConfirm }: JobConfirmModalProps) {
+  const { t } = useAppState();
+
+  const titleKey = action ? t(`actions.${action.key}.title`) : '';
+  const descriptionKey = action ? t(`actions.${action.key}.description`) : '';
+  const actionTitle = action
+    ? titleKey === `actions.${action.key}.title`
+      ? action.title
+      : titleKey
+    : '';
+  const actionDescription = action
+    ? descriptionKey === `actions.${action.key}.description`
+      ? action.description
+      : descriptionKey
+    : '';
+
   return (
     <AnimatePresence>
       {open && action ? (
@@ -30,8 +46,8 @@ export function JobConfirmModal({ action, open, onClose, onConfirm }: JobConfirm
           >
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-2xl font-extrabold leading-tight">Run {action.title}</h3>
-                <p className="mt-1 text-[0.95rem] text-[var(--text-muted)]">{action.description}</p>
+                <h3 className="text-2xl font-extrabold leading-tight">{t('modal.runAction', { title: actionTitle })}</h3>
+                <p className="mt-1 text-[0.95rem] text-[var(--text-muted)]">{actionDescription}</p>
               </div>
               <button
                 type="button"
@@ -43,8 +59,7 @@ export function JobConfirmModal({ action, open, onClose, onConfirm }: JobConfirm
             </div>
 
             <div className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--text-muted)]">
-              Are you sure you want to trigger this action manually? This will interact with configured services and may
-              consume resources.
+              {t('modal.warning')}
             </div>
 
             <div className="flex justify-end gap-2.5">
@@ -53,7 +68,7 @@ export function JobConfirmModal({ action, open, onClose, onConfirm }: JobConfirm
                 onClick={onClose}
                 className="rounded-full border border-[var(--border-strong)] px-4 py-2 font-semibold text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10"
               >
-                Cancel
+                {t('modal.cancel')}
               </button>
               <button
                 type="button"
@@ -61,7 +76,7 @@ export function JobConfirmModal({ action, open, onClose, onConfirm }: JobConfirm
                 className="inline-flex items-center gap-2 rounded-full bg-[#111827] px-4 py-2 font-semibold text-white hover:bg-[#0b1220] dark:bg-white dark:text-[#111827]"
               >
                 <Play className="h-4 w-4" />
-                Run Job
+                {t('modal.runJob')}
               </button>
             </div>
           </motion.div>

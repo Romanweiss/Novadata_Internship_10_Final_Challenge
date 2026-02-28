@@ -1,4 +1,4 @@
-﻿import { motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -10,7 +10,7 @@ import { pipelineActions, pipelineMapSteps } from '../mocks/data';
 import type { JobAction } from '../types/ui';
 
 export function PipelinesPage() {
-  const { runJob } = useAppState();
+  const { runJob, safeMode, t } = useAppState();
   const [selectedAction, setSelectedAction] = useState<JobAction | null>(null);
 
   const selectedKey = useMemo(() => selectedAction?.key, [selectedAction]);
@@ -18,6 +18,10 @@ export function PipelinesPage() {
   const closeModal = () => setSelectedAction(null);
 
   const handleRun = async (action: JobAction) => {
+    if (safeMode && action.key === 'mart-refresh') {
+      setSelectedAction(null);
+      return;
+    }
     await runJob(action);
     setSelectedAction(null);
   };
@@ -31,24 +35,29 @@ export function PipelinesPage() {
       className="space-y-7"
     >
       <section>
-        <h1 className="text-4xl text-[2.1rem] font-extrabold tracking-tight">One-click actions</h1>
-        <p className="mt-1 text-[0.98rem] text-[var(--text-muted)]">Manually trigger data pipeline jobs and transformations.</p>
+        <h1 className="text-4xl text-[2.1rem] font-extrabold tracking-tight">{t('pipelines.title')}</h1>
+        <p className="mt-1 text-[0.98rem] text-[var(--text-muted)]">{t('pipelines.subtitle')}</p>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {pipelineActions.map((action) => (
-          <ActionCard
-            key={action.key}
-            action={action}
-            selected={selectedKey === action.key}
-            onClick={(item) => setSelectedAction(item)}
-          />
-        ))}
+        {pipelineActions.map((action) => {
+          const disabled = safeMode && action.key === 'mart-refresh';
+          return (
+            <ActionCard
+              key={action.key}
+              action={action}
+              selected={selectedKey === action.key}
+              disabled={disabled}
+              disabledReason={disabled ? t('pipelines.safeModeBlocked') : undefined}
+              onClick={(item) => setSelectedAction(item)}
+            />
+          );
+        })}
       </section>
 
       <section>
-        <h2 className="text-3xl text-[2rem] font-extrabold tracking-tight">Pipeline Map</h2>
-        <p className="mt-1 text-[0.98rem] text-[var(--text-muted)]">Data flow architecture across services.</p>
+        <h2 className="text-3xl text-[2rem] font-extrabold tracking-tight">{t('pipelines.mapTitle')}</h2>
+        <p className="mt-1 text-[0.98rem] text-[var(--text-muted)]">{t('pipelines.mapSubtitle')}</p>
 
         <Card className="subtle-grid mt-4 border-dashed p-6">
           <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">

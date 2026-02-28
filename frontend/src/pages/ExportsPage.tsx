@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Download, Eye, File, Filter, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+import { useAppState } from '../app/useAppState';
 import { apiClient } from '../api/client';
 import { mapExports } from '../api/mappers';
 import { Card } from '../components/common/Card';
@@ -10,6 +11,7 @@ import type { ExportFile } from '../types/ui';
 import { cn } from '../utils/format';
 
 export function ExportsPage() {
+  const { t } = useAppState();
   const [query, setQuery] = useState('');
   const [exportsData, setExportsData] = useState<ExportFile[]>(exportsList);
   const [loading, setLoading] = useState(false);
@@ -85,7 +87,7 @@ export function ExportsPage() {
     >
       <section className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <h1 className="text-4xl text-[2.1rem] font-extrabold tracking-tight">S3 Exports</h1>
+          <h1 className="text-4xl text-[2.1rem] font-extrabold tracking-tight">{t('exports.title')}</h1>
         </div>
 
         <div className="flex w-full items-center gap-2 md:w-auto">
@@ -94,7 +96,7 @@ export function ExportsPage() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search files or dates..."
+              placeholder={t('exports.searchPlaceholder')}
               className="app-transition w-full rounded-full border border-[var(--border)] bg-[var(--surface)] px-9 py-2.5 text-sm outline-none focus:border-[var(--border-strong)]"
             />
           </label>
@@ -112,64 +114,67 @@ export function ExportsPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-[var(--surface-muted)] text-[var(--text-muted)]">
               <tr>
-                <th className="px-3 py-3 text-left font-semibold">Filename</th>
-                <th className="px-3 py-3 text-left font-semibold">Date</th>
-                <th className="px-3 py-3 text-right font-semibold">Rows</th>
-                <th className="px-3 py-3 text-right font-semibold">Size</th>
-                <th className="px-3 py-3 text-left font-semibold">Status</th>
-                <th className="px-3 py-3 text-right font-semibold">Actions</th>
+                <th className="px-3 py-3 text-left font-semibold">{t('exports.filename')}</th>
+                <th className="px-3 py-3 text-left font-semibold">{t('exports.date')}</th>
+                <th className="px-3 py-3 text-right font-semibold">{t('exports.rows')}</th>
+                <th className="px-3 py-3 text-right font-semibold">{t('exports.size')}</th>
+                <th className="px-3 py-3 text-left font-semibold">{t('exports.status')}</th>
+                <th className="px-3 py-3 text-right font-semibold">{t('exports.actions')}</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((row) => (
-                <tr key={row.id} className="border-t border-[var(--border)]">
-                  <td className="px-3 py-3 font-semibold">
-                    <span className="inline-flex items-center gap-2">
-                      <File className="h-4 w-4 text-[var(--text-muted)]" />
-                      {row.filename}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 text-[var(--text-muted)]">{row.date}</td>
-                  <td className="px-3 py-3 text-right tabular-nums">{row.rows}</td>
-                  <td className="px-3 py-3 text-right tabular-nums text-[var(--text-muted)]">{row.size}</td>
-                  <td className="px-3 py-3">
-                    <span
-                      className={cn(
-                        'inline-flex rounded-full px-2.5 py-1 text-xs font-bold',
-                        row.status === 'Ready'
-                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                          : 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
-                      )}
-                    >
-                      {row.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="flex justify-end gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleView(row)}
-                        className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-black/5 hover:text-[var(--text)] dark:hover:bg-white/10"
-                        title="View"
+              {filtered.map((row) => {
+                const localizedStatus = row.status === 'Ready' ? t('exports.ready') : t('exports.processing');
+                return (
+                  <tr key={row.id} className="border-t border-[var(--border)]">
+                    <td className="px-3 py-3 font-semibold">
+                      <span className="inline-flex items-center gap-2">
+                        <File className="h-4 w-4 text-[var(--text-muted)]" />
+                        {row.filename}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-[var(--text-muted)]">{row.date}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{row.rows}</td>
+                    <td className="px-3 py-3 text-right tabular-nums text-[var(--text-muted)]">{row.size}</td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={cn(
+                          'inline-flex rounded-full px-2.5 py-1 text-xs font-bold',
+                          row.status === 'Ready'
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
+                        )}
                       >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDownload(row)}
-                        className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-black/5 hover:text-[var(--text)] dark:hover:bg-white/10"
-                        title="Download"
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {localizedStatus}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleView(row)}
+                          className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-black/5 hover:text-[var(--text)] dark:hover:bg-white/10"
+                          title={t('exports.view')}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownload(row)}
+                          className="rounded-md p-1.5 text-[var(--text-muted)] hover:bg-black/5 hover:text-[var(--text)] dark:hover:bg-white/10"
+                          title={t('exports.download')}
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {!loading && filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-3 py-8 text-center text-sm text-[var(--text-muted)]">
-                    No exports found.
+                    {t('exports.noExports')}
                   </td>
                 </tr>
               ) : null}
