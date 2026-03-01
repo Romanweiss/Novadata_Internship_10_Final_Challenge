@@ -99,17 +99,37 @@ def get_payments_breakdown(days: int = 7) -> dict:
             """,
             database=db_mart_name(),
         )
+
+        # If no purchases fall into the rolling window, return real all-time data
+        # instead of an empty payload (which leaves the donut blank in UI).
+        if not rows:
+            rows = query_rows(
+                f"""
+                SELECT
+                  lowerUTF8(trimBoth(payment_method)) AS method,
+                  count() AS cnt
+                FROM {db_mart_name()}.purchases_mart FINAL
+                GROUP BY method
+                """,
+                database=db_mart_name(),
+            )
+
+        rows = sorted(rows, key=lambda row: _to_int(row.get("cnt")), reverse=True)
         total = sum(_to_int(row["cnt"]) for row in rows) or 1
         items = [
-            {"method": str(row.get("method") or "other"), "share": round(_to_int(row["cnt"]) / total, 4)}
+            {
+                "method": str(row.get("method") or "other"),
+                "count": _to_int(row.get("cnt")),
+                "share": round(_to_int(row["cnt"]) / total, 6),
+            }
             for row in rows
         ]
     except Exception:  # noqa: BLE001
         items = [
-            {"method": "card", "share": 0.65},
-            {"method": "cash", "share": 0.20},
-            {"method": "sbp", "share": 0.10},
-            {"method": "other", "share": 0.05},
+            {"method": "card", "count": 130, "share": 0.65},
+            {"method": "cash", "count": 40, "share": 0.20},
+            {"method": "sbp", "count": 20, "share": 0.10},
+            {"method": "other", "count": 10, "share": 0.05},
         ]
     return {"items": items}
 

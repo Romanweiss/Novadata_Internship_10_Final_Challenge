@@ -1,5 +1,5 @@
-﻿import { animate, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { animate, motion } from 'framer-motion';
+import { useEffect, useMemo, useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
 import type { PaymentBreakdownItem } from '../../types/ui';
@@ -10,6 +10,11 @@ interface PaymentDonutChartProps {
 
 export function PaymentDonutChart({ data }: PaymentDonutChartProps) {
   const [endAngle, setEndAngle] = useState(90);
+
+  const chartData = useMemo(
+    () => data.map((item) => ({ ...item, pieValue: item.count > 0 ? item.count : item.value })),
+    [data],
+  );
 
   useEffect(() => {
     setEndAngle(90);
@@ -22,7 +27,11 @@ export function PaymentDonutChart({ data }: PaymentDonutChartProps) {
     return () => {
       controls.stop();
     };
-  }, [data]);
+  }, [chartData]);
+
+  if (!chartData.length) {
+    return <p className="px-1 text-sm text-[var(--text-muted)]">No payment data.</p>;
+  }
 
   return (
     <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-[1fr_220px]">
@@ -30,8 +39,8 @@ export function PaymentDonutChart({ data }: PaymentDonutChartProps) {
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={data}
-              dataKey="value"
+              data={chartData}
+              dataKey="pieValue"
               nameKey="method"
               innerRadius={58}
               outerRadius={84}
@@ -42,12 +51,16 @@ export function PaymentDonutChart({ data }: PaymentDonutChartProps) {
               paddingAngle={1.1}
               isAnimationActive={false}
             >
-              {data.map((entry) => (
+              {chartData.map((entry) => (
                 <Cell key={entry.id} fill={entry.color} />
               ))}
             </Pie>
 
             <Tooltip
+              formatter={(value, _name, item) => {
+                const payload = item.payload as PaymentBreakdownItem;
+                return [`${Number(value).toLocaleString()} purchases (${payload.value}%)`, payload.method];
+              }}
               contentStyle={{
                 borderRadius: 14,
                 border: '1px solid var(--border)',
@@ -60,7 +73,7 @@ export function PaymentDonutChart({ data }: PaymentDonutChartProps) {
       </div>
 
       <ul className="space-y-3">
-        {data.map((item, index) => (
+        {chartData.map((item, index) => (
           <motion.li
             key={item.id}
             initial={{ opacity: 0, x: 10 }}
@@ -72,7 +85,7 @@ export function PaymentDonutChart({ data }: PaymentDonutChartProps) {
               <span className="h-3 w-3 rounded-full" style={{ background: item.color }} />
               {item.method}
             </span>
-            <span className="font-bold text-[var(--text)]">{item.value}%</span>
+            <span className="font-bold text-[var(--text)]">{item.value}% ({item.count.toLocaleString()})</span>
           </motion.li>
         ))}
       </ul>

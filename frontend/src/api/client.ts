@@ -49,6 +49,7 @@ export type ApiServiceHealth = {
 
 export type ApiPaymentItem = {
   method: string;
+  count: number;
   share: number;
 };
 

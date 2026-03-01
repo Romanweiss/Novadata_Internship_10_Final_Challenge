@@ -138,6 +138,7 @@ export function mapPayments(items: ApiPaymentItem[]): PaymentBreakdownItem[] {
     return {
       id: method,
       method: method.toUpperCase() === 'SBP' ? 'SBP' : method.charAt(0).toUpperCase() + method.slice(1),
+      count: Math.max(0, Number(item.count || 0)),
       value: Math.round((item.share || 0) * 100),
       color: paymentColors[method as keyof typeof paymentColors] ?? paymentColors.other,
     };

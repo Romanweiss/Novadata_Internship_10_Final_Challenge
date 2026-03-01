@@ -26,6 +26,7 @@ export interface ServiceHealthItem {
 export interface PaymentBreakdownItem {
   id: string;
   method: string;
+  count: number;
   value: number;
   color: string;
 }

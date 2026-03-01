@@ -46,10 +46,10 @@ export const serviceHealth: ServiceHealthItem[] = [
 ];
 
 export const paymentBreakdown: PaymentBreakdownItem[] = [
-  { id: 'card', method: 'Card', value: 65, color: '#2563eb' },
-  { id: 'cash', method: 'Cash', value: 20, color: '#60a5fa' },
-  { id: 'sbp', method: 'SBP', value: 10, color: '#3b82f6' },
-  { id: 'other', method: 'Other', value: 5, color: '#93c5fd' },
+  { id: 'card', method: 'Card', count: 130, value: 65, color: '#2563eb' },
+  { id: 'cash', method: 'Cash', count: 40, value: 20, color: '#60a5fa' },
+  { id: 'sbp', method: 'SBP', count: 20, value: 10, color: '#3b82f6' },
+  { id: 'other', method: 'Other', count: 10, value: 5, color: '#93c5fd' },
 ];
 
 const now = Date.now();
