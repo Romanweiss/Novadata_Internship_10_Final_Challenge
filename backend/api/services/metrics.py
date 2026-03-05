@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from api.models import JobRun
+from api.models import AlertEvent, JobRun
+from api.services.alerts import dispatch_duplicates_ratio_alert
 from api.services.clickhouse import db_mart_name, db_raw_name, query_rows, query_scalar
 from api.services.settings import env_str
 
@@ -91,10 +92,18 @@ def get_payments_breakdown(days: int = 7) -> dict:
         rows = query_rows(
             f"""
             SELECT
-              lowerUTF8(trimBoth(payment_method)) AS method,
+              multiIf(
+                method_raw = 'card', 'card',
+                method_raw = 'cash', 'cash',
+                'sbp'
+              ) AS method,
               count() AS cnt
-            FROM {db_mart_name()}.purchases_mart FINAL
-            WHERE purchase_dt >= now() - INTERVAL {safe_days} DAY
+            FROM
+            (
+              SELECT lowerUTF8(trimBoth(payment_method)) AS method_raw
+              FROM {db_mart_name()}.purchases_mart FINAL
+              WHERE purchase_dt >= now() - INTERVAL {safe_days} DAY
+            )
             GROUP BY method
             """,
             database=db_mart_name(),
@@ -106,9 +115,17 @@ def get_payments_breakdown(days: int = 7) -> dict:
             rows = query_rows(
                 f"""
                 SELECT
-                  lowerUTF8(trimBoth(payment_method)) AS method,
+                  multiIf(
+                    method_raw = 'card', 'card',
+                    method_raw = 'cash', 'cash',
+                    'sbp'
+                  ) AS method,
                   count() AS cnt
-                FROM {db_mart_name()}.purchases_mart FINAL
+                FROM
+                (
+                  SELECT lowerUTF8(trimBoth(payment_method)) AS method_raw
+                  FROM {db_mart_name()}.purchases_mart FINAL
+                )
                 GROUP BY method
                 """,
                 database=db_mart_name(),
@@ -176,12 +193,23 @@ def get_quality_overall() -> dict:
         ratio = 0.05
         last_alert_at = None
 
-    target = 0.10
-    status = "good"
-    if ratio > target * 1.5:
-        status = "bad"
-    elif ratio > target:
-        status = "warn"
+    target = _to_float(env_str("DUPLICATES_BAD_THRESHOLD", "0.5"), default=0.5)
+    status = "bad" if ratio > target else "good"
+
+    # Record alert event (or alert-process failure) when threshold is exceeded.
+    try:
+        dispatch_duplicates_ratio_alert(ratio=ratio, threshold=target, entity="purchases")
+    except Exception:  # noqa: BLE001
+        # Never break metrics response because of alert side-effects.
+        pass
+
+    latest_alert_event = (
+        AlertEvent.objects.filter(rule_name="duplicates_ratio_threshold", entity="purchases")
+        .order_by("-created_at")
+        .first()
+    )
+    if latest_alert_event:
+        last_alert_at = latest_alert_event.sent_at or latest_alert_event.created_at
 
     return {
         "duplicates_ratio": round(ratio, 6),

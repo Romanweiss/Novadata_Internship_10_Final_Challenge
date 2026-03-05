@@ -10,6 +10,8 @@ from api.views import (
     OverviewPaymentsBreakdownView,
     OverviewServicesHealthView,
     PipelinesMapView,
+    PipelinePresetDetailView,
+    PipelinePresetListCreateView,
     PublicPingView,
     QualityDuplicatesTrendView,
     QualityMartStatsView,
@@ -39,6 +41,16 @@ urlpatterns = [
     ),
     path("overview/last-runs", OverviewLastRunsView.as_view(), name="overview-last-runs"),
     path("pipelines/map", PipelinesMapView.as_view(), name="pipelines-map"),
+    path(
+        "pipelines/presets",
+        PipelinePresetListCreateView.as_view(),
+        name="pipelines-presets-list-create",
+    ),
+    path(
+        "pipelines/presets/<uuid:preset_id>",
+        PipelinePresetDetailView.as_view(),
+        name="pipelines-presets-detail",
+    ),
     path("quality/overall", QualityOverallView.as_view(), name="quality-overall"),
     path(
         "quality/duplicates-trend",

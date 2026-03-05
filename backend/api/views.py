@@ -6,8 +6,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
-from api.models import JobRun, get_safe_mode
-from api.serializers import JobRunSerializer, SafeModeSerializer
+from api.models import PipelinePreset, JobRun, get_safe_mode
+from api.serializers import JobRunSerializer, PipelinePresetSerializer, SafeModeSerializer
 from api.services.actions import enqueue_action
 from api.services.errors import ServiceError
 from api.services.exports import list_exports, presign_export
@@ -34,6 +34,17 @@ def _parse_positive_int(value: str | None, default: int, min_value: int = 1, max
     except ValueError:
         return default
     return max(min(parsed, max_value), min_value)
+
+
+def _parse_bool(value: str | None, default: bool | None = None) -> bool | None:
+    if value is None:
+        return default
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return default
 
 
 class PublicPingView(APIView):
@@ -75,6 +86,45 @@ class OverviewLastRunsView(APIView):
 class PipelinesMapView(APIView):
     def get(self, request):
         return ok(get_pipeline_map())
+
+
+class PipelinePresetListCreateView(APIView):
+    def get(self, request):
+        active_only = _parse_bool(request.query_params.get("active"), default=None)
+        queryset = PipelinePreset.objects.all().order_by("name")
+        if active_only is not None:
+            queryset = queryset.filter(is_active=active_only)
+        serializer = PipelinePresetSerializer(queryset, many=True)
+        return ok({"items": serializer.data})
+
+    def post(self, request):
+        serializer = PipelinePresetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        created_by = (
+            request.user.username
+            if request.user and request.user.is_authenticated
+            else "api"
+        )
+        preset = serializer.save(created_by=created_by)
+        return ok(PipelinePresetSerializer(preset).data, status=201)
+
+
+class PipelinePresetDetailView(APIView):
+    def get(self, request, preset_id: UUID):
+        preset = get_object_or_404(PipelinePreset, id=preset_id)
+        return ok(PipelinePresetSerializer(preset).data)
+
+    def patch(self, request, preset_id: UUID):
+        preset = get_object_or_404(PipelinePreset, id=preset_id)
+        serializer = PipelinePresetSerializer(preset, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return ok(serializer.data)
+
+    def delete(self, request, preset_id: UUID):
+        preset = get_object_or_404(PipelinePreset, id=preset_id)
+        preset.delete()
+        return ok({"deleted": True})
 
 
 class QualityOverallView(APIView):

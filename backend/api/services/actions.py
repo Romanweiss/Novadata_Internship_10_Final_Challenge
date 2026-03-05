@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import threading
 import uuid
@@ -9,14 +10,23 @@ from pathlib import Path
 from time import sleep
 from typing import Any
 
+import boto3
+from botocore.exceptions import BotoCoreError, ClientError
 import requests
 from django.db import transaction
 from django.utils import timezone
 
-from api.models import JobRun
+from api.models import ExportAudit, JobRun
 from api.services.clickhouse import execute_sql, ping as clickhouse_ping
 from api.services.errors import ServiceError
 from api.services.settings import env_int, env_str
+from api.services.storage import (
+    storage_access_key,
+    storage_bucket,
+    storage_endpoint,
+    storage_region,
+    storage_secret_key,
+)
 
 ALLOWED_ACTIONS = {
     JobRun.JobName.GENERATE_DATA,
@@ -48,6 +58,9 @@ def _tail_text(text: str | None, max_lines: int = 40, max_chars: int = 8000) -> 
     lines = text.strip().splitlines()
     tail = "\n".join(lines[-max_lines:])
     return tail[-max_chars:]
+
+
+_UPLOADED_FILE_PATTERN = re.compile(r"Uploaded features file:\s*(?P<key>\S+)")
 
 
 def enqueue_action(job_name: str, params: dict[str, Any] | None, requested_by: str | None = None) -> JobRun:
@@ -101,6 +114,15 @@ def _execute_job_run(run_id: str) -> None:
     except Exception as exc:  # noqa: BLE001
         status = JobRun.Status.FAILED
         error_message = str(exc)
+
+    if run.job_name == JobRun.JobName.RUN_ETL:
+        _record_export_audit_for_etl(
+            run=run,
+            status=status,
+            stdout_text=stdout_text,
+            stderr_text=stderr_text,
+            error_message=error_message,
+        )
 
     finished_at = timezone.now()
     log_path = _write_run_log(run.id, run.job_name, stdout_text, stderr_text, error_message)
@@ -163,6 +185,95 @@ def _run_subprocess(command: str) -> tuple[str, str, int]:
         stderr_text = f"{stderr_text}\nTimed out after {_job_timeout_seconds()} seconds."
         return stdout_text, stderr_text, 124
     return stdout_text, stderr_text, process.returncode
+
+
+def _s3_client():
+    return boto3.client(
+        "s3",
+        endpoint_url=storage_endpoint() or None,
+        aws_access_key_id=storage_access_key() or None,
+        aws_secret_access_key=storage_secret_key() or None,
+        region_name=storage_region(),
+    )
+
+
+def _extract_uploaded_key(stdout_text: str, params_json: dict[str, Any] | None) -> str:
+    matches = _UPLOADED_FILE_PATTERN.findall(stdout_text or "")
+    if matches:
+        return matches[-1]
+
+    if isinstance(params_json, dict):
+        for key in ("object_key", "s3_key", "export_key"):
+            value = params_json.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+
+    return ""
+
+
+def _record_export_audit_for_etl(
+    *,
+    run: JobRun,
+    status: str,
+    stdout_text: str,
+    stderr_text: str,
+    error_message: str,
+) -> None:
+    object_key = _extract_uploaded_key(stdout_text, run.params_json)
+    bucket = storage_bucket()
+    default_key = object_key or f"run-etl/{run.id}.csv"
+    filename = default_key.split("/")[-1]
+
+    if status != JobRun.Status.SUCCESS:
+        ExportAudit.objects.create(
+            storage_provider="s3",
+            bucket=bucket,
+            object_key=default_key,
+            filename=filename,
+            size_bytes=0,
+            status=ExportAudit.Status.FAILED,
+            error_message=(error_message or _tail_text(stderr_text, max_lines=10, max_chars=400))[:500],
+            job_run=run,
+        )
+        return
+
+    if not object_key:
+        ExportAudit.objects.create(
+            storage_provider="s3",
+            bucket=bucket,
+            object_key=default_key,
+            filename=filename,
+            size_bytes=0,
+            status=ExportAudit.Status.FAILED,
+            error_message="ETL completed but object key was not detected in stdout.",
+            job_run=run,
+        )
+        return
+
+    try:
+        head = _s3_client().head_object(Bucket=bucket, Key=object_key)
+        ExportAudit.objects.create(
+            storage_provider="s3",
+            bucket=bucket,
+            object_key=object_key,
+            filename=object_key.split("/")[-1],
+            rows_count=None,
+            size_bytes=int(head.get("ContentLength", 0) or 0),
+            etag=str(head.get("ETag", "")).strip('"') or None,
+            status=ExportAudit.Status.UPLOADED,
+            job_run=run,
+        )
+    except (BotoCoreError, ClientError, ValueError) as exc:
+        ExportAudit.objects.create(
+            storage_provider="s3",
+            bucket=bucket,
+            object_key=object_key,
+            filename=object_key.split("/")[-1],
+            size_bytes=0,
+            status=ExportAudit.Status.FAILED,
+            error_message=f"Unable to head_object for ETL export: {str(exc)[:450]}",
+            job_run=run,
+        )
 
 
 def _refresh_mart(run: JobRun) -> str:
