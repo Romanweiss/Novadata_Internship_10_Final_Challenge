@@ -63,7 +63,11 @@ export function PipelinesPage() {
           <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
             {pipelineMapSteps.map((step, index) => (
               <div key={step} className="inline-flex items-center gap-2">
-                <span className="pill app-transition inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-[var(--text)]">
+                <span
+                  className="pill app-transition inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold text-[var(--text)]
+                  transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:border-[var(--border-strong)]
+                  hover:shadow-[0_16px_36px_-24px_rgba(15,23,42,0.45)] dark:hover:shadow-[0_18px_38px_-24px_rgba(0,0,0,0.82)]"
+                >
                   {step}
                 </span>
                 {index < pipelineMapSteps.length - 1 ? <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" /> : null}
