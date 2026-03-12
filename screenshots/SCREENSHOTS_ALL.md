@@ -41,3 +41,6 @@
 ## 10. Telegram alert
 
 ![Telegram_firing](./Telegram_firing.png)
+
+## 11. Selectel S3
+![Selectel_S3](./Selectel_S3.png)
