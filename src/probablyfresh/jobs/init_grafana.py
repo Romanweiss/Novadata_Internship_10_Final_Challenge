@@ -15,7 +15,7 @@ if __name__ == "__main__":
         try:
             response = requests.get(health_url, timeout=2)
             if response.ok:
-                print("Grafana is healthy. Provisioned dashboard and datasource are mounted from infra/grafana.")
+                print("Grafana is healthy. Provisioned dashboard and datasource are mounted from grafana/ and docker/grafana.")
                 break
         except requests.RequestException:
             pass
