@@ -24,8 +24,8 @@
 | 6 | prefers_card | Предпочитает карту |
 | 7 | weekend_shopper | Покупает в выходные |
 | 8 | weekday_shopper | Покупает в будни |
-| 9 | night_shopper | Ночной покупатель |
-| 10 | morning_shopper | Утренний покупатель |
+| 9 | night_shopper | Делал покупки после 20:00 |
+| 10 | morning_shopper | Делал покупки до 10:00 |
 | 11 | no_purchases | Нет покупок |
 | 12 | has_purchases_last_7d | Есть покупки за 7 дней |
 | 13 | has_purchases_last_14d | Есть покупки за 14 дней |
