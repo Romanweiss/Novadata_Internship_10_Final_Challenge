@@ -8,6 +8,7 @@ from pathlib import Path
 
 import boto3
 from dotenv import load_dotenv
+from pyspark import StorageLevel
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 import os
@@ -478,14 +479,16 @@ def main() -> None:
 
     spark = _build_spark_session()
     temp_csv_path: Path | None = None
+    persisted_dfs: list[DataFrame] = []
 
     try:
         jdbc_reader = _jdbc_reader(spark)
 
-        purchases_df = _load_table(jdbc_reader, "purchases_mart")
-        customers_df = _load_table(jdbc_reader, "customers_mart")
-        products_df = _load_table(jdbc_reader, "products_mart")
-        purchase_items_df = _load_table(jdbc_reader, "purchase_items_mart")
+        purchases_df = _load_table(jdbc_reader, "purchases_mart").persist(StorageLevel.MEMORY_AND_DISK)
+        customers_df = _load_table(jdbc_reader, "customers_mart").persist(StorageLevel.MEMORY_AND_DISK)
+        products_df = _load_table(jdbc_reader, "products_mart").persist(StorageLevel.MEMORY_AND_DISK)
+        purchase_items_df = _load_table(jdbc_reader, "purchase_items_mart").persist(StorageLevel.MEMORY_AND_DISK)
+        persisted_dfs.extend([purchases_df, customers_df, products_df, purchase_items_df])
 
         logging.info(
             "Loaded rows: purchases_mart=%s, customers_mart=%s, products_mart=%s, purchase_items_mart=%s",
@@ -495,7 +498,10 @@ def main() -> None:
             purchase_items_df.count(),
         )
 
-        features_df = _build_features(customers_df, purchases_df, products_df, purchase_items_df)
+        features_df = _build_features(customers_df, purchases_df, products_df, purchase_items_df).persist(
+            StorageLevel.MEMORY_AND_DISK
+        )
+        persisted_dfs.append(features_df)
         logging.info("Feature columns count (with customer_id): %s", len(features_df.columns))
         logging.info("Feature rows to export: %s", features_df.count())
 
@@ -513,6 +519,11 @@ def main() -> None:
         logging.info("Upload completed successfully: %s", object_key)
         print(f"Uploaded features file: {object_key}")
     finally:
+        for df in reversed(persisted_dfs):
+            try:
+                df.unpersist(blocking=False)
+            except Exception as exc:
+                logging.warning("Failed to unpersist DataFrame: %s", exc)
         spark.stop()
         if temp_csv_path is not None:
             shutil.rmtree(temp_csv_path.parent, ignore_errors=True)
