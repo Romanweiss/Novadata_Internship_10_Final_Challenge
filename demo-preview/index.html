@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProbablyFresh Demo Preview</title>
+  <style>
+    :root{
+      --bg:#f3f6fa;--card:#fff;--card2:#f8fafc;--txt:#0f172a;--muted:#64748b;--br:#e2e8f0;
+      --ok:#10b981;--warn:#f59e0b;--bad:#ef4444;--accent:#2563eb;--shadow:0 12px 28px rgba(15,23,42,.08)
+    }
+    body.dark{
+      --bg:#070d17;--card:#0f1725;--card2:#111d2f;--txt:#e2e8f0;--muted:#94a3b8;--br:#253247;
+      --shadow:0 20px 40px rgba(2,8,23,.55)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Segoe UI,Inter,system-ui,sans-serif;background:var(--bg);color:var(--txt);transition:.22s}
+    .wrap{max-width:1200px;margin:0 auto;padding:22px 18px 36px}
+    .top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}
+    .brand{display:flex;gap:10px;align-items:center;font-size:30px;font-weight:900}
+    .logo{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#0f172a;color:#fff}
+    body.dark .logo{background:#e2e8f0;color:#0f172a}
+    .topr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:8px 13px;border-radius:999px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.15);color:#059669;font-size:13px;font-weight:700}
+    .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+    .btn,.chip{border:1px solid var(--br);background:var(--card);color:var(--txt);border-radius:11px;padding:8px 10px;cursor:pointer}
+    .chip{border-radius:999px;font-size:12px;font-weight:700}
+    .btn:hover,.chip:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;border:1px solid var(--br);background:var(--card);padding:6px;border-radius:15px;width:max-content;margin-bottom:16px}
+    .tab{border:0;background:transparent;color:var(--muted);padding:10px 14px;border-radius:11px;font-weight:700;cursor:pointer}
+    .tab.active{background:var(--txt);color:var(--card)}
+    .page{display:none}.page.on{display:block;animation:f .2s ease}
+    @keyframes f{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+    .g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px}
+    .g2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px}
+    .card{background:var(--card);border:1px solid var(--br);border-radius:18px;box-shadow:var(--shadow);padding:16px}
+    .kpi{transition:.18s;cursor:default}
+    .kpi:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(15,23,42,.14)}
+    .khead{display:flex;justify-content:space-between;color:var(--muted);font-weight:600}
+    .kval{font-size:44px;font-weight:900;line-height:1;margin-top:8px}
+    .delta{margin-top:8px;justify-self:end;display:inline-block;padding:4px 10px;border-radius:999px;background:rgba(16,185,129,.18);color:#059669;font-weight:800;font-size:13px}
+    .title{font-size:30px;font-weight:900;margin:0 0 4px}.sub{margin:0 0 12px;color:var(--muted)}
+    .list{display:grid;gap:8px}.row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--br);border-radius:12px;background:var(--card2)}
+    .left{display:flex;gap:8px;align-items:center}.muted{color:var(--muted)}
+    .badge{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:800}
+    .success{background:rgba(16,185,129,.2);color:#059669}.failed{background:rgba(239,68,68,.2);color:#dc2626}.running{background:rgba(37,99,235,.2);color:#1d4ed8}.processing{background:rgba(245,158,11,.2);color:#b45309}
+    .ag{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+    .ac{border:1px solid var(--br);background:var(--card);border-radius:14px;padding:14px;display:grid;gap:7px;cursor:pointer;transition:.18s}
+    .ac:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(15,23,42,.14)}
+    .ac.dis{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+    .map{border:1px dashed var(--br);border-radius:14px;padding:18px;display:flex;gap:8px;overflow:auto;background:
+      linear-gradient(0deg,transparent 24%,rgba(148,163,184,.08)25%,rgba(148,163,184,.08)26%,transparent 27%,transparent 74%,rgba(148,163,184,.08)75%,rgba(148,163,184,.08)76%,transparent 77%,transparent),
+      linear-gradient(90deg,transparent 24%,rgba(148,163,184,.08)25%,rgba(148,163,184,.08)26%,transparent 27%,transparent 74%,rgba(148,163,184,.08)75%,rgba(148,163,184,.08)76%,transparent 77%,transparent);background-size:26px 26px}
+    .node{white-space:nowrap;padding:8px 13px;border-radius:999px;border:1px solid var(--br);background:var(--card);font-weight:700;transition:.18s}
+    .node:hover{transform:translateY(-2px);box-shadow:0 12px 24px rgba(15,23,42,.16)}
+    .tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{padding:11px 10px;border-bottom:1px solid var(--br);text-align:left}.tbl th{font-size:13px;color:var(--muted)}
+    .qgood{color:#059669;font-weight:800}.qbad{color:#dc2626;font-weight:800}
+    .bar{height:8px;background:rgba(148,163,184,.2);border-radius:999px;overflow:hidden}.bar>span{display:block;height:100%;background:linear-gradient(90deg,#ef4444,#f97316)}
+    .tb{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+    .in{border:1px solid var(--br);background:var(--card);color:var(--txt);padding:10px 12px;border-radius:11px;min-width:260px}
+    .switch{width:50px;height:28px;border-radius:999px;border:1px solid var(--br);background:var(--card2);position:relative;cursor:pointer}
+    .switch:after{content:"";position:absolute;left:2px;top:2px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(15,23,42,.25);transition:.16s}
+    .switch.on{background:rgba(16,185,129,.3);border-color:rgba(16,185,129,.4)}.switch.on:after{left:25px;background:#10b981}
+    .cg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+    .ci{border:1px solid var(--br);border-radius:12px;background:var(--card2);padding:10px;display:grid;gap:5px}
+    .ro{border:1px solid var(--br);border-radius:9px;background:var(--card);padding:8px 10px;color:var(--muted);font-size:13px}
+    .modalbg{position:fixed;inset:0;background:rgba(2,8,23,.56);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
+    .modalbg.on{display:flex}.modal{width:min(560px,100%);background:var(--card);border:1px solid var(--br);border-radius:16px;padding:16px;display:grid;gap:10px}
+    .mtop{display:flex;justify-content:space-between;gap:8px}.lbl{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase}
+    .mt{font-size:30px;font-weight:900;margin:4px 0 0}.mact{display:flex;justify-content:flex-end;gap:8px}
+    .prim{background:#0f172a;color:#fff;border-color:#0f172a}body.dark .prim{background:#e2e8f0;color:#020617;border-color:#e2e8f0}
+    #toasts{position:fixed;top:16px;right:16px;width:min(380px,calc(100vw - 24px));display:grid;gap:8px;z-index:70}
+    .toast{background:var(--card);border:1px solid var(--br);border-left:4px solid var(--accent);border-radius:12px;box-shadow:var(--shadow);padding:10px;display:grid;gap:5px;transition:opacity .2s,transform .2s}
+    .toast.hide{opacity:0;transform:translateY(-6px)}.toast.success{border-left-color:var(--ok)}.toast.error{border-left-color:var(--bad)}
+    .tt{display:flex;justify-content:space-between;gap:8px;align-items:center}.x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:16px}
+    @media (max-width:1000px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g2{grid-template-columns:1fr}.ag{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:700px){.g4,.ag,.cg{grid-template-columns:1fr}.tabs{width:100%}.tab{flex:1}.kval{font-size:36px}}
+  </style>
+</head>
+<body>
+  <div id="toasts"></div>
+  <div class="wrap">
+    <header class="top">
+      <div class="brand"><span class="logo">P</span><span>ProbablyFresh</span></div>
+      <div class="topr">
+        <div class="pill"><span class="dot"></span><span id="sys"></span></div>
+        <button class="btn" id="docs"></button>
+        <button class="chip" id="lang"></button>
+        <button class="chip" id="theme"></button>
+      </div>
+    </header>
+    <nav class="tabs" id="tabs"></nav>
+    <main id="root"></main>
+  </div>
+  <div class="modalbg" id="mbg">
+    <div class="modal">
+      <div class="mtop">
+        <div><div class="lbl" id="mlbl"></div><h3 class="mt" id="mt"></h3><p class="muted" id="md"></p></div>
+        <button class="x" id="mclose">✕</button>
+      </div>
+      <div class="card" style="padding:10px;border-radius:10px" id="mw"></div>
+      <div class="mact"><button class="btn" id="mcancel"></button><button class="btn prim" id="mrun"></button></div>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const KEY = "pf_demo_state";
+      const T = {
+        ru:{sys:"Все системы в норме",docs:"Документация",lang:"Язык",light:"Светлая",dark:"Тёмная",overview:"Обзор",pipelines:"Пайплайны",quality:"Качество данных",exports:"Экспорты",settings:"Настройки",stores:"Магазины (uniq)",purchases:"Покупки (uniq)",customers:"Клиенты (mart)",items:"Позиции (mart)",ing:"Активность загрузки (последние 7 дней)",health:"Состояние сервисов",pay:"Покупки по способу оплаты",runs:"Последние запуски",one:"One-click действия",ones:"Ручной запуск задач пайплайна и трансформаций.",map:"Карта пайплайна",maps:"Архитектура потока данных между сервисами.",run:"Запуск",runJob:"Запустить",cancel:"Отмена",warn:"Вы уверены, что хотите запустить задачу вручную? Команда выполнится в текущем окружении и может занять ресурсы.",started:"Задача запущена",done:"Задача завершена",fail:"Задача завершилась ошибкой",safeBlock:"Safe Mode включён, действие заблокировано",overall:"Общая доля дубликатов",target:"Цель",qgood:"Качество хорошее",qbad:"Качество плохое",hgood:"Текущий уровень дубликатов в допустимых пределах.",hbad:"Доля дубликатов превышает порог и требует проверки.",alerts:"Статус алертов",tga:"Telegram-алерты",enabled:"ВКЛЮЧЕНО",lastAlert:"Последний алерт",rule:"Алерты отправляются, если доля дубликатов > 50% в двух подряд снэпшотах.",trend:"Тренд дубликатов (последние 10 запусков)",mstats:"Статистика качества MART",entity:"Сущность",total:"Всего RAW",valid:"Валидный MART",dup:"Дубликаты",inv:"Невалидные",ratio:"Доля",exp:"Экспорты S3",search:"Поиск по файлам и датам...",file:"Файл",date:"Дата",rows:"Строки",size:"Размер",status:"Статус",actions:"Действия",st:"Настройки системы",sts:"Управление подключениями и безопасностью.",safe:"Safe Mode",safed:"Когда включён, потенциально разрушительные действия блокируются.",conn:"Подключения сервисов",about:"О платформе ProbablyFresh",aboutt:"Standalone preview демонстрирует интерфейс control panel без backend, Docker и сборки. Данные в UI реалистичные, но моковые.",ver:"Версия",env:"Окружение",stage:"Стенд",nod:"Нет данных"},
+        en:{sys:"All systems nominal",docs:"Docs",lang:"Language",light:"Light",dark:"Dark",overview:"Overview",pipelines:"Pipelines",quality:"Data Quality",exports:"Exports",settings:"Settings",stores:"Stores (uniq)",purchases:"Purchases (uniq)",customers:"Customers (mart)",items:"Items (mart)",ing:"Ingestion Activity (Last 7 Days)",health:"Services Health",pay:"Purchases by Payment Method",runs:"Last Runs",one:"One-click actions",ones:"Manually trigger pipeline jobs and transformations.",map:"Pipeline Map",maps:"Data flow architecture across services.",run:"Run",runJob:"Run Job",cancel:"Cancel",warn:"Are you sure you want to trigger this action manually? The command will run in current environment and may consume resources.",started:"Job started",done:"Job completed",fail:"Job failed",safeBlock:"Safe Mode is ON, action is blocked",overall:"Overall duplicates ratio",target:"Target",qgood:"Quality is Good",qbad:"Quality is Bad",hgood:"Current duplicates ratio is within acceptable range.",hbad:"Duplicates ratio exceeds threshold and needs investigation.",alerts:"Alert status",tga:"Telegram Alerts",enabled:"ENABLED",lastAlert:"Last Alert Triggered",rule:"Alerts are dispatched when duplicates ratio > 50% in two consecutive snapshots.",trend:"Duplicates Trend (Last 10 runs)",mstats:"MART Quality Stats",entity:"Entity",total:"Total RAW",valid:"Valid MART",dup:"Duplicates",inv:"Invalid",ratio:"Ratio",exp:"S3 Exports",search:"Search files or dates...",file:"Filename",date:"Date",rows:"Rows",size:"Size",status:"Status",actions:"Actions",st:"System Settings",sts:"Configure connections and security.",safe:"Safe Mode",safed:"When enabled, potentially destructive actions are blocked.",conn:"Service Connections",about:"About ProbablyFresh",aboutt:"Standalone preview demonstrates control panel UI without backend, Docker or build step. Data are realistic mocks.",ver:"Version",env:"Environment",stage:"Staging",nod:"No data"}
+      };
+      const actions=[
+        {id:"generate-data",i:"✦",d:false,t:{ru:"Сгенерировать данные",en:"Generate Data"},s:{ru:"Создаёт тестовые покупки и магазины",en:"Synthesizes mock purchases and stores"}},
+        {id:"load-nosql",i:"🛢",d:false,t:{ru:"Загрузить в MongoDB",en:"Load to MongoDB"},s:{ru:"Загружает сырые JSON-события в MongoDB",en:"Dumps raw JSON events to MongoDB"}},
+        {id:"run-producer",i:"⚡",d:false,t:{ru:"Отправить в Kafka",en:"Produce to Kafka"},s:{ru:"Потоково отправляет события из Mongo в Kafka",en:"Streams events from Mongo to Kafka topic"}},
+        {id:"mart-refresh",i:"▦",d:true,t:{ru:"Обновить MART",en:"Refresh MART"},s:{ru:"Материализует представления ClickHouse",en:"Materializes ClickHouse views"}},
+        {id:"run-etl",i:"⌬",d:false,t:{ru:"Запустить Features ETL",en:"Run Features ETL"},s:{ru:"Spark-задача расчета ML-признаков",en:"Spark job to calculate ML features"}},
+        {id:"trigger-airflow-dag",i:"▷",d:false,t:{ru:"Запустить Airflow DAG",en:"Trigger Airflow DAG"},s:{ru:"Запускает ночной orchestration DAG",en:"Runs the nightly orchestration DAG"}}
+      ];
+      const tabs=["overview","pipelines","quality","exports","settings"];
+      const s={tab:"overview",theme:"light",lang:"ru",safe:true,q:"",modal:null,toasts:[],runs:[
+        {id:"r1",j:"run-etl",st:"success",ts:Date.now()-2*60e3},{id:"r2",j:"mart-refresh",st:"failed",ts:Date.now()-9*60e3},{id:"r3",j:"run-producer",st:"success",ts:Date.now()-14*60e3},{id:"r4",j:"load-nosql",st:"success",ts:Date.now()-20*60e3},{id:"r5",j:"generate-data",st:"success",ts:Date.now()-26*60e3}
+      ]};
+      Object.assign(s,load());
+      const timers=new Map();
+      const services=[["ClickHouse","ok",2],["Kafka","ok",3],["MongoDB","ok",4],["Grafana","warn",10],["Airflow","ok",5],["S3","ok",2]];
+      const ing=[["Thu",520000],["Fri",542000],["Sat",417000],["Sun",185000],["Mon",588000],["Tue",531000],["Wed",372000]];
+      const pay=[["Card",130,"#2563eb"],["Cash",50,"#60a5fa"],["SBP",20,"#93c5fd"]];
+      const trend=[["Run 1",.56],["Run 2",.61],["Run 3",.66],["Run 4",.62],["Run 5",.58],["Run 6",.64],["Run 7",.60],["Run 8",.57],["Run 9",.63],["Run 10",.667]];
+      const qtbl=[["Purchases",600,600,400,0,.667],["Customers",525,525,350,0,.667],["Stores",135,135,90,0,.667],["Products",300,300,200,0,.667]];
+      const ex=[["analytic_result_2026_03_12.csv","2026-03-12","175","82 KB","ready"],["analytic_result_2026_03_11.csv","2026-03-11","175","82 KB","ready"],["mart_snapshot_2026_03_12.csv","2026-03-12","1560","1.1 MB","ready"],["nightly_report_2026_03_12.pdf","2026-03-12","-","2.4 MB","processing"]];
+      const el={sys:$("#sys"),docs:$("#docs"),lang:$("#lang"),theme:$("#theme"),tabs:$("#tabs"),root:$("#root"),toasts:$("#toasts"),mbg:$("#mbg"),mlbl:$("#mlbl"),mt:$("#mt"),md:$("#md"),mw:$("#mw"),mclose:$("#mclose"),mcancel:$("#mcancel"),mrun:$("#mrun")};
+      el.docs.onclick=()=>toast("info",tr("docs"),"README / RUNBOOK / PROJECT_OVERVIEW");
+      el.lang.onclick=()=>{s.lang=s.lang==="ru"?"en":"ru";save();render()};
+      el.theme.onclick=()=>{s.theme=s.theme==="light"?"dark":"light";save();render()};
+      el.mclose.onclick=close; el.mcancel.onclick=close; el.mbg.onclick=e=>{if(e.target===el.mbg)close()}; el.mrun.onclick=run;
+      render();
+
+      function tr(k){return (T[s.lang]&&T[s.lang][k])||k}
+      function $(q){return document.querySelector(q)}
+      function n(v){return new Intl.NumberFormat(s.lang==="ru"?"ru-RU":"en-US").format(v)}
+      function p(v){return (v*100).toFixed(1)+"%"}
+      function ago(ts){const d=Math.max(1,Math.round((Date.now()-ts)/1e3));if(d<60)return d+"s ago";if(d<3600)return Math.round(d/60)+"m ago";return Math.round(d/3600)+"h ago"}
+      function tname(id){const a=actions.find(x=>x.id===id);return a?a.t[s.lang]:id}
+      function load(){try{return JSON.parse(localStorage.getItem(KEY)||"{}")}catch{return {}}}
+      function save(){localStorage.setItem(KEY,JSON.stringify({theme:s.theme,lang:s.lang,safe:s.safe}))}
+      function esc(x){return String(x).replace(/[&<>\"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
+      function render(){
+        document.body.classList.toggle("dark",s.theme==="dark");
+        document.documentElement.lang=s.lang==="ru"?"ru":"en";
+        el.sys.textContent=tr("sys"); el.docs.textContent=tr("docs"); el.lang.textContent=tr("lang")+": "+s.lang.toUpperCase(); el.theme.textContent=s.theme==="dark"?tr("light"):tr("dark");
+        el.tabs.innerHTML=tabs.map(k=>`<button class="tab ${s.tab===k?"active":""}" data-tab="${k}">${tr(k)}</button>`).join("");
+        el.tabs.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{s.tab=b.dataset.tab;render()});
+        el.root.innerHTML=pageOverview()+pagePipe()+pageQuality()+pageExports()+pageSettings();
+        post();
+        renderToasts();
+      }
+      function pageOverview(){
+        const k=[[tr("stores"),45,"🛒","+2"],[tr("purchases"),200,"🩺","+15K"],[tr("customers"),175,"👥","+3K"],[tr("items"),100,"🧱","0"]];
+        return `<section class="page ${s.tab==="overview"?"on":""}">
+          <div class="g4">${k.map(x=>`<article class="card kpi"><div class="khead"><span>${x[0]}</span><span>${x[2]}</span></div><div class="kval">${n(x[1])}</div><span class="delta">↗ ${x[3]}</span></article>`).join("")}</div>
+          <div class="g2">
+            <article class="card"><h3>${tr("ing")}</h3><div id="ingc"></div></article>
+            <article class="card"><h3>${tr("health")}</h3><div id="hl" class="list"></div></article>
+          </div>
+          <div class="g2">
+            <article class="card"><h3>${tr("pay")}</h3><div id="donut"></div></article>
+            <article class="card"><h3>${tr("runs")}</h3><div id="runs" class="list"></div></article>
+          </div>
+        </section>`
+      }
+      function pagePipe(){
+        return `<section class="page ${s.tab==="pipelines"?"on":""}">
+          <h2 class="title">${tr("one")}</h2><p class="sub">${tr("ones")}</p>
+          <div class="ag" id="ag"></div>
+          <article class="card"><h3>${tr("map")}</h3><p class="muted">${tr("maps")}</p>
+            <div class="map"><span class="node">JSON</span><span class="muted">→</span><span class="node">MongoDB</span><span class="muted">→</span><span class="node">Kafka</span><span class="muted">→</span><span class="node">ClickHouse RAW</span><span class="muted">→</span><span class="node">ClickHouse MART</span><span class="muted">→</span><span class="node">Spark</span><span class="muted">→</span><span class="node">S3</span></div>
+          </article>
+        </section>`
+      }
+      function pageQuality(){
+        const cur=trend.at(-1)[1],bad=cur>.5;
+        return `<section class="page ${s.tab==="quality"?"on":""}">
+          <div class="g2">
+            <article class="card"><h3>${tr("overall")}</h3><div class="kval ${bad?"qbad":"qgood"}" style="font-size:58px">${p(cur)}</div><p class="muted">${tr("target")}: > 50%</p><div class="bar"><span style="width:${Math.min(100,cur*100)}%"></span></div><p class="${bad?"qbad":"qgood"}">${bad?tr("qbad"):tr("qgood")}</p><p class="muted">${bad?tr("hbad"):tr("hgood")}</p></article>
+            <article class="card"><h3>${tr("alerts")}</h3><div class="row"><span>${tr("tga")}</span><span class="badge success">${tr("enabled")}</span></div><p class="muted">${tr("lastAlert")}: 2026-03-12 16:40:00</p><div class="card" style="padding:10px;border-radius:10px">${tr("rule")}</div></article>
+          </div>
+          <article class="card" style="margin-bottom:12px"><h3>${tr("trend")}</h3><div id="qchart"></div></article>
+          <article class="card"><h3>${tr("mstats")}</h3><div style="overflow:auto"><table class="tbl" id="qtbl"></table></div></article>
+        </section>`
+      }
+      function pageExports(){
+        return `<section class="page ${s.tab==="exports"?"on":""}">
+          <div class="tb"><h2 class="title" style="margin:0">${tr("exp")}</h2><input class="in" id="es" placeholder="${tr("search")}" value="${esc(s.q)}"/></div>
+          <article class="card" style="padding:0;overflow:auto"><table class="tbl" id="et"></table></article>
+        </section>`
+      }
+      function pageSettings(){
+        return `<section class="page ${s.tab==="settings"?"on":""}">
+          <h2 class="title">${tr("st")}</h2><p class="sub">${tr("sts")}</p>
+          <article class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div><h3 style="margin:0 0 4px">${tr("safe")}</h3><p class="muted" style="margin:0">${tr("safed")}</p></div><button id="safe" class="switch ${s.safe?"on":""}"></button></div></article>
+          <article class="card" style="margin-bottom:12px"><h3>${tr("conn")}</h3><div class="cg">
+            <div class="ci"><strong>ClickHouse JDBC</strong><div class="ro">jdbc:clickhouse://clickhouse:8123/probablyfresh_mart</div></div>
+            <div class="ci"><strong>S3 Endpoint</strong><div class="ro">https://storage.yandexcloud.net</div></div>
+            <div class="ci"><strong>Grafana URL</strong><div class="ro">http://localhost:3000</div></div>
+            <div class="ci"><strong>Airflow URL</strong><div class="ro">http://localhost:8080</div></div>
+          </div></article>
+          <article class="card"><h3>${tr("about")}</h3><p class="muted">${tr("aboutt")}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><span class="badge running">${tr("ver")}: 2.1.0-demo</span><span class="badge success">${tr("env")}: ${tr("stage")}</span></div></article>
+        </section>`
+      }
+      function post(){
+        const hl=$("#hl"); if(hl) hl.innerHTML=services.map(x=>`<div class="row"><div class="left"><span class="dot" style="color:${x[1]==="ok"?"var(--ok)":x[1]==="warn"?"var(--warn)":"var(--bad)"}"></span><strong>${x[0]}</strong></div><span class="muted">${x[2]}s ago</span></div>`).join("");
+        const rl=$("#runs"); if(rl) rl.innerHTML=s.runs.slice(0,6).map(r=>`<div class="row"><div class="left"><strong>${esc(tname(r.j))}</strong><span class="muted">${ago(r.ts)}</span></div><span class="badge ${r.st==="success"?"success":r.st==="failed"?"failed":"running"}">${r.st}</span></div>`).join("");
+        const ag=$("#ag"); if(ag) ag.innerHTML=actions.map(a=>{const dis=s.safe&&a.d;return `<button class="ac ${dis?"dis":""}" data-a="${a.id}" ${dis?"disabled":""} title="${dis?tr("safeBlock"):""}"><div class="left"><span>${a.i}</span><strong>${a.t[s.lang]}</strong></div><div class="muted">${a.s[s.lang]}</div></button>`}).join("");
+        document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>open(b.dataset.a));
+        const q=$("#qtbl"); if(q) q.innerHTML=`<thead><tr><th>${tr("entity")}</th><th>${tr("total")}</th><th>${tr("valid")}</th><th>${tr("dup")}</th><th>${tr("inv")}</th><th>${tr("ratio")}</th></tr></thead><tbody>${qtbl.map(r=>`<tr><td><strong>${r[0]}</strong></td><td>${n(r[1])}</td><td class="qgood">${n(r[2])}</td><td class="qbad">${n(r[3])}</td><td class="qbad">${n(r[4])}</td><td><span class="badge ${r[5]>.5?"failed":"success"}">${p(r[5])}</span></td></tr>`).join("")}</tbody>`;
+        const es=$("#es"); if(es) es.oninput=()=>{s.q=es.value;et()};
+        et();
+        const safe=$("#safe"); if(safe) safe.onclick=()=>{s.safe=!s.safe;save();render();toast("info",tr("safe"),s.safe?"ON":"OFF")};
+        drawLine("ingc",ing.map(x=>x[1]),ing.map(x=>x[0]),600000,v=>Math.round(v/1000)+"k");
+        drawLine("qchart",trend.map(x=>x[1]),trend.map(x=>x[0]),0.75,v=>Math.round(v*100)+"%");
+        drawDonut();
+      }
+      function et(){
+        const t=$("#et"); if(!t) return;
+        const q=s.q.trim().toLowerCase();
+        const rows=ex.filter(r=>!q||(r[0]+" "+r[1]).toLowerCase().includes(q));
+        t.innerHTML=`<thead><tr><th>${tr("file")}</th><th>${tr("date")}</th><th>${tr("rows")}</th><th>${tr("size")}</th><th>${tr("status")}</th><th>${tr("actions")}</th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="badge ${r[4]==="ready"?"success":"processing"}">${r[4]}</span></td><td><button class="btn" data-e="${r[0]}">view</button></td></tr>`).join(""):`<tr><td colspan="6" class="muted">${tr("nod")}</td></tr>`}</tbody>`;
+        document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>toast("info",tr("exp"),b.dataset.e+" (mock)"));
+      }
+      function open(id){
+        s.modal=id; const a=actions.find(x=>x.id===id); if(!a)return;
+        el.mlbl.textContent=tr("run"); el.mt.textContent=a.t[s.lang]; el.md.textContent=a.s[s.lang]; el.mw.textContent=tr("warn"); el.mcancel.textContent=tr("cancel"); el.mrun.textContent=tr("runJob"); el.mbg.classList.add("on");
+      }
+      function close(){s.modal=null;el.mbg.classList.remove("on")}
+      function run(){
+        const id=s.modal; if(!id) return; close();
+        const rid=Math.random().toString(36).slice(2,8); s.runs.unshift({id:rid,j:id,st:"running",ts:Date.now()}); render(); toast("info",tr("started"),tname(id));
+        const fail=id==="mart-refresh"&&Math.random()<.35;
+        setTimeout(()=>{const r=s.runs.find(x=>x.id===rid); if(!r)return; r.st=fail?"failed":"success"; r.ts=Date.now(); render(); toast(fail?"error":"success",fail?tr("fail"):tr("done"),tname(id))},1000+Math.random()*1200);
+      }
+      function toast(type,title,msg){
+        const id=Math.random().toString(36).slice(2,8); const o={id,type,title,msg,rem:3000,hide:false}; s.toasts.unshift(o); renderToasts(); sch(o);
+      }
+      function sch(o){clr(o.id); o.start=Date.now(); timers.set(o.id,setTimeout(()=>dsm(o.id),o.rem))}
+      function clr(id){const t=timers.get(id); if(t){clearTimeout(t);timers.delete(id)}}
+      function dsm(id){const o=s.toasts.find(x=>x.id===id); if(!o)return; o.hide=true; renderToasts(); clr(id); setTimeout(()=>{s.toasts=s.toasts.filter(x=>x.id!==id); renderToasts()},200)}
+      function renderToasts(){
+        el.toasts.innerHTML=s.toasts.map(o=>`<div class="toast ${o.type} ${o.hide?"hide":""}" data-t="${o.id}"><div class="tt"><strong>${esc(o.title)}</strong><button class="x" data-x="${o.id}">✕</button></div><div class="muted">${esc(o.msg)}</div></div>`).join("");
+        document.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>dsm(b.dataset.x));
+        document.querySelectorAll("[data-t]").forEach(n=>{
+          const id=n.dataset.t;
+          n.onmouseenter=()=>{const o=s.toasts.find(x=>x.id===id); if(!o)return; clr(id); o.rem=Math.max(300,o.rem-(Date.now()-o.start))};
+          n.onmouseleave=()=>{const o=s.toasts.find(x=>x.id===id); if(!o)return; sch(o)};
+        });
+      }
+      function drawLine(id,vals,labels,max,fy){
+        const m=$("#"+id); if(!m)return; const w=Math.max(500,m.clientWidth||700),h=260,l=46,r=12,t=12,b=30,iw=w-l-r,ih=h-t-b;
+        const xa=i=>l+iw*i/Math.max(1,vals.length-1), ya=v=>t+ih-(Math.max(0,v)/max)*ih;
+        const line=vals.map((v,i)=>(i?"L":"M")+xa(i)+" "+ya(v)).join(" ");
+        const area=line+` L ${xa(vals.length-1)} ${h-b} L ${xa(0)} ${h-b} Z`;
+        const gid="g"+id,cid="c"+id;
+        let grid=""; for(let i=0;i<=4;i++){const y=t+ih*i/4,v=max-max*i/4; grid+=`<line x1="${l}" y1="${y}" x2="${w-r}" y2="${y}" stroke="var(--br)" stroke-dasharray="3 6"/><text x="8" y="${y+4}" fill="var(--muted)" font-size="11">${fy(v)}</text>`}
+        const xs=labels.map((x,i)=>`<text x="${xa(i)}" y="${h-8}" fill="var(--muted)" font-size="11" text-anchor="middle">${x}</text>`).join("");
+        m.innerHTML=`<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity=".32"/><stop offset="100%" stop-color="var(--accent)" stop-opacity=".05"/></linearGradient><clipPath id="${cid}"><rect x="${l}" y="${t}" width="0" height="${ih}"/></clipPath></defs>${grid}<g clip-path="url(#${cid})"><path d="${area}" fill="url(#${gid})"/><path id="ln${id}" d="${line}" fill="none" stroke="var(--txt)" stroke-width="3" stroke-linecap="round"/></g>${xs}</svg>`;
+        const ln=$("#ln"+id),cr=$("#"+cid+" rect"); if(!ln||!cr)return;
+        const len=ln.getTotalLength(); ln.style.strokeDasharray=len; ln.style.strokeDashoffset=len;
+        setTimeout(()=>{ln.animate([{strokeDashoffset:len},{strokeDashoffset:0}],{duration:1200,easing:"cubic-bezier(.22,1,.36,1)",fill:"forwards"}); cr.animate([{width:0},{width:iw}],{duration:1200,easing:"cubic-bezier(.22,1,.36,1)",fill:"forwards"})},100);
+      }
+      function drawDonut(){
+        const m=$("#donut"); if(!m)return; const tot=pay.reduce((a,b)=>a+b[1],0);
+        m.innerHTML=`<div style="display:grid;grid-template-columns:210px 1fr;gap:10px;align-items:center"><div style="display:grid;place-items:center;height:210px"><div id="ring" style="width:165px;height:165px;border-radius:50%;position:relative"></div></div><div>${pay.map(x=>`<div class="row" style="margin-bottom:7px"><div class="left"><span class="dot" style="background:${x[2]}"></span><strong>${x[0]}</strong></div><strong>${Math.round(x[1]/tot*100)}% (${x[1]})</strong></div>`).join("")}</div></div>`;
+        const ring=$("#ring"),inner=document.createElement("div"); inner.style.cssText="position:absolute;inset:24px;border-radius:50%;background:var(--card)"; ring.appendChild(inner);
+        const start=performance.now(),dur=900; const seg=pay.map(x=>[x[2],x[1]/tot]);
+        const step=nw=>{const pr=Math.min(1,(nw-start)/dur);let c=0;const pz=[];for(const [col,sh] of seg){const from=c*100; c+=sh*pr; pz.push(`${col} ${from}% ${c*100}%`)} ring.style.background=`conic-gradient(from -90deg, ${pz.join(",")})`; if(pr<1) requestAnimationFrame(step)};
+        requestAnimationFrame(step);
+      }
+    })();
+  </script>
+</body>
+</html>
+
