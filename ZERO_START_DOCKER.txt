@@ -3,9 +3,9 @@
 1) Открыть папку проекта
 cd F:\DE_intern\probablyfresh-analytics-platform
 
-2) Подготовить env (один раз, БЕЗ перезаписи существующего .env)
-if (!(Test-Path .env)) { Copy-Item .env.example .env }
-ВАЖНО: если `.env` уже существует, НЕ выполняй `copy .env.example .env`.
+2) Подготовить env (один раз, БЕЗ автокопирования/перезаписи существующего .env)
+if (!(Test-Path .env)) { throw ".env не найден. Создай его вручную из .env.example и заполни секреты." }
+ВАЖНО: `.env` заполняется вручную. В runbook нет команд, которые перезаписывают `.env`.
 Проверь, что в `.env` задан `PII_HASH_SALT` (>=16 символов), иначе producer перейдет на fallback-соль и выдаст warning.
 
 3) Собрать app-образ (один раз, либо после изменений requirements/Dockerfile)
@@ -56,7 +56,7 @@ docker compose --env-file .env exec airflow airflow dags list-runs -d etl_to_s3_
 После пункта 15 — чистые команды (copy/paste)
 
 cd F:\DE_intern\probablyfresh-analytics-platform
-if (!(Test-Path .env)) { Copy-Item .env.example .env }
+if (!(Test-Path .env)) { throw ".env не найден. Создай его вручную из .env.example и заполни секреты." }
 docker compose --env-file .env build app
 docker compose --env-file .env down -v
 docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana airflow-postgres airflow
