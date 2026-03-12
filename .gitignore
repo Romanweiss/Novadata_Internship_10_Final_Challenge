@@ -10,6 +10,7 @@ venv/
 
 # Local env
 .env
+.env copy
 
 # Generated data
 data/stores/*.json
@@ -22,3 +23,7 @@ data/purchases/*.json
 .idea/
 .DS_Store
 Thumbs.db
+
+# Backend runtime files
+*.sqlite3
+backend/run_logs/

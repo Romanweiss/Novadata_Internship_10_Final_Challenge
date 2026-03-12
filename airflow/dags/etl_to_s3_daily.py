@@ -56,11 +56,11 @@ docker exec "$APP_CID" sh -lc "cd /workspace && python jobs/features_etl.py"
 echo "ETL finished successfully"
 """
 
-VERIFY_MINIO_CMD = f"""
+VERIFY_S3_CMD = f"""
 set -euo pipefail
 {RESOLVE_APP_CONTAINER}
 
-echo "Verifying daily ETL object in MinIO/S3..."
+echo "Verifying daily ETL object in S3..."
 cat <<'PY' | docker exec -i "$APP_CID" python -
 from datetime import datetime, timezone
 import csv
@@ -86,15 +86,15 @@ def optional_any(default: str, *names: str) -> str:
             return value.strip()
     return default
 
-endpoint = required_any("MINIO_ENDPOINT", "S3_ENDPOINT_URL")
+endpoint = required_any("S3_ENDPOINT_URL")
 if not endpoint.startswith(("http://", "https://")):
     endpoint = f"https://{{endpoint}}"
 
-region = optional_any("ru-3", "MINIO_REGION", "S3_REGION")
-bucket = required_any("MINIO_BUCKET", "S3_BUCKET")
-access_key = required_any("MINIO_ACCESS_KEY", "S3_ACCESS_KEY")
-secret_key = required_any("MINIO_SECRET_KEY", "S3_SECRET_KEY")
-prefix = optional_any("", "MINIO_OBJECT_PREFIX", "S3_OBJECT_PREFIX").strip("/")
+region = optional_any("ru-3", "S3_REGION", "AWS_DEFAULT_REGION")
+bucket = required_any("S3_BUCKET")
+access_key = required_any("S3_ACCESS_KEY", "AWS_ACCESS_KEY_ID")
+secret_key = required_any("S3_SECRET_KEY", "AWS_SECRET_ACCESS_KEY")
+prefix = optional_any("", "S3_OBJECT_PREFIX").strip("/")
 
 object_name = f"analytic_result_{{datetime.now(timezone.utc):%Y_%m_%d}}.csv"
 object_key = f"{{prefix}}/{{object_name}}" if prefix else object_name
@@ -150,7 +150,7 @@ for i, row in enumerate(rows, start=1):
     if bad_values:
         raise SystemExit(f"Row #{{i}} contains non-binary feature values: {{bad_values}}")
 
-print("verify_minio: object exists, size > 1KB, CSV shape and feature values are valid")
+print("verify_s3: object exists in S3, size > 1KB, CSV shape and feature values are valid")
 PY
 """
 
@@ -179,9 +179,9 @@ with DAG(
         bash_command=RUN_ETL_CMD,
     )
 
-    verify_minio = BashOperator(
-        task_id="verify_minio",
-        bash_command=VERIFY_MINIO_CMD,
+    verify_s3 = BashOperator(
+        task_id="verify_s3",
+        bash_command=VERIFY_S3_CMD,
     )
 
-    wait_clickhouse >> run_etl >> verify_minio
+    wait_clickhouse >> run_etl >> verify_s3

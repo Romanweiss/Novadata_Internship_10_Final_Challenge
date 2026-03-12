@@ -1,0 +1,23 @@
+﻿import { Navigate, Route, Routes } from 'react-router-dom';
+
+import { AppLayout } from './app/AppLayout';
+import { DataQualityPage } from './pages/DataQualityPage';
+import { ExportsPage } from './pages/ExportsPage';
+import { OverviewPage } from './pages/OverviewPage';
+import { PipelinesPage } from './pages/PipelinesPage';
+import { SettingsPage } from './pages/SettingsPage';
+
+export default function App() {
+  return (
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<OverviewPage />} />
+        <Route path="/pipelines" element={<PipelinesPage />} />
+        <Route path="/data-quality" element={<DataQualityPage />} />
+        <Route path="/exports" element={<ExportsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}

@@ -1,15 +1,21 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
 import logging
 import os
 import re
+import sys
+from pathlib import Path
 from typing import Any
 
-from cryptography.fernet import Fernet
 from kafka import KafkaProducer
 from pymongo import MongoClient
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "src"))
+
+from probablyfresh.core.crypto_utils import PIIHasher
 
 
 ENTITY_TO_TOPIC_ENV = {
@@ -44,6 +50,20 @@ def get_required_env(name: str) -> str:
     return value
 
 
+def get_pii_hash_salt() -> str:
+    salt = os.getenv("PII_HASH_SALT", "").strip()
+    if salt:
+        return salt
+
+    # Backward-compatible fallback: if old env is still used, keep pipeline running.
+    legacy = os.getenv("FERNET_KEY", "").strip()
+    if legacy:
+        logging.warning("PII_HASH_SALT is not set, falling back to FERNET_KEY as hash salt")
+        return legacy
+
+    raise RuntimeError("Environment variable PII_HASH_SALT is required")
+
+
 def normalize_email(value: str) -> str:
     return value.strip().lower()
 
@@ -64,36 +84,36 @@ def normalize_phone(value: str) -> tuple[str, bool]:
     return original, False
 
 
-def encrypt_text(cipher: Fernet, value: str) -> str:
-    return cipher.encrypt(value.encode("utf-8")).decode("utf-8")
+def hash_text(hasher: PIIHasher, value: str) -> str:
+    return hasher.hash_value(value)
 
 
-def transform_pii(value: Any, cipher: Fernet, entity_name: str, doc_id: str) -> Any:
+def transform_pii(value: Any, hasher: PIIHasher, entity_name: str, doc_id: str) -> Any:
     if isinstance(value, dict):
         transformed: dict[str, Any] = {}
         for key, nested_value in value.items():
             if key == "email" and isinstance(nested_value, str):
                 normalized = normalize_email(nested_value)
-                transformed[key] = encrypt_text(cipher, normalized)
+                transformed[key] = hash_text(hasher, normalized)
                 continue
 
             if key == "phone" and isinstance(nested_value, str):
                 normalized, ok = normalize_phone(nested_value)
                 if not ok:
                     logging.warning(
-                        "[%s][%s] Could not normalize phone %r; leaving as-is before encryption",
+                        "[%s][%s] Could not normalize phone %r; leaving as-is before hashing",
                         entity_name,
                         doc_id,
                         nested_value,
                     )
-                transformed[key] = encrypt_text(cipher, normalized)
+                transformed[key] = hash_text(hasher, normalized)
                 continue
 
-            transformed[key] = transform_pii(nested_value, cipher, entity_name, doc_id)
+            transformed[key] = transform_pii(nested_value, hasher, entity_name, doc_id)
         return transformed
 
     if isinstance(value, list):
-        return [transform_pii(item, cipher, entity_name, doc_id) for item in value]
+        return [transform_pii(item, hasher, entity_name, doc_id) for item in value]
 
     return value
 
@@ -113,10 +133,10 @@ def main() -> None:
     mongo_uri = get_required_env("MONGO_URI")
     mongo_db = get_required_env("MONGO_DB")
     bootstrap_servers = get_required_env("KAFKA_BOOTSTRAP_SERVERS")
-    fernet_key = get_required_env("FERNET_KEY")
+    pii_hash_salt = get_pii_hash_salt()
 
     topics = resolve_topics()
-    cipher = Fernet(fernet_key.encode("utf-8"))
+    hasher = PIIHasher(pii_hash_salt)
 
     producer = KafkaProducer(bootstrap_servers=bootstrap_servers)
     published: dict[str, int] = {name: 0 for name in ENTITY_TO_TOPIC_ENV}
@@ -133,7 +153,7 @@ def main() -> None:
                     if entity_name in PII_ENTITIES:
                         doc_id_key = "customer_id" if entity_name == "customers" else "purchase_id"
                         doc_id = str(document.get(doc_id_key, "unknown"))
-                        payload_doc = transform_pii(document, cipher, entity_name, doc_id)
+                        payload_doc = transform_pii(document, hasher, entity_name, doc_id)
                     else:
                         payload_doc = document
 

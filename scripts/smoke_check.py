@@ -28,6 +28,13 @@ def _required_any_env(*names: str) -> str:
     raise RuntimeError(f"One of environment variables {', '.join(names)} is required")
 
 
+def _required_env(name: str) -> str:
+    value = os.getenv(name, "").strip()
+    if not value:
+        raise RuntimeError(f"Environment variable {name} is required")
+    return value
+
+
 def _optional_any_env(default: str, *names: str) -> str:
     for name in names:
         value = os.getenv(name)
@@ -139,12 +146,12 @@ def _print_quality_checks() -> None:
 
 
 def _build_s3_client() -> tuple[Any, str, str]:
-    endpoint = _normalize_endpoint(_required_any_env("MINIO_ENDPOINT", "S3_ENDPOINT_URL"), default_scheme="https")
-    region = _optional_any_env("ru-3", "MINIO_REGION", "S3_REGION")
-    bucket = _required_any_env("MINIO_BUCKET", "S3_BUCKET")
-    access_key = _required_any_env("MINIO_ACCESS_KEY", "S3_ACCESS_KEY")
-    secret_key = _required_any_env("MINIO_SECRET_KEY", "S3_SECRET_KEY")
-    prefix = _optional_any_env("", "MINIO_OBJECT_PREFIX", "S3_OBJECT_PREFIX").strip("/")
+    endpoint = _normalize_endpoint(_required_env("S3_ENDPOINT_URL"), default_scheme="https")
+    region = _optional_any_env("ru-3", "S3_REGION", "AWS_DEFAULT_REGION")
+    bucket = _required_env("S3_BUCKET")
+    access_key = _required_any_env("S3_ACCESS_KEY", "AWS_ACCESS_KEY_ID")
+    secret_key = _required_any_env("S3_SECRET_KEY", "AWS_SECRET_ACCESS_KEY")
+    prefix = _optional_any_env("", "S3_OBJECT_PREFIX").strip("/")
 
     client = boto3.client(
         "s3",

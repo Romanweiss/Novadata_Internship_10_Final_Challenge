@@ -1,0 +1,67 @@
+﻿ProbablyFresh Pipeline Core Guide (for review)
+Updated: 2026-03-12
+
+1) Scope
+This document covers only data pipeline core (no frontend/backend UI details):
+JSON generation -> MongoDB -> Kafka -> ClickHouse RAW -> ClickHouse MART -> PySpark ETL -> S3.
+
+2) Core components and files
+- Data generation:
+  - src/generator/generate_data.py
+- Load JSON to MongoDB:
+  - src/loader/load_to_mongo.py
+- Mongo -> Kafka producer:
+  - src/streaming/produce_from_mongo.py
+- PII normalization/hash:
+  - src/probablyfresh/core/normalization.py
+  - src/probablyfresh/core/crypto_utils.py
+- ClickHouse RAW init:
+  - docker/clickhouse/init/01_init.sql
+- ClickHouse MART init:
+  - docker/clickhouse/init/02_mart.sql
+- Features ETL + export to S3:
+  - jobs/features_etl.py
+- End-to-end smoke checks:
+  - scripts/smoke_check.py
+- PII hash self-check:
+  - scripts/pii_hash_selfcheck.py
+
+3) Required services (docker-compose)
+- zookeeper
+- kafka
+- mongodb
+- clickhouse
+- app
+- grafana
+- airflow-postgres
+- airflow
+
+4) Critical env variables
+- PII_HASH_SALT (>= 16 chars)
+- MONGO_* / KAFKA_TOPIC_*
+- CH_* / CLICKHOUSE_*
+- S3_ENDPOINT_URL, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY
+- TELEGRAM_BOT_TOKEN (for Grafana alert delivery)
+
+5) Execution order (strict)
+1. Start infra containers.
+2. Wait until ClickHouse responds (SELECT 1).
+3. Apply 01_init.sql (RAW).
+4. Apply 02_mart.sql (MART).
+5. Run generator.
+6. Run Mongo loader.
+7. Run producer --once.
+8. Wait 5 sec for Kafka -> ClickHouse ingestion.
+9. Re-run 02_mart.sql (refresh quality snapshot).
+10. Run ETL and verify S3 object.
+
+6) Validation checkpoints
+- RAW counts are populated.
+- MART FINAL counts are populated.
+- purchase_items_mart FINAL > purchases_mart FINAL.
+- customers_mart.email_enc/phone_enc are SHA-256 hex(64) (or empty).
+- ETL uploaded analytic_result_YYYY_MM_DD.csv to S3.
+- Smoke check passes.
+
+7) Known safe rule
+Never overwrite existing .env from runbook commands.

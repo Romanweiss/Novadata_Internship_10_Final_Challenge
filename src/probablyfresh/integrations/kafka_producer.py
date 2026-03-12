@@ -8,7 +8,7 @@ from typing import Any
 from kafka import KafkaProducer
 
 from probablyfresh.config import Settings
-from probablyfresh.core.crypto_utils import Encryptor
+from probablyfresh.core.crypto_utils import PIIHasher
 from probablyfresh.core.normalization import normalize_email, normalize_phone
 
 
@@ -41,26 +41,26 @@ def _object_id(entity_name: str, payload: dict[str, Any]) -> str:
 
 
 
-def _encrypt_sensitive_fields(value: Any, encryptor: Encryptor) -> Any:
+def _hash_sensitive_fields(value: Any, hasher: PIIHasher) -> Any:
     if isinstance(value, dict):
         output: dict[str, Any] = {}
         for key, nested_value in value.items():
             if key in SENSITIVE_KEYS and isinstance(nested_value, str):
                 normalized = normalize_email(nested_value) if key == "email" else normalize_phone(nested_value)
-                output[key] = encryptor.encrypt(normalized)
+                output[key] = hasher.hash_value(normalized)
             else:
-                output[key] = _encrypt_sensitive_fields(nested_value, encryptor)
+                output[key] = _hash_sensitive_fields(nested_value, hasher)
         return output
 
     if isinstance(value, list):
-        return [_encrypt_sensitive_fields(item, encryptor) for item in value]
+        return [_hash_sensitive_fields(item, hasher) for item in value]
 
     return value
 
 
 
 def publish_raw_events(settings: Settings) -> dict[str, int]:
-    encryptor = Encryptor(settings.fernet_key)
+    hasher = PIIHasher(settings.pii_hash_salt)
     counters: dict[str, int] = {name: 0 for name in ENTITY_TO_TOPIC}
 
     producer = KafkaProducer(
@@ -77,7 +77,7 @@ def publish_raw_events(settings: Settings) -> dict[str, int]:
 
             for file_path in sorted(folder.glob("*.json")):
                 payload = _load_json(file_path)
-                payload = _encrypt_sensitive_fields(payload, encryptor)
+                payload = _hash_sensitive_fields(payload, hasher)
                 object_id = _object_id(entity_name, payload)
 
                 event = {

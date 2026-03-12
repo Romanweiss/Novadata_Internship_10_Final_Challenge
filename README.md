@@ -1,556 +1,297 @@
-﻿# probablyfresh-analytics-platform
+﻿# ProbablyFresh Analytics Platform
 
-## RU
+End-to-end Data Engineering pipeline:
 
-MVP-скелет аналитической платформы ProbablyFresh (этап 1).
+`JSON -> MongoDB -> Kafka -> ClickHouse RAW -> ClickHouse MART -> PySpark ETL -> S3`
 
-### Что покрывает проект
+Дополнительно:
+- Grafana (дашборды + алерты),
+- Airflow (ежедневный orchestration),
+- Django backend API + React frontend (панель управления).
 
-- Генерация JSON-файлов на диск:
-  - `stores`: 45 файлов (30 Almost + 15 Maybe)
-  - `products`: 100 файлов (по 20 в каждой из 5 категорий)
-  - `customers`: >= 45
-  - `purchases`: >= 200
-- Загрузка JSON в MongoDB.
-- Ingestion MongoDB -> Kafka -> ClickHouse RAW.
-- Шифрование PII (`email`, `phone`) перед отправкой в Kafka для `customers` и `purchases`.
-
-### Технологии
-
-- Docker Compose сервисы:
-  - Zookeeper (`confluentinc/cp-zookeeper:7.7.1`)
-  - Kafka (`confluentinc/cp-kafka:7.7.1`)
-  - MongoDB (`mongo:6`)
-  - ClickHouse (`clickhouse/clickhouse-server:24.8`)
-  - Grafana (`grafana/grafana:11.1.0`)
-  - app (custom image from `docker/app/Dockerfile`, Python 3.12 + Java + deps)
-- Python-скрипты в `src/`.
-
-### Структура проекта
+## 1) Архитектура
 
 ```text
-.
-├── .env.example
-├── docker-compose.yml
-├── Makefile
-├── PROGRAM_OVERVIEW.md
-├── requirements.txt
-├── data/
-├── jobs/
-│   └── features_etl.py
-├── grafana/
-│   └── provisioning/
-│       ├── alerting/
-│       ├── dashboards/dashboard.yaml
-│       └── datasources/clickhouse.yaml
-├── docker/
-│   ├── clickhouse/init/01_init.sql
-│   ├── clickhouse/init/02_mart.sql
-│   └── grafana/dashboards/probablyfresh_raw_overview.json
-└── src/
-    ├── generator/generate_data.py
-    ├── loader/load_to_mongo.py
-    ├── streaming/produce_from_mongo.py
-    └── probablyfresh/
+JSON files
+  -> MongoDB
+  -> Kafka topics
+  -> ClickHouse RAW
+  -> ClickHouse MART
+  -> PySpark features ETL
+  -> S3 (analytic_result_YYYY_MM_DD.csv)
 ```
 
-### Quickstart
+## 2) Ключевые сервисы в `docker-compose.yml`
 
-Строгий порядок запуска (container-first, без make):
+- `zookeeper`, `kafka` — шина событий.
+- `mongodb` — источник документов.
+- `clickhouse` — RAW/MART слой.
+- `app` — выполнение Python/Spark job.
+- `grafana` — наблюдаемость и алерты.
+- `airflow-postgres`, `airflow` — orchestration DAG.
+- `backend` — Django API.
+- `frontend` — React UI (Vite).
 
-1. `cp .env.example .env`
-2. `docker compose --env-file .env build app`
-3. `docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana`
-4. `do { Start-Sleep -Seconds 2; docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 1" } while ($LASTEXITCODE -ne 0)`
-5. `Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
-6. `docker compose --env-file .env run --rm app python src/generator/generate_data.py`
-7. `docker compose --env-file .env run --rm app python src/loader/load_to_mongo.py`
-8. `docker compose --env-file .env run --rm app python src/streaming/produce_from_mongo.py --once`
-9. Открыть Grafana и увидеть метрики в dashboard `ProbablyFresh RAW Overview`
+## 3) Ключевые файлы проекта
 
-Для MART и quality-метрик (используются на dashboard и в alerting) дополнительно выполнить:
+### Pipeline ядро
+- `src/generator/generate_data.py` — генерация JSON.
+- `src/loader/load_to_mongo.py` — загрузка JSON в MongoDB.
+- `src/streaming/produce_from_mongo.py` — публикация Mongo -> Kafka.
+- `src/probablyfresh/core/normalization.py` — нормализация email/phone.
+- `src/probablyfresh/core/crypto_utils.py` — one-way PII hash (`SHA-256 + salt`).
+- `docker/clickhouse/init/01_init.sql` — RAW, Kafka Engine, MV Kafka->RAW.
+- `docker/clickhouse/init/02_mart.sql` — MART, MV RAW->MART, quality snapshot.
+- `jobs/features_etl.py` — расчет фич и выгрузка CSV в S3.
+- `scripts/smoke_check.py` — smoke-проверка E2E.
+- `scripts/pii_hash_selfcheck.py` — проверка хэширования PII.
 
-1. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
-2. `Start-Sleep -Seconds 5`
-3. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
+### Панель управления
+- `backend/` — Django + DRF API.
+- `frontend/` — React UI.
+- `START_BACKEND_FRONTEND.txt` — быстрый запуск только backend/frontend.
 
-После MART и ETL (S3 выгрузка) включить и проверить Airflow DAG:
+### Runbook
+- `ZERO_START_DOCKER.txt` — полный запуск с нуля (источник истины по шагам).
 
-1. `docker compose --env-file .env up -d airflow-postgres airflow`
-2. Открыть `http://localhost:8080` (логин/пароль: `admin/admin` или из `.env`)
-3. Включить DAG (unpause):
-   - `docker compose --env-file .env exec airflow airflow dags unpause etl_to_s3_daily`
-4. Запустить DAG вручную (Trigger DAG):
-   - `docker compose --env-file .env exec airflow airflow dags trigger etl_to_s3_daily`
+## 4) Подготовка `.env` (обязательно)
 
-### Airflow
-
-Airflow запускается отдельными сервисами `airflow-postgres` и `airflow`:
-- executor: `LocalExecutor`
-- examples: отключены (`AIRFLOW__CORE__LOAD_EXAMPLES=false`)
-- DAG-монтаж: `./airflow/dags -> /opt/airflow/dags`
-- docker socket: `/var/run/docker.sock` примонтирован в контейнер `airflow`
-
-Запуск:
-
-1. `docker compose --env-file .env up -d airflow airflow-postgres`
-2. (альтернатива, если `.env` уже подхватывается автоматически) `docker compose up -d airflow airflow-postgres`
-3. Открыть `http://localhost:8080`
-4. Логин: `admin/admin` (или значения из `.env`: `AIRFLOW_ADMIN_USER` / `AIRFLOW_ADMIN_PASSWORD`)
-
-Примечание:
-- первый старт может занимать 1-2 минуты (миграции БД + создание admin пользователя).
-
-### Airflow DAG: etl_to_s3_daily
-
-DAG `etl_to_s3_daily` запускается ежедневно в `10:00` по timezone `Europe/Moscow` (`UTC+3`), `catchup=False`, `max_active_runs=1`.
-
-Что делает DAG:
-
-1. `wait_clickhouse` — проверяет доступность ClickHouse.
-2. `run_etl` — запускает `jobs/features_etl.py` внутри контейнера `app` через `docker exec`.
-3. `verify_minio` — проверяет наличие объекта `analytic_result_YYYY_MM_DD.csv` в bucket MinIO/S3.
-
-Примечание по timezone:
-- расписание считается в `UTC+3` (`Europe/Moscow`), поэтому запуск "в 10:00" относится к московскому времени.
-
-### ETL to S3
-
-После построения MART (шаги выше), выполните:
-
-1. Заполнить `.env`:
-   - `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`
-   - `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
-2. Создать bucket `analytics` (если не создается автоматически):
-   - `mc alias set local http://localhost:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY`
-   - `mc ls local/$MINIO_BUCKET`
-3. Запустить ETL:
-   - `make run-etl`
-4. Проверить файл в MinIO:
-   - `mc ls local/$MINIO_BUCKET`
-   - `mc cat local/$MINIO_BUCKET/analytic_result_YYYY_MM_DD.csv | head`
-
-Примечание:
-- после `docker compose --env-file .env build app` зависимости (включая `pyspark`) и JDBC jar уже внутри образа, поэтому при каждом запуске они не скачиваются заново.
-
-### Verification / Smoke test
-
-Одна команда для быстрой верификации всего контура (ClickHouse + S3 CSV):
-
-- `make smoke`
-
-Что проверяет `scripts/smoke_check.py`:
-- RAW uniq counts: `stores=45`, `products=100`, `purchases=200`, `customers>=45`
-- MART FINAL counts: `customers`, `purchases`, `purchase_items` (`purchase_items > purchases`)
-- Последний snapshot `mart_quality_stats` для `purchases` (`invalid_rows`, `duplicates_ratio`)
-- Наличие объекта `analytic_result_YYYY_MM_DD.csv` в S3/MinIO и размер `>1KB`
-- Первые 5 строк CSV: ровно 31 колонка, все фичи только `0/1`
-
-Пример ожидаемого вывода:
-
-```text
-== ProbablyFresh smoke check ==
-RAW uniq counts: stores=45, products=100, purchases=200, customers=175
-MART FINAL counts: customers=175, purchases=200, purchase_items=<N>, where N > 200
-mart_quality_stats (latest purchases): event_time=..., invalid_rows=0, duplicates_ratio=0.500000
-S3 object: s3://final-project-nova-data/analytic_result_2026_02_25.csv, size=5580 bytes
-CSV check: 31 columns and binary feature values (0/1) on first 5 rows
-SMOKE CHECK PASSED
+```powershell
+cd F:\DE_intern\probablyfresh-analytics-platform
+if (!(Test-Path .env)) { throw ".env not found. Create it manually from .env.example and fill secrets." }
 ```
 
-### Telegram alerting (provisioning)
+Критичные переменные:
+- `PII_HASH_SALT` (>= 16 символов),
+- `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`,
+- `API_TOKEN`,
+- `TELEGRAM_BOT_TOKEN` (если нужен Telegram alerting).
 
-1. Добавить в `.env` переменную:
-   - `TELEGRAM_BOT_TOKEN=<your_bot_token>`
-2. Поднять стек:
-   - `docker compose --env-file .env up -d`
-3. После старта Grafana автоматически создаст:
-   - contact point `rwss_grafana_bot`,
-   - notification policy,
-   - alert rule `Duplicates_ratio`,
-   - notification template `probablyfresh.telegram.message`.
+## 5) Полный запуск пайплайна (Docker-only, PowerShell)
 
-### PySpark features ETL (Docker)
+Ниже шаги «команда -> что делает -> какие файлы использует».
 
-Подготовка `.env` (если нужно поменять значения):
+### Шаг 1. Собрать образ runner-контейнера `app`
 
-- `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`, `CH_DATABASE=probablyfresh_mart`
-- `SPARK_MASTER=local[*]`
-- `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_BUCKET`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_OBJECT_PREFIX`
-- (опционально, для обратной совместимости) `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_OBJECT_PREFIX`
+```powershell
+docker compose --env-file .env build app
+```
 
-Важно: для запуска job внутри Docker-контейнера `app` используйте `CH_HOST=clickhouse` (имя сервиса в compose), а не `localhost`.
+Что делает:
+- собирает `probablyfresh-app:local` с Python/Java и зависимостями.
 
-Запуск через Docker (без изменения существующего пайплайна):
+Какие файлы:
+- `docker/app/Dockerfile`
+- `requirements.txt`
 
-1. Поднять сервисы:
-   - `docker compose --env-file .env up -d clickhouse app`
-2. Убедиться, что `probablyfresh_mart.customers_mart` и `probablyfresh_mart.purchases_mart` уже заполнены.
-3. Запустить job:
-   - `make run-etl`
+### Шаг 2. Полностью очистить предыдущую среду
 
-Альтернатива через Makefile:
+```powershell
+docker compose --env-file .env down -v
+```
 
-- `make features-etl` (alias на `make run-etl`)
+Что делает:
+- удаляет контейнеры/сеть/volumes для чистого старта.
 
-Результат:
+Важно:
+- `.env` не изменяется.
 
-- в S3/MinIO загружается файл `analytic_result_YYYY_MM_DD.csv` в bucket из `.env`.
+### Шаг 3. Поднять инфраструктуру
 
-### Полная чистая проверка с нуля (PowerShell)
+```powershell
+docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana airflow-postgres airflow
+```
 
-Ниже сценарий для полностью чистого прогона без накопленных данных в RAW.
+Что делает:
+- запускает весь контур pipeline.
 
-1. `cd F:\DE_intern\probablyfresh-analytics-platform`  
-Переход в корень репозитория, чтобы все относительные пути (`docker/...`, `src/...`) работали корректно.
+Какие файлы:
+- `docker-compose.yml`
 
-2. `docker compose --env-file .env down -v`  
-Останавливает и удаляет контейнеры, сеть и volumes проекта.  
-Важно: удаляются накопленные данные MongoDB, ClickHouse и Grafana, поэтому это именно "чистый старт".
+### Шаг 4. Дождаться готовности ClickHouse
 
-3. `docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana`  
-Поднимает инфраструктуру в фоне:
-- `zookeeper` и `kafka` для стриминга,
-- `mongodb` как NoSQL источник,
-- `clickhouse` как RAW/MART хранилище,
-- `app` как контейнер-раннер Python-скриптов,
-- `grafana` для визуальной проверки.
+```powershell
+do { Start-Sleep -Seconds 2; docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 1" } while ($LASTEXITCODE -ne 0)
+```
 
-4. `do { Start-Sleep -Seconds 2; docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 1" } while ($LASTEXITCODE -ne 0)`  
-Ждем готовности ClickHouse. Если этот шаг пропустить, следующие SQL могут упасть с `Connection refused`.
+Что делает:
+- гарантирует, что SQL init применится без `Connection refused`.
 
-5. `Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`  
-Инициализирует RAW-слой в ClickHouse:
-- БД `probablyfresh_raw`,
-- RAW таблицы,
-- Kafka Engine таблицы,
-- Materialized Views Kafka -> RAW.
+### Шаг 5. Инициализировать RAW слой
 
-6. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`  
-Инициализирует MART-слой:
-- БД `probablyfresh_mart`,
-- MART таблицы на `ReplacingMergeTree(ingested_at)`,
-- Materialized Views RAW -> MART с очисткой/валидацией,
-- таблицу качества `mart_quality_stats`,
-- стартовый snapshot quality-метрик.
+```powershell
+Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
+```
 
-7. `docker compose --env-file .env run --rm app python src/generator/generate_data.py`  
-Генерирует JSON-файлы в `data/` (`stores`, `products`, `customers`, `purchases`) по правилам MVP.
+Что делает:
+- создает `probablyfresh_raw` таблицы, Kafka Engine таблицы и MV Kafka->RAW.
 
-8. `docker compose --env-file .env run --rm app python src/loader/load_to_mongo.py`  
-Загружает сгенерированные JSON в MongoDB с upsert по бизнес-ключам.
+Какие файлы:
+- `docker/clickhouse/init/01_init.sql`
 
-9. `docker compose --env-file .env run --rm app python src/streaming/produce_from_mongo.py --once`  
-Читает данные из MongoDB и публикует их в Kafka по топикам сущностей.  
-Для `customers` и `purchases` перед публикацией выполняются:
-- нормализация `email`/`phone`,
-- шифрование `email`/`phone` через Fernet.
+### Шаг 6. Инициализировать MART слой
 
-10. `Start-Sleep -Seconds 5`  
-Короткая пауза, чтобы Kafka consumer в ClickHouse успел дочитать сообщения и записать их в RAW/MART.
+```powershell
+Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
+```
 
-11. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`  
-Повторно выполняет `02_mart.sql` для обновления snapshot в `mart_quality_stats`.  
-Это нужно для актуальных значений `duplicates_rows` и `duplicates_ratio` на момент текущего прогона.
+Что делает:
+- создает `probablyfresh_mart` таблицы, MV RAW->MART и `mart_quality_stats`.
 
-Ожидаемый результат после одного чистого прогона:
-- `probablyfresh_raw.stores_raw = 45`
-- `probablyfresh_raw.products_raw = 100`
-- `probablyfresh_raw.customers_raw >= 45` (обычно `175`)
-- `probablyfresh_raw.purchases_raw = 200`
-- `probablyfresh_mart.purchases_mart FINAL = 200`
-- `duplicates_ratio` по `purchases` в последнем snapshot = `0`
+Какие файлы:
+- `docker/clickhouse/init/02_mart.sql`
 
-### Проверка результата
+### Шаг 7. Сгенерировать данные
 
-Запрос в ClickHouse/DBeaver:
+```powershell
+docker compose --env-file .env run --rm app python src/generator/generate_data.py
+```
+
+Что делает:
+- генерирует JSON в `data/stores`, `data/products`, `data/customers`, `data/purchases`.
+
+Какие файлы:
+- `src/generator/generate_data.py`
+
+### Шаг 8. Загрузить JSON в MongoDB
+
+```powershell
+docker compose --env-file .env run --rm app python src/loader/load_to_mongo.py
+```
+
+Что делает:
+- выполняет upsert JSON в MongoDB коллекции.
+
+Какие файлы:
+- `src/loader/load_to_mongo.py`
+
+### Шаг 9. Опубликовать Mongo -> Kafka
+
+```powershell
+docker compose --env-file .env run --rm app python src/streaming/produce_from_mongo.py --once
+```
+
+Что делает:
+- читает Mongo и публикует записи в Kafka topic-ы;
+- нормализует и one-way хэширует PII (`email`, `phone`) перед публикацией.
+
+Какие файлы:
+- `src/streaming/produce_from_mongo.py`
+- `src/probablyfresh/core/normalization.py`
+- `src/probablyfresh/core/crypto_utils.py`
+
+### Шаг 10. Дать ClickHouse дочитать Kafka
+
+```powershell
+Start-Sleep -Seconds 5
+```
+
+### Шаг 11. Обновить snapshot качества в MART
+
+```powershell
+Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
+```
+
+Что делает:
+- фиксирует актуальные метрики качества после ingestion.
+
+### Шаг 12. Запустить PySpark ETL в S3
+
+```powershell
+docker compose --env-file .env run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py
+```
+
+Что делает:
+- строит feature-матрицу по MART;
+- сохраняет CSV в S3 как `analytic_result_YYYY_MM_DD.csv`.
+
+Какие файлы:
+- `jobs/features_etl.py`
+
+## 6) Запуск backend + frontend
+
+```powershell
+cd F:\DE_intern\probablyfresh-analytics-platform
+docker compose --env-file .env build backend frontend
+docker compose --env-file .env up -d backend frontend
+docker compose --env-file .env ps backend frontend
+```
+
+Что делает:
+- поднимает API и UI для управления pipeline.
+
+Какие файлы:
+- `docker/backend/Dockerfile`
+- `docker/frontend/Dockerfile`
+- `backend/`
+- `frontend/`
+- `docker-compose.yml`
+
+URL:
+- UI: `http://localhost:5173`
+- API: `http://localhost:8001/api`
+- API docs: `http://localhost:8001/api/docs/`
+- Django admin: `http://localhost:8001/admin/`
+
+## 7) Airflow (ежедневный DAG)
+
+```powershell
+docker compose --env-file .env exec airflow airflow dags unpause etl_to_s3_daily
+docker compose --env-file .env exec airflow airflow dags trigger etl_to_s3_daily
+docker compose --env-file .env exec airflow airflow dags list-runs -d etl_to_s3_daily
+```
+
+Что делает:
+- включает и запускает DAG `etl_to_s3_daily`.
+
+Какие файлы:
+- `airflow/dags/etl_to_s3_daily.py`
+
+UI:
+- `http://localhost:8080`
+
+## 8) Проверки
+
+### Smoke E2E
+
+```powershell
+docker compose --env-file .env run --rm app python scripts/smoke_check.py
+```
+
+Файл:
+- `scripts/smoke_check.py`
+
+### PII hash self-check
+
+```powershell
+docker compose --env-file .env run --rm app python scripts/pii_hash_selfcheck.py
+```
+
+Файл:
+- `scripts/pii_hash_selfcheck.py`
+
+### Быстрые SQL проверки
 
 ```sql
-SELECT 'stores' AS t, count() AS c FROM probablyfresh_raw.stores_raw
-UNION ALL
-SELECT 'products', count() FROM probablyfresh_raw.products_raw
-UNION ALL
-SELECT 'customers', count() FROM probablyfresh_raw.customers_raw
-UNION ALL
-SELECT 'purchases', count() FROM probablyfresh_raw.purchases_raw;
+SELECT 'stores_raw' AS t, count() AS c FROM probablyfresh_raw.stores_raw
+UNION ALL SELECT 'products_raw', count() FROM probablyfresh_raw.products_raw
+UNION ALL SELECT 'customers_raw', count() FROM probablyfresh_raw.customers_raw
+UNION ALL SELECT 'purchases_raw', count() FROM probablyfresh_raw.purchases_raw;
 ```
-
-Ожидаемо:
-
-- `stores = 45`
-- `products = 100`
-- `customers >= 45`
-- `purchases >= 200`
-
-Проверка MART и alert-метрики:
 
 ```sql
 SELECT
-  event_time,
-  entity,
-  total_rows_raw,
-  inserted_rows_mart,
-  invalid_rows,
-  duplicates_rows,
-  duplicates_ratio
-FROM probablyfresh_mart.mart_quality_stats
-WHERE entity = 'purchases'
-ORDER BY event_time DESC
-LIMIT 3;
+  length(email_enc) AS email_len,
+  length(phone_enc) AS phone_len
+FROM probablyfresh_mart.customers_mart
+LIMIT 5;
 ```
 
-```sql
-SELECT duplicates_ratio
-FROM probablyfresh_mart.mart_quality_stats
-WHERE entity = 'purchases'
-ORDER BY event_time DESC
-LIMIT 1;
-```
+Ожидание по PII:
+- `64` (или `0` для пустых исходных значений).
 
-Проверка в Grafana:
+## 9) Важные правила
 
-1. Открыть `http://localhost:3000`.
-2. Войти под логином/паролем из `.env` (`GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`).
-3. Открыть dashboard `ProbablyFresh RAW Overview` (подхватывается автоматически через provisioning).
-4. Проверить значения:
-   - `Stores count` = `45`
-   - `Purchases count` >= `200`
-   - `Stores by network` содержит `ProbablyFresh Almost` и `ProbablyFresh Maybe`
-
-### Подключение DBeaver (ClickHouse)
-
-- Host: `localhost`
-- Port: `9000` (native) или `8123` (HTTP)
-- Database: `probablyfresh_raw` или `probablyfresh_mart`
-- User/Password: из `.env` (`CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD`)
-
-### Быстрые команды Makefile
-
-- `make up` — поднять все сервисы.
-- `make down` — остановить и удалить сервисы и volumes.
-- `make generate-data` — генерация JSON.
-- `make load-nosql` — загрузка JSON в MongoDB.
-- `make init-ch` — инициализация RAW в ClickHouse.
-- `make mart-init` — инициализация MART и snapshot quality-метрик.
-- `make run-producer` — публикация Mongo -> Kafka (`--once`).
-- `make init-grafana` — поднять Grafana (provisioning автоматический).
-- `make run-etl` — PySpark ETL признаков (через `spark-submit`) и загрузка CSV в S3/MinIO.
-- `make features-etl` — alias на `make run-etl`.
-
-### Известные несовместимости и частые ошибки
-
-1. `ModuleNotFoundError: kafka.vendor.six.moves`
-
-Причина: `kafka-python==2.0.2` с Python 3.12 в контейнере.
-
-Решение: использовать `kafka-python==2.1.2` (уже зафиксировано в `requirements.txt`).
-
-2. Ошибка PowerShell на шаге `init-ch` с символом `<`
-
-Причина: redirection `<` в PowerShell работает не как в bash для этой команды.
-
-Решение: использовать pipeline через `Get-Content -Raw` (см. шаг 5).
-
-3. Warning Docker Compose: `the attribute version is obsolete`
-
-Это предупреждение, не блокирует запуск.
-
-4. Grafana datasource `Type: undefined` / `Plugin not found`
-
-Причина: в `grafana_data` мог сохраниться старый datasource с неверным типом `clickhouse`.
-
-Решение:
-
-- В provisioning используется правильный тип: `grafana-clickhouse-datasource`.
-- Если проблема осталась, перезапустить Grafana:
-  - `docker compose --env-file .env restart grafana`
-- Если не помогло, пересоздать только volume Grafana:
-  - `docker compose --env-file .env down`
-  - `docker volume rm probablyfresh-analytics-platform_grafana_data`
-  - `docker compose --env-file .env up -d grafana`
-
-### Примечания
-
-- Генератор идемпотентный: очищает только `*.json` в `data/stores`, `data/products`, `data/customers`, `data/purchases`.
-- Детерминизм генератора: seed берется из `SEED` (default `42`) или из CLI `--seed` (приоритет у CLI).
-
----
-
-## EN
-
-MVP skeleton for ProbablyFresh analytics platform (Stage 1).
-
-### Quickstart
-
-Strict run order (container-first, no make):
-
-1. `cp .env.example .env`
-2. `docker compose --env-file .env build app`
-3. `docker compose --env-file .env up -d zookeeper kafka mongodb clickhouse app grafana`
-4. `do { Start-Sleep -Seconds 2; docker compose --env-file .env exec -T clickhouse clickhouse-client --query "SELECT 1" } while ($LASTEXITCODE -ne 0)`
-5. `Get-Content docker/clickhouse/init/01_init.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
-6. `docker compose --env-file .env run --rm app python src/generator/generate_data.py`
-7. `docker compose --env-file .env run --rm app python src/loader/load_to_mongo.py`
-8. `docker compose --env-file .env run --rm app python src/streaming/produce_from_mongo.py --once`
-9. Open Grafana and verify metrics on dashboard `ProbablyFresh RAW Overview`
-
-For MART and quality metrics (used by dashboard and alerting), also run:
-
-1. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
-2. `Start-Sleep -Seconds 5`
-3. `Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery`
-
-After MART and ETL (S3 export), enable and test Airflow DAG:
-
-1. `docker compose --env-file .env up -d airflow-postgres airflow`
-2. Open `http://localhost:8080` (login/password: `admin/admin` or values from `.env`)
-3. Unpause DAG:
-   - `docker compose --env-file .env exec airflow airflow dags unpause etl_to_s3_daily`
-4. Trigger DAG manually:
-   - `docker compose --env-file .env exec airflow airflow dags trigger etl_to_s3_daily`
-
-### Airflow DAG: etl_to_s3_daily
-
-`etl_to_s3_daily` runs daily at `10:00` in timezone `Europe/Moscow` (`UTC+3`), with `catchup=False` and `max_active_runs=1`.
-
-What the DAG does:
-
-1. `wait_clickhouse` — checks ClickHouse availability.
-2. `run_etl` — runs `jobs/features_etl.py` inside the `app` container via `docker exec`.
-3. `verify_minio` — verifies `analytic_result_YYYY_MM_DD.csv` exists in MinIO/S3 bucket.
-
-Timezone note:
-- schedule is interpreted in `UTC+3` (`Europe/Moscow`), so "10:00 daily" means Moscow local time.
-
-### ETL to S3
-
-After MART is built (steps above), run:
-
-1. Fill `.env`:
-   - `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`
-   - `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
-2. Create bucket `analytics` (if not auto-created):
-   - `mc alias set local http://localhost:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY`
-   - `mc ls local/$MINIO_BUCKET`
-3. Run ETL:
-   - `make run-etl`
-4. Verify file in MinIO:
-   - `mc ls local/$MINIO_BUCKET`
-   - `mc cat local/$MINIO_BUCKET/analytic_result_YYYY_MM_DD.csv | head`
-
-Note:
-- after `docker compose --env-file .env build app`, dependencies (including `pyspark`) and the JDBC jar are already inside the image, so they are not downloaded on each run.
-
-### Telegram alerting (provisioning)
-
-1. Add to `.env`:
-   - `TELEGRAM_BOT_TOKEN=<your_bot_token>`
-2. Start the stack:
-   - `docker compose --env-file .env up -d`
-3. Grafana will auto-provision:
-   - contact point `rwss_grafana_bot`,
-   - notification policy,
-   - alert rule `Duplicates_ratio`,
-   - notification template `probablyfresh.telegram.message`.
-
-### PySpark features ETL (Docker)
-
-Prepare `.env` (adjust if needed):
-
-- `CH_HOST`, `CH_PORT`, `CH_USER`, `CH_PASSWORD`, `CH_DATABASE=probablyfresh_mart`
-- `SPARK_MASTER=local[*]`
-- `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_BUCKET`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_OBJECT_PREFIX`
-- (optional, backward compatible) `S3_ENDPOINT_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_OBJECT_PREFIX`
-
-Important: when running the job inside Docker `app` container, use `CH_HOST=clickhouse` (compose service name), not `localhost`.
-
-Run via Docker:
-
-1. Start services:
-   - `docker compose --env-file .env up -d clickhouse app`
-2. Ensure `probablyfresh_mart.customers_mart` and `probablyfresh_mart.purchases_mart` are populated.
-3. Run job:
-   - `make run-etl`
-
-Makefile shortcut:
-
-- `make features-etl` (alias to `make run-etl`)
-
-Output:
-
-- uploads `analytic_result_YYYY_MM_DD.csv` to S3/MinIO bucket from `.env`.
-
-### Validation query
-
-```sql
-SELECT 'stores' AS t, count() AS c FROM probablyfresh_raw.stores_raw
-UNION ALL
-SELECT 'products', count() FROM probablyfresh_raw.products_raw
-UNION ALL
-SELECT 'customers', count() FROM probablyfresh_raw.customers_raw
-UNION ALL
-SELECT 'purchases', count() FROM probablyfresh_raw.purchases_raw;
-```
-
-Expected: `stores=45`, `products=100`, `customers>=45`, `purchases>=200`.
-
-MART and alert-metric validation:
-
-```sql
-SELECT
-  event_time,
-  entity,
-  total_rows_raw,
-  inserted_rows_mart,
-  invalid_rows,
-  duplicates_rows,
-  duplicates_ratio
-FROM probablyfresh_mart.mart_quality_stats
-WHERE entity = 'purchases'
-ORDER BY event_time DESC
-LIMIT 3;
-```
-
-```sql
-SELECT duplicates_ratio
-FROM probablyfresh_mart.mart_quality_stats
-WHERE entity = 'purchases'
-ORDER BY event_time DESC
-LIMIT 1;
-```
-
-Grafana validation:
-
-1. Open `http://localhost:3000`.
-2. Login with `.env` credentials (`GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`).
-3. Open dashboard `ProbablyFresh RAW Overview` (auto-provisioned).
-4. Validate:
-   - `Stores count` = `45`
-   - `Purchases count` >= `200`
-   - `Stores by network` shows `ProbablyFresh Almost` and `ProbablyFresh Maybe`
-
-### Known compatibility issues
-
-1. `ModuleNotFoundError: kafka.vendor.six.moves`
-
-Cause: `kafka-python==2.0.2` with Python 3.12.
-
-Fix: use `kafka-python==2.1.2` (already pinned in `requirements.txt`).
-
-2. PowerShell `<` redirection fails for ClickHouse init command.
-
-Fix: use `Get-Content ... -Raw | docker compose ... clickhouse-client --multiquery`.
-
-3. Grafana datasource shows `Type: undefined` / `Plugin not found`.
-
-Cause: old datasource with wrong type `clickhouse` persisted in `grafana_data`.
-
-Fix:
-
-- Provisioning now uses `type: grafana-clickhouse-datasource`.
-- Restart Grafana:
-  - `docker compose --env-file .env restart grafana`
-- If still broken, recreate Grafana volume only:
-  - `docker compose --env-file .env down`
-  - `docker volume rm probablyfresh-analytics-platform_grafana_data`
-  - `docker compose --env-file .env up -d grafana`
+- Всегда порядок init: `01_init.sql` -> `02_mart.sql`.
+- При изменениях SQL init-файлов делайте полный re-init (`down -v` и повтор init).
+- Официальные сценарии запуска в проекте — через Docker команды из этого README / `ZERO_START_DOCKER.txt`.
