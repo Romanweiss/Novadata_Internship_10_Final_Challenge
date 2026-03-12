@@ -85,7 +85,16 @@ Airflow
 - `airflow/dags/` — DAG `etl_to_s3_daily`.
 - `backend/` — Django + DRF API.
 - `frontend/` — React + TS UI.
+- `demo-preview/` — автономный оффлайн preview интерфейса для демонстрации без запуска инфраструктуры.
 - `grafana/` и `docker/grafana/` — provisioning и dashboard.
+
+## Standalone Demo Preview UI
+
+Для быстрого показа интерфейса без backend/Docker/npm доступна отдельная демо-версия:
+
+- файл: `demo-preview/index.html` (полностью автономный, inline CSS/JS);
+- запуск: открыть файл напрямую в браузере или через Live Server;
+- описание и возможности: `demo-preview/README.md`.
 
 ## Quickstart (кратко)
 
