@@ -627,7 +627,7 @@ def generate_customers(
                 },
                 "preferences": {
                     "preferred_language": "ru",
-                    "preferred_payment_method": random.choice(["card", "cash", "online_wallet"]),
+                    "preferred_payment_method": random.choice(["card", "cash", "sbp"]),
                     "receive_promotions": random.choice([True, False]),
                 },
             }
@@ -700,7 +700,7 @@ def generate_purchases(
             },
             "items": items,
             "total_amount": round(total_amount, 2),
-            "payment_method": random.choice(["card", "cash", "online_wallet"]),
+            "payment_method": random.choice(["card", "cash", "sbp"]),
             "is_delivery": is_delivery,
             "purchase_datetime": iso_z(purchase_dt),
         }
