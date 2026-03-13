@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ProbablyFresh Demo Preview</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg" />
   <style>
     :root{
       --bg:#f3f6fa;--card:#fff;--card2:#f8fafc;--txt:#0f172a;--muted:#64748b;--br:#e2e8f0;
@@ -17,9 +18,8 @@
     body{margin:0;font-family:Segoe UI,Inter,system-ui,sans-serif;background:var(--bg);color:var(--txt);transition:.22s}
     .wrap{max-width:1200px;margin:0 auto;padding:22px 18px 36px}
     .top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}
-    .brand{display:flex;gap:10px;align-items:center;font-size:30px;font-weight:900}
-    .logo{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#0f172a;color:#fff}
-    body.dark .logo{background:#e2e8f0;color:#0f172a}
+    .brand{display:flex;align-items:center}
+    .brand img{display:block;height:44px;width:auto;object-fit:contain}
     .topr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .pill{display:inline-flex;gap:8px;align-items:center;padding:8px 13px;border-radius:999px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.15);color:#059669;font-size:13px;font-weight:700}
     .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
@@ -81,7 +81,7 @@
   <div id="toasts"></div>
   <div class="wrap">
     <header class="top">
-      <div class="brand"><span class="logo">P</span><span>ProbablyFresh</span></div>
+      <div class="brand"><img src="../assets/system_logo_new.svg" alt="ProbablyFresh" /></div>
       <div class="topr">
         <div class="pill"><span class="dot"></span><span id="sys"></span></div>
         <button class="btn" id="docs"></button>
@@ -205,7 +205,7 @@
             <div class="ci"><strong>Grafana URL</strong><div class="ro">http://localhost:3000</div></div>
             <div class="ci"><strong>Airflow URL</strong><div class="ro">http://localhost:8080</div></div>
           </div></article>
-          <article class="card"><h3>${tr("about")}</h3><p class="muted">${tr("aboutt")}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><span class="badge running">${tr("ver")}: 2.1.0-demo</span><span class="badge success">${tr("env")}: ${tr("stage")}</span></div></article>
+          <article class="card"><h3>${tr("about")}</h3><p class="muted">${tr("aboutt")}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><span class="badge running">${tr("ver")}: 0.7.0</span></div></article>
         </section>`
       }
       function post(){
@@ -226,7 +226,7 @@
         const q=s.q.trim().toLowerCase();
         const rows=ex.filter(r=>!q||(r[0]+" "+r[1]).toLowerCase().includes(q));
         t.innerHTML=`<thead><tr><th>${tr("file")}</th><th>${tr("date")}</th><th>${tr("rows")}</th><th>${tr("size")}</th><th>${tr("status")}</th><th>${tr("actions")}</th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="badge ${r[4]==="ready"?"success":"processing"}">${r[4]}</span></td><td><button class="btn" data-e="${r[0]}">view</button></td></tr>`).join(""):`<tr><td colspan="6" class="muted">${tr("nod")}</td></tr>`}</tbody>`;
-        document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>toast("info",tr("exp"),b.dataset.e+" (mock)"));
+        document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>toast("info",tr("exp"),b.dataset.e));
       }
       function open(id){
         s.modal=id; const a=actions.find(x=>x.id===id); if(!a)return;
