@@ -1,0 +1,612 @@
+<svg viewBox="0 0 1400 900" xmlns="http://www.w3.org/2000/svg" width="1400" height="900" style="background:#0a0e1a;font-family:'Courier New',monospace;">
+  <defs>
+    <!-- Background gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="80%">
+      <stop offset="0%" stop-color="#0d1526"/>
+      <stop offset="100%" stop-color="#070b14"/>
+    </radialGradient>
+
+    <!-- Zone gradients -->
+    <linearGradient id="controlGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2d1b69" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#1a0f40" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="pipelineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a2a4a" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#051525" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="obsGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a2d1a" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#051510" stop-opacity="0.3"/>
+    </linearGradient>
+
+    <!-- Block gradients -->
+    <linearGradient id="reactGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1040"/>
+      <stop offset="100%" stop-color="#2d1a5e"/>
+    </linearGradient>
+    <linearGradient id="djangoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d2010"/>
+      <stop offset="100%" stop-color="#1a3520"/>
+    </linearGradient>
+    <linearGradient id="airflowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2d1a00"/>
+      <stop offset="100%" stop-color="#4a2e00"/>
+    </linearGradient>
+    <linearGradient id="jsonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d2030"/>
+      <stop offset="100%" stop-color="#1a3550"/>
+    </linearGradient>
+    <linearGradient id="mongoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a2010"/>
+      <stop offset="100%" stop-color="#193525"/>
+    </linearGradient>
+    <linearGradient id="kafkaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a0a20"/>
+      <stop offset="100%" stop-color="#2d1540"/>
+    </linearGradient>
+    <linearGradient id="chrawGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f1a30"/>
+      <stop offset="100%" stop-color="#1a2e50"/>
+    </linearGradient>
+    <linearGradient id="chmartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#102030"/>
+      <stop offset="100%" stop-color="#1e3850"/>
+    </linearGradient>
+    <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#201000"/>
+      <stop offset="100%" stop-color="#3d2000"/>
+    </linearGradient>
+    <linearGradient id="s3Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a2010"/>
+      <stop offset="100%" stop-color="#2e381a"/>
+    </linearGradient>
+    <linearGradient id="grafanaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d2010"/>
+      <stop offset="100%" stop-color="#1e3a20"/>
+    </linearGradient>
+    <linearGradient id="telegramGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a1a2a"/>
+      <stop offset="100%" stop-color="#152d42"/>
+    </linearGradient>
+
+    <!-- Glow filters -->
+    <filter id="glowBlue" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowCyan" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowPurple" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowOrange" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowGreen" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="blockShadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrowBlue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#a78bfa"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#fb923c"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4ade80"/>
+    </marker>
+
+    <!-- Particle paths for data flow animation -->
+    <!-- JSON → MongoDB -->
+    <path id="path-json-mongo" d="M 235,460 L 305,460"/>
+    <!-- MongoDB → Kafka -->
+    <path id="path-mongo-kafka" d="M 415,460 L 485,460"/>
+    <!-- Kafka → CH RAW -->
+    <path id="path-kafka-chraw" d="M 595,460 L 665,460"/>
+    <!-- CH RAW → CH MART -->
+    <path id="path-chraw-chmart" d="M 775,460 L 845,460"/>
+    <!-- CH MART → Spark -->
+    <path id="path-chmart-spark" d="M 955,460 L 1025,460"/>
+    <!-- Spark → S3 -->
+    <path id="path-spark-s3" d="M 1135,460 L 1205,460"/>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1400" height="900" fill="url(#bgGrad)"/>
+
+  <!-- Subtle grid pattern -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a2a4a" stroke-width="0.5" opacity="0.3"/>
+  </pattern>
+  <rect width="1400" height="900" fill="url(#grid)" opacity="0.4"/>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- TITLE -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <text x="700" y="38" text-anchor="middle" font-size="22" font-weight="700" fill="#e2e8f0" letter-spacing="3" font-family="'Courier New',monospace">PROBABLYFRESH ANALYTICS PLATFORM</text>
+  <text x="700" y="56" text-anchor="middle" font-size="11" fill="#64748b" letter-spacing="5" font-family="'Courier New',monospace">END-TO-END DATA ENGINEERING ARCHITECTURE</text>
+  <line x1="200" y1="64" x2="1200" y2="64" stroke="#1e3a5a" stroke-width="1"/>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ZONE 1: CONTROL / ORCHESTRATION LAYER -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="30" y="75" width="700" height="185" rx="12" fill="url(#controlGrad)" stroke="#7c3aed" stroke-width="1" stroke-opacity="0.5"/>
+  <text x="46" y="96" font-size="9" fill="#a78bfa" letter-spacing="4" font-family="'Courier New',monospace">CONTROL LAYER</text>
+
+  <!-- ORCHESTRATION ZONE: Airflow independent block -->
+  <rect x="750" y="75" width="620" height="185" rx="12" fill="url(#airflowGrad)" stroke="#f97316" stroke-width="1" stroke-opacity="0.5"/>
+  <text x="766" y="96" font-size="9" fill="#fb923c" letter-spacing="4" font-family="'Courier New',monospace">ORCHESTRATION LAYER  ·  independent scheduler</text>
+
+  <!-- React UI Block -->
+  <g filter="url(#blockShadow)">
+    <rect x="80" y="105" width="160" height="130" rx="10" fill="url(#reactGrad)" stroke="#60a5fa" stroke-width="1.5"/>
+    <rect x="80" y="105" width="160" height="3" rx="2" fill="#60a5fa"/>
+  </g>
+  <!-- React icon -->
+  <g transform="translate(160,135)">
+    <circle cx="0" cy="0" r="6" fill="none" stroke="#38bdf8" stroke-width="2"/>
+    <ellipse cx="0" cy="0" rx="16" ry="6" fill="none" stroke="#38bdf8" stroke-width="1.5" transform="rotate(0)"/>
+    <ellipse cx="0" cy="0" rx="16" ry="6" fill="none" stroke="#38bdf8" stroke-width="1.5" transform="rotate(60)"/>
+    <ellipse cx="0" cy="0" rx="16" ry="6" fill="none" stroke="#38bdf8" stroke-width="1.5" transform="rotate(120)"/>
+    <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="8s" repeatCount="indefinite"/>
+  </g>
+  <text x="160" y="163" text-anchor="middle" font-size="13" font-weight="700" fill="#93c5fd" font-family="'Courier New',monospace">React UI</text>
+  <text x="160" y="179" text-anchor="middle" font-size="9" fill="#64748b" font-family="'Courier New',monospace">Control Panel</text>
+  <text x="160" y="194" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">Pipeline status</text>
+  <text x="160" y="207" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">Metrics view</text>
+  <text x="160" y="222" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">Job triggers</text>
+
+  <!-- Django DRF Block -->
+  <g filter="url(#blockShadow)">
+    <rect x="540" y="105" width="160" height="130" rx="10" fill="url(#djangoGrad)" stroke="#22c55e" stroke-width="1.5"/>
+    <rect x="540" y="105" width="160" height="3" rx="2" fill="#22c55e"/>
+  </g>
+  <!-- Django icon (D) -->
+  <g transform="translate(620,135)">
+    <text x="0" y="8" text-anchor="middle" font-size="22" font-weight="900" fill="#4ade80" font-family="'Courier New',monospace">D</text>
+    <circle cx="0" cy="0" r="15" fill="none" stroke="#4ade80" stroke-width="1" stroke-opacity="0.4"/>
+  </g>
+  <text x="620" y="163" text-anchor="middle" font-size="13" font-weight="700" fill="#86efac" font-family="'Courier New',monospace">Django DRF</text>
+  <text x="620" y="179" text-anchor="middle" font-size="9" fill="#64748b" font-family="'Courier New',monospace">Backend API</text>
+  <text x="620" y="194" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">REST endpoints</text>
+  <text x="620" y="207" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">Pipeline status</text>
+  <text x="620" y="222" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">Auth &amp; metrics</text>
+
+  <!-- Airflow Block - independent orchestration -->
+  <g filter="url(#blockShadow)">
+    <rect x="770" y="105" width="570" height="130" rx="10" fill="url(#airflowGrad)" stroke="#f97316" stroke-width="1.5"/>
+    <rect x="770" y="105" width="570" height="3" rx="2" fill="#f97316"/>
+  </g>
+  <!-- Airflow icon -->
+  <g transform="translate(820,135)">
+    <polygon points="0,-14 12,7 -12,7" fill="none" stroke="#fb923c" stroke-width="2"/>
+    <circle cx="0" cy="0" r="5" fill="#fb923c">
+      <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  <text x="870" y="130" font-size="13" font-weight="700" fill="#fdba74" font-family="'Courier New',monospace">Apache Airflow</text>
+  <text x="870" y="146" font-size="9" fill="#78716c" font-family="'Courier New',monospace">DAG: etl_to_s3_daily  ·  Schedule: @daily</text>
+  <!-- DAG task chain -->
+  <g transform="translate(775,160)">
+    <!-- wait_clickhouse -->
+    <rect x="0" y="0" width="130" height="28" rx="5" fill="#1a1000" stroke="#fb923c" stroke-width="1"/>
+    <text x="65" y="11" text-anchor="middle" font-size="8" fill="#fb923c" font-family="'Courier New',monospace">⏳ wait_clickhouse</text>
+    <text x="65" y="22" text-anchor="middle" font-size="7" fill="#78716c" font-family="'Courier New',monospace">sensor task</text>
+    <!-- arrow 1 -->
+    <line x1="130" y1="14" x2="148" y2="14" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+    <!-- run_etl -->
+    <rect x="150" y="0" width="130" height="28" rx="5" fill="#1a1000" stroke="#fb923c" stroke-width="1"/>
+    <text x="215" y="11" text-anchor="middle" font-size="8" fill="#fb923c" font-family="'Courier New',monospace">⚡ run_etl</text>
+    <text x="215" y="22" text-anchor="middle" font-size="7" fill="#78716c" font-family="'Courier New',monospace">PySpark trigger</text>
+    <!-- arrow 2 -->
+    <line x1="280" y1="14" x2="298" y2="14" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+    <!-- verify_s3 -->
+    <rect x="300" y="0" width="130" height="28" rx="5" fill="#1a1000" stroke="#fb923c" stroke-width="1"/>
+    <text x="365" y="11" text-anchor="middle" font-size="8" fill="#fb923c" font-family="'Courier New',monospace">✔ verify_s3</text>
+    <text x="365" y="22" text-anchor="middle" font-size="7" fill="#78716c" font-family="'Courier New',monospace">output check</text>
+    <!-- DAG flow particle -->
+    <circle r="3" fill="#fb923c" filter="url(#glowOrange)">
+      <animateMotion dur="3s" repeatCount="indefinite" path="M 0,14 L 430,14"/>
+      <animate attributeName="opacity" values="0;1;1;0" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  <text x="1055" y="222" text-anchor="middle" font-size="8" fill="#78716c" font-family="'Courier New',monospace">independent scheduler  ·  not controlled by frontend</text>
+
+  <!-- Control arrows: React → Django -->
+  <line x1="240" y1="170" x2="540" y2="170" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrowPurple)" opacity="0.8"/>
+  <text x="390" y="163" text-anchor="middle" font-size="8" fill="#7c3aed" font-family="'Courier New',monospace">API calls</text>
+  <!-- Moving particle React→Django -->
+  <circle r="3" fill="#a78bfa" opacity="0.9" filter="url(#glowPurple)">
+    <animateMotion dur="3s" repeatCount="indefinite" path="M 240,170 L 540,170"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="3s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- NOTE: No arrow from Django to Airflow. Airflow is an independent scheduler. -->
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ZONE 2: DATA PIPELINE LAYER -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="30" y="280" width="1340" height="220" rx="12" fill="url(#pipelineGrad)" stroke="#0284c7" stroke-width="1" stroke-opacity="0.5"/>
+  <text x="46" y="301" font-size="9" fill="#38bdf8" letter-spacing="4" font-family="'Courier New',monospace">DATA PIPELINE LAYER</text>
+
+  <!-- JSON Generator Block -->
+  <g filter="url(#blockShadow)">
+    <rect x="50" y="315" width="130" height="155" rx="10" fill="url(#jsonGrad)" stroke="#38bdf8" stroke-width="1.5"/>
+    <rect x="50" y="315" width="130" height="3" rx="2" fill="#38bdf8"/>
+  </g>
+  <text x="115" y="340" text-anchor="middle" font-size="18" fill="#38bdf8" font-family="'Courier New',monospace">{}</text>
+  <text x="115" y="365" text-anchor="middle" font-size="11" font-weight="700" fill="#7dd3fc" font-family="'Courier New',monospace">JSON</text>
+  <text x="115" y="381" text-anchor="middle" font-size="10" font-weight="700" fill="#7dd3fc" font-family="'Courier New',monospace">Generator</text>
+  <text x="115" y="398" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">event source</text>
+  <text x="115" y="412" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">raw data files</text>
+  <text x="115" y="457" text-anchor="middle" font-size="7" fill="#1e40af" font-family="'Courier New',monospace">● PRODUCING</text>
+  <circle cx="115" cy="450" r="4" fill="#38bdf8" opacity="0.3">
+    <animate attributeName="r" values="4;8;4" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0;0.3" dur="2s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- MongoDB Block -->
+  <g filter="url(#blockShadow)">
+    <rect x="220" y="315" width="130" height="155" rx="10" fill="url(#mongoGrad)" stroke="#16a34a" stroke-width="1.5"/>
+    <rect x="220" y="315" width="130" height="3" rx="2" fill="#16a34a"/>
+  </g>
+  <!-- MongoDB leaf icon -->
+  <g transform="translate(285,343)">
+    <path d="M0,-16 C8,-8 10,0 0,16 C-10,0 -8,-8 0,-16 Z" fill="#4ade80" opacity="0.9"/>
+    <line x1="0" y1="-16" x2="0" y2="16" stroke="#16a34a" stroke-width="1.5"/>
+  </g>
+  <text x="285" y="373" text-anchor="middle" font-size="11" font-weight="700" fill="#86efac" font-family="'Courier New',monospace">MongoDB</text>
+  <text x="285" y="389" text-anchor="middle" font-size="9" fill="#64748b" font-family="'Courier New',monospace">document store</text>
+  <text x="285" y="406" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">replica set</text>
+  <text x="285" y="421" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">change streams</text>
+  <text x="285" y="457" text-anchor="middle" font-size="7" fill="#166534" font-family="'Courier New',monospace">● PRIMARY</text>
+
+  <!-- Kafka Block -->
+  <g filter="url(#blockShadow)">
+    <rect x="390" y="315" width="130" height="155" rx="10" fill="url(#kafkaGrad)" stroke="#7c3aed" stroke-width="1.5"/>
+    <rect x="390" y="315" width="130" height="3" rx="2" fill="#7c3aed"/>
+  </g>
+  <!-- Kafka icon - wave lines -->
+  <g transform="translate(455,343)">
+    <path d="M-16,0 Q-8,-10 0,0 Q8,10 16,0" fill="none" stroke="#a78bfa" stroke-width="2"/>
+    <path d="M-16,-8 Q-8,-18 0,-8 Q8,2 16,-8" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.6"/>
+    <path d="M-16,8 Q-8,-2 0,8 Q8,18 16,8" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.6"/>
+    <circle cx="-16" cy="0" r="3" fill="#7c3aed"/>
+    <circle cx="16" cy="0" r="3" fill="#7c3aed"/>
+  </g>
+  <text x="455" y="373" text-anchor="middle" font-size="11" font-weight="700" fill="#c4b5fd" font-family="'Courier New',monospace">Kafka</text>
+  <text x="455" y="389" text-anchor="middle" font-size="9" fill="#64748b" font-family="'Courier New',monospace">event streaming</text>
+  <text x="455" y="406" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">topics: events</text>
+  <text x="455" y="421" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">partitions: 8</text>
+  <text x="455" y="457" text-anchor="middle" font-size="7" fill="#4c1d95" font-family="'Courier New',monospace">● STREAMING</text>
+
+  <!-- ClickHouse RAW Block -->
+  <g filter="url(#blockShadow)">
+    <rect x="560" y="315" width="140" height="155" rx="10" fill="url(#chrawGrad)" stroke="#0284c7" stroke-width="1.5"/>
+    <rect x="560" y="315" width="140" height="3" rx="2" fill="#0284c7"/>
+  </g>
+  <!-- CH icon -->
+  <g transform="translate(630,343)">
+    <rect x="-14" y="-12" width="8" height="24" rx="2" fill="#38bdf8"/>
+    <rect x="-3" y="-12" width="8" height="24" rx="2" fill="#38bdf8" opacity="0.7"/>
+    <rect x="8" y="-12" width="8" height="24" rx="2" fill="#38bdf8" opacity="0.4"/>
+  </g>
+  <text x="630" y="373" text-anchor="middle" font-size="11" font-weight="700" fill="#7dd3fc" font-family="'Courier New',monospace">ClickHouse</text>
+  <text x="630" y="389" text-anchor="middle" font-size="10" font-weight="700" fill="#7dd3fc" font-family="'Courier New',monospace">RAW</text>
+  <text x="630" y="405" text-anchor="middle" font-size="9" fill="#64748b" font-family="'Courier New',monospace">raw event storage</text>
+  <text x="630" y="421" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">MergeTree engine</text>
+  <text x="630" y="457" text-anchor="middle" font-size="7" fill="#1e3a5f" font-family="'Courier New',monospace">● INGESTING</text>
+
+  <!-- ClickHouse MART Block -->
+  <g filter="url(#blockShadow)">
+    <rect x="745" y="315" width="140" height="155" rx="10" fill="url(#chmartGrad)" stroke="#0369a1" stroke-width="1.5"/>
+    <rect x="745" y="315" width="140" height="3" rx="2" fill="#0369a1"/>
+  </g>
+  <!-- CH MART icon -->
+  <g transform="translate(815,343)">
+    <rect x="-14" y="-12" width="8" height="24" rx="2" fill="#60a5fa"/>
+    <rect x="-3" y="-5" width="8" height="17" rx="2" fill="#60a5fa" opacity="0.7"/>
+    <rect x="8" y="-9" width="8" height="21" rx="2" fill="#60a5fa" opacity="0.4"/>
+  </g>
+  <text x="815" y="373" text-anchor="middle" font-size="11" font-weight="700" fill="#93c5fd" font-family="'Courier New',monospace">ClickHouse</text>
+  <text x="815" y="389" text-anchor="middle" font-size="10" font-weight="700" fill="#93c5fd" font-family="'Courier New',monospace">MART</text>
+  <text x="815" y="405" text-anchor="middle" font-size="9" fill="#64748b" font-family="'Courier New',monospace">analytics layer</text>
+  <text x="815" y="421" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">aggregations</text>
+  <text x="815" y="457" text-anchor="middle" font-size="7" fill="#1e3a5f" font-family="'Courier New',monospace">● AGGREGATING</text>
+
+  <!-- PySpark ETL Block -->
+  <g filter="url(#blockShadow)">
+    <rect x="935" y="315" width="140" height="155" rx="10" fill="url(#sparkGrad)" stroke="#ea580c" stroke-width="1.5"/>
+    <rect x="935" y="315" width="140" height="3" rx="2" fill="#ea580c"/>
+  </g>
+  <!-- Spark icon - lightning bolt -->
+  <g transform="translate(1005,343)">
+    <path d="M8,-14 L-4,0 L4,0 L-8,14 L4,2 L-4,2 Z" fill="#fb923c"/>
+  </g>
+  <text x="1005" y="373" text-anchor="middle" font-size="11" font-weight="700" fill="#fdba74" font-family="'Courier New',monospace">PySpark</text>
+  <text x="1005" y="389" text-anchor="middle" font-size="9" fill="#64748b" font-family="'Courier New',monospace">feature generation</text>
+  <text x="1005" y="406" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">ETL transforms</text>
+  <text x="1005" y="421" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">feature store</text>
+  <text x="1005" y="457" text-anchor="middle" font-size="7" fill="#431407" font-family="'Courier New',monospace">● PROCESSING</text>
+
+  <!-- S3 Object Storage Block -->
+  <g filter="url(#blockShadow)">
+    <rect x="1125" y="315" width="225" height="155" rx="10" fill="url(#s3Grad)" stroke="#65a30d" stroke-width="1.5"/>
+    <rect x="1125" y="315" width="225" height="3" rx="2" fill="#65a30d"/>
+  </g>
+  <!-- S3 icon - bucket shape -->
+  <g transform="translate(1237,343)">
+    <ellipse cx="0" cy="-10" rx="16" ry="6" fill="none" stroke="#a3e635" stroke-width="2"/>
+    <path d="M-16,-10 L-16,10 Q0,18 16,10 L16,-10" fill="none" stroke="#a3e635" stroke-width="2"/>
+    <ellipse cx="0" cy="10" rx="16" ry="6" fill="#a3e635" opacity="0.2"/>
+    <text x="0" y="2" text-anchor="middle" font-size="9" fill="#a3e635" font-family="'Courier New',monospace">S3</text>
+  </g>
+  <text x="1237" y="373" text-anchor="middle" font-size="11" font-weight="700" fill="#bef264" font-family="'Courier New',monospace">S3 Object Storage</text>
+  <text x="1237" y="389" text-anchor="middle" font-size="9" fill="#64748b" font-family="'Courier New',monospace">feature store output</text>
+  <text x="1237" y="406" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">parquet / delta lake</text>
+  <text x="1237" y="421" text-anchor="middle" font-size="8" fill="#475569" font-family="'Courier New',monospace">versioned datasets</text>
+  <text x="1237" y="457" text-anchor="middle" font-size="7" fill="#1a2e05" font-family="'Courier New',monospace">● STORING</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- DATA FLOW ARROWS (pipeline layer) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- JSON → MongoDB -->
+  <line x1="180" y1="393" x2="220" y2="393" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <!-- Particles -->
+  <circle r="3.5" fill="#38bdf8" filter="url(#glowCyan)">
+    <animateMotion dur="1.2s" repeatCount="indefinite" path="M 180,393 L 218,393"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="2.5" fill="#7dd3fc" filter="url(#glowCyan)">
+    <animateMotion dur="1.2s" begin="0.4s" repeatCount="indefinite" path="M 180,393 L 218,393"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" begin="0.4s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- MongoDB → Kafka -->
+  <line x1="350" y1="393" x2="390" y2="393" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <circle r="3.5" fill="#38bdf8" filter="url(#glowCyan)">
+    <animateMotion dur="1.2s" begin="0.2s" repeatCount="indefinite" path="M 350,393 L 388,393"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" begin="0.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="2.5" fill="#7dd3fc">
+    <animateMotion dur="1.2s" begin="0.6s" repeatCount="indefinite" path="M 350,393 L 388,393"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" begin="0.6s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Kafka → CH RAW -->
+  <line x1="520" y1="393" x2="560" y2="393" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <circle r="3.5" fill="#38bdf8" filter="url(#glowCyan)">
+    <animateMotion dur="1.2s" begin="0.4s" repeatCount="indefinite" path="M 520,393 L 558,393"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" begin="0.4s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="2.5" fill="#7dd3fc">
+    <animateMotion dur="1.2s" begin="0.8s" repeatCount="indefinite" path="M 520,393 L 558,393"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" begin="0.8s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- CH RAW → CH MART -->
+  <line x1="700" y1="393" x2="745" y2="393" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <circle r="3.5" fill="#38bdf8" filter="url(#glowCyan)">
+    <animateMotion dur="1.2s" begin="0.6s" repeatCount="indefinite" path="M 700,393 L 743,393"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" begin="0.6s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- CH MART → PySpark -->
+  <line x1="885" y1="393" x2="935" y2="393" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <circle r="3.5" fill="#38bdf8" filter="url(#glowCyan)">
+    <animateMotion dur="1.2s" begin="0.8s" repeatCount="indefinite" path="M 885,393 L 933,393"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" begin="0.8s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- PySpark → S3 -->
+  <line x1="1075" y1="393" x2="1125" y2="393" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <circle r="3.5" fill="#38bdf8" filter="url(#glowCyan)">
+    <animateMotion dur="1.2s" begin="1.0s" repeatCount="indefinite" path="M 1075,393 L 1123,393"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" begin="1.0s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="2.5" fill="#a3e635">
+    <animateMotion dur="1.2s" begin="1.4s" repeatCount="indefinite" path="M 1075,393 L 1123,393"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" begin="1.4s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ZONE 3: OBSERVABILITY LAYER -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="30" y="530" width="1340" height="175" rx="12" fill="url(#obsGrad)" stroke="#16a34a" stroke-width="1" stroke-opacity="0.5"/>
+  <text x="46" y="551" font-size="9" fill="#4ade80" letter-spacing="4" font-family="'Courier New',monospace">OBSERVABILITY LAYER</text>
+
+  <!-- Grafana Block -->
+  <g filter="url(#blockShadow)">
+    <rect x="280" y="565" width="340" height="115" rx="10" fill="url(#grafanaGrad)" stroke="#22c55e" stroke-width="1.5"/>
+    <rect x="280" y="565" width="340" height="3" rx="2" fill="#22c55e"/>
+  </g>
+  <!-- Grafana icon - G with circle -->
+  <g transform="translate(330,600)">
+    <circle cx="0" cy="0" r="14" fill="none" stroke="#4ade80" stroke-width="2"/>
+    <path d="M-14,0 L0,0 L0,-14" fill="none" stroke="#4ade80" stroke-width="2.5"/>
+    <circle cx="0" cy="0" r="4" fill="#4ade80"/>
+  </g>
+  <text x="415" y="591" text-anchor="middle" font-size="13" font-weight="700" fill="#86efac" font-family="'Courier New',monospace">Grafana</text>
+  <text x="415" y="607" text-anchor="middle" font-size="9" fill="#64748b" font-family="'Courier New',monospace">observability dashboards</text>
+  <!-- mini dashboard bars -->
+  <g transform="translate(370,622)">
+    <rect x="0" y="0" width="12" height="20" rx="2" fill="#4ade80" opacity="0.8"/>
+    <rect x="16" y="8" width="12" height="12" rx="2" fill="#4ade80" opacity="0.6"/>
+    <rect x="32" y="4" width="12" height="16" rx="2" fill="#4ade80" opacity="0.7"/>
+    <rect x="48" y="12" width="12" height="8" rx="2" fill="#4ade80" opacity="0.5"/>
+    <rect x="64" y="2" width="12" height="18" rx="2" fill="#4ade80" opacity="0.9"/>
+    <rect x="80" y="6" width="12" height="14" rx="2" fill="#4ade80" opacity="0.6"/>
+  </g>
+  <text x="415" y="665" text-anchor="middle" font-size="8" fill="#4ade80" font-family="'Courier New',monospace">ClickHouse · Airflow · Pipeline metrics</text>
+
+  <!-- Telegram Block -->
+  <g filter="url(#blockShadow)">
+    <rect x="780" y="565" width="260" height="115" rx="10" fill="url(#telegramGrad)" stroke="#0284c7" stroke-width="1.5"/>
+    <rect x="780" y="565" width="260" height="3" rx="2" fill="#0284c7"/>
+  </g>
+  <!-- Telegram icon - paper airplane -->
+  <g transform="translate(835,600)">
+    <circle cx="0" cy="0" r="15" fill="#0284c7" opacity="0.3"/>
+    <path d="M-12,0 L12,-8 L4,0 L12,8 Z" fill="#38bdf8"/>
+    <path d="M4,0 L6,8 L0,3 Z" fill="#0369a1"/>
+  </g>
+  <text x="910" y="591" text-anchor="middle" font-size="13" font-weight="700" fill="#7dd3fc" font-family="'Courier New',monospace">Telegram Alerts</text>
+  <text x="910" y="607" text-anchor="middle" font-size="9" fill="#64748b" font-family="'Courier New',monospace">real-time notifications</text>
+  <g transform="translate(830,620)">
+    <rect x="0" y="0" width="160" height="28" rx="6" fill="#0d1f35" stroke="#0284c7" stroke-width="0.5"/>
+    <circle cx="14" cy="14" r="8" fill="#0284c7" opacity="0.4"/>
+    <text x="14" y="19" text-anchor="middle" font-size="10" fill="#38bdf8" font-family="'Courier New',monospace">T</text>
+    <text x="90" y="12" text-anchor="middle" font-size="8" fill="#7dd3fc" font-family="'Courier New',monospace">⚠ Pipeline alert</text>
+    <text x="90" y="23" text-anchor="middle" font-size="7" fill="#475569" font-family="'Courier New',monospace">etl_to_s3_daily completed</text>
+  </g>
+  <text x="910" y="665" text-anchor="middle" font-size="8" fill="#38bdf8" font-family="'Courier New',monospace">Grafana → webhook → Bot notifications</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- CROSS-ZONE ARROWS -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- Airflow → PySpark (orchestration: run_etl DAG task triggers Spark) -->
+  <path d="M 1005,235 L 1005,265 L 1005,315" stroke="#f97316" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arrowOrange)"/>
+  <text x="1040" y="260" text-anchor="middle" font-size="8" fill="#f97316" font-family="'Courier New',monospace">run_etl task</text>
+  <circle r="3" fill="#fb923c" filter="url(#glowOrange)">
+    <animateMotion dur="2s" repeatCount="indefinite" path="M 1005,235 L 1005,315"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="2s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Airflow → S3 verification arrow (verify_s3 DAG task) -->
+  <path d="M 1237,235 L 1237,315" stroke="#f97316" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowOrange)" opacity="0.7"/>
+  <text x="1278" y="275" text-anchor="middle" font-size="7" fill="#f97316" font-family="'Courier New',monospace">verify_s3 task</text>
+  <circle r="2.5" fill="#fb923c">
+    <animateMotion dur="2.5s" begin="1s" repeatCount="indefinite" path="M 1237,235 L 1237,315"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="2.5s" begin="1s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ClickHouse → Grafana (monitoring) -->
+  <path d="M 630,470 L 630,510 L 450,510 L 450,565" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arrowGreen)"/>
+  <text x="540" y="507" text-anchor="middle" font-size="8" fill="#4ade80" font-family="'Courier New',monospace">metrics</text>
+  <circle r="3" fill="#4ade80" filter="url(#glowGreen)">
+    <animateMotion dur="3s" begin="0.5s" repeatCount="indefinite" path="M 630,470 L 630,510 L 450,510 L 450,565"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Airflow → Grafana (monitoring metrics) -->
+  <path d="M 900,235 L 900,255 L 450,255 L 450,510" stroke="#4ade80" stroke-width="1" stroke-dasharray="4,4" fill="none" opacity="0.5" marker-end="url(#arrowGreen)"/>
+  <text x="680" y="252" text-anchor="middle" font-size="7" fill="#4ade80" font-family="'Courier New',monospace" opacity="0.7">airflow metrics</text>
+
+  <!-- Django → pipeline status read (dashed, from CH MART upward) -->
+  <path d="M 815,315 L 815,270 L 620,270 L 620,235" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4,4" fill="none" marker-end="url(#arrowPurple)" opacity="0.5"/>
+  <text x="718" y="267" text-anchor="middle" font-size="7" fill="#7c3aed" font-family="'Courier New',monospace">pipeline status</text>
+
+  <!-- Grafana → Telegram -->
+  <line x1="620" y1="622" x2="780" y2="622" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowGreen)"/>
+  <text x="700" y="615" text-anchor="middle" font-size="8" fill="#4ade80" font-family="'Courier New',monospace">alerts</text>
+  <circle r="3" fill="#4ade80" filter="url(#glowGreen)">
+    <animateMotion dur="2.5s" repeatCount="indefinite" path="M 620,622 L 778,622"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="2" fill="#86efac">
+    <animateMotion dur="2.5s" begin="0.8s" repeatCount="indefinite" path="M 620,622 L 778,622"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="2.5s" begin="0.8s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- LEGEND -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="50" y="740" width="560" height="50" rx="8" fill="#0d1526" stroke="#1e3a5a" stroke-width="1"/>
+  <text x="330" y="755" text-anchor="middle" font-size="8" fill="#475569" letter-spacing="3" font-family="'Courier New',monospace">LEGEND</text>
+
+  <line x1="70" y1="775" x2="100" y2="775" stroke="#38bdf8" stroke-width="2"/>
+  <circle r="3" fill="#38bdf8" cx="85" cy="775"/>
+  <text x="110" y="779" font-size="9" fill="#38bdf8" font-family="'Courier New',monospace">Data Flow</text>
+
+  <line x1="200" y1="775" x2="230" y2="775" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="240" y="779" font-size="9" fill="#a78bfa" font-family="'Courier New',monospace">Control Flow</text>
+
+  <line x1="340" y1="775" x2="370" y2="775" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="380" y="779" font-size="9" fill="#fb923c" font-family="'Courier New',monospace">Orchestration</text>
+
+  <line x1="480" y1="775" x2="510" y2="775" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="520" y="779" font-size="9" fill="#4ade80" font-family="'Courier New',monospace">Observability</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- TECH STACK BADGES -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <rect x="640" y="740" width="785" height="50" rx="8" fill="#0d1526" stroke="#1e3a5a" stroke-width="1"/>
+  <text x="1032" y="755" text-anchor="middle" font-size="8" fill="#475569" letter-spacing="3" font-family="'Courier New',monospace">STACK</text>
+  <g transform="translate(658,764)">
+    <rect x="0" y="0" width="55" height="16" rx="4" fill="#1a1a2e" stroke="#38bdf8" stroke-width="0.5"/>
+    <text x="27" y="11" text-anchor="middle" font-size="7" fill="#38bdf8" font-family="'Courier New',monospace">Python</text>
+  </g>
+  <g transform="translate(723,764)">
+    <rect x="0" y="0" width="55" height="16" rx="4" fill="#1a1a2e" stroke="#4ade80" stroke-width="0.5"/>
+    <text x="27" y="11" text-anchor="middle" font-size="7" fill="#4ade80" font-family="'Courier New',monospace">Docker</text>
+  </g>
+  <g transform="translate(788,764)">
+    <rect x="0" y="0" width="50" height="16" rx="4" fill="#1a1a2e" stroke="#60a5fa" stroke-width="0.5"/>
+    <text x="25" y="11" text-anchor="middle" font-size="7" fill="#60a5fa" font-family="'Courier New',monospace">React</text>
+  </g>
+  <g transform="translate(848,764)">
+    <rect x="0" y="0" width="55" height="16" rx="4" fill="#1a1a2e" stroke="#86efac" stroke-width="0.5"/>
+    <text x="27" y="11" text-anchor="middle" font-size="7" fill="#86efac" font-family="'Courier New',monospace">Django</text>
+  </g>
+  <g transform="translate(913,764)">
+    <rect x="0" y="0" width="50" height="16" rx="4" fill="#1a1a2e" stroke="#fb923c" stroke-width="0.5"/>
+    <text x="25" y="11" text-anchor="middle" font-size="7" fill="#fb923c" font-family="'Courier New',monospace">Spark</text>
+  </g>
+  <g transform="translate(973,764)">
+    <rect x="0" y="0" width="80" height="16" rx="4" fill="#1a1a2e" stroke="#7dd3fc" stroke-width="0.5"/>
+    <text x="40" y="11" text-anchor="middle" font-size="7" fill="#7dd3fc" font-family="'Courier New',monospace">ClickHouse</text>
+  </g>
+  <g transform="translate(1063,764)">
+    <rect x="0" y="0" width="60" height="16" rx="4" fill="#1a1a2e" stroke="#c4b5fd" stroke-width="0.5"/>
+    <text x="30" y="11" text-anchor="middle" font-size="7" fill="#c4b5fd" font-family="'Courier New',monospace">Airflow</text>
+  </g>
+  <g transform="translate(1133,764)">
+    <rect x="0" y="0" width="60" height="16" rx="4" fill="#1a1a2e" stroke="#fdba74" stroke-width="0.5"/>
+    <text x="30" y="11" text-anchor="middle" font-size="7" fill="#fdba74" font-family="'Courier New',monospace">Kafka</text>
+  </g>
+  <g transform="translate(1203,764)">
+    <rect x="0" y="0" width="60" height="16" rx="4" fill="#1a1a2e" stroke="#bef264" stroke-width="0.5"/>
+    <text x="30" y="11" text-anchor="middle" font-size="7" fill="#bef264" font-family="'Courier New',monospace">MongoDB</text>
+  </g>
+  <g transform="translate(1273,764)">
+    <rect x="0" y="0" width="45" height="16" rx="4" fill="#1a1a2e" stroke="#f472b6" stroke-width="0.5"/>
+    <text x="22" y="11" text-anchor="middle" font-size="7" fill="#f472b6" font-family="'Courier New',monospace">SQL</text>
+  </g>
+
+  <!-- VERSION / FOOTER -->
+  <text x="700" y="800" text-anchor="middle" font-size="8" fill="#334155" letter-spacing="2" font-family="'Courier New',monospace">ProbablyFresh Analytics Platform · Architecture v2.0</text>
+  <text x="700" y="815" text-anchor="middle" font-size="7" fill="#1e293b" font-family="'Courier New',monospace">Full End-to-End Data Engineering · JSON → MongoDB → Kafka → ClickHouse → PySpark → S3</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- AMBIENT GLOW EFFECTS -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <circle cx="700" cy="393" r="200" fill="#0284c7" opacity="0.015">
+    <animate attributeName="opacity" values="0.015;0.03;0.015" dur="6s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="1055" cy="170" r="130" fill="#f97316" opacity="0.02">
+    <animate attributeName="opacity" values="0.02;0.04;0.02" dur="4s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="450" cy="622" r="100" fill="#4ade80" opacity="0.02">
+    <animate attributeName="opacity" values="0.02;0.04;0.02" dur="5s" repeatCount="indefinite"/>
+  </circle>
+
+</svg>

@@ -11,6 +11,7 @@ from api.serializers import JobRunSerializer, PipelinePresetSerializer, SafeMode
 from api.services.actions import enqueue_action
 from api.services.errors import ServiceError
 from api.services.exports import list_exports, presign_export
+from api.services.feature_mart import get_feature_mart_payload
 from api.services.health import collect_services_health
 from api.services.metrics import (
     get_ingestion_series,
@@ -156,6 +157,14 @@ class ExportsPresignView(APIView):
         key = request.query_params.get("key", "")
         try:
             return ok(presign_export(key))
+        except ServiceError as exc:
+            return fail(exc.code, exc.message, exc.details, status=exc.status_code)
+
+
+class FeatureMartView(APIView):
+    def get(self, request):
+        try:
+            return ok(get_feature_mart_payload())
         except ServiceError as exc:
             return fail(exc.code, exc.message, exc.details, status=exc.status_code)
 

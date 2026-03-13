@@ -3,6 +3,7 @@
 import { AppLayout } from './app/AppLayout';
 import { DataQualityPage } from './pages/DataQualityPage';
 import { ExportsPage } from './pages/ExportsPage';
+import { FeatureMartPage } from './pages/FeatureMartPage';
 import { OverviewPage } from './pages/OverviewPage';
 import { PipelinesPage } from './pages/PipelinesPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/" element={<OverviewPage />} />
         <Route path="/pipelines" element={<PipelinesPage />} />
         <Route path="/data-quality" element={<DataQualityPage />} />
+        <Route path="/feature-mart" element={<FeatureMartPage />} />
         <Route path="/exports" element={<ExportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>

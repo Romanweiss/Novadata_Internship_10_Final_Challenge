@@ -15,6 +15,7 @@ export const navItems = [
   { key: 'overview', label: 'Overview', path: '/' },
   { key: 'pipelines', label: 'Pipelines', path: '/pipelines' },
   { key: 'data-quality', label: 'Data Quality', path: '/data-quality' },
+  { key: 'feature-mart', label: 'Feature Mart', path: '/feature-mart' },
   { key: 'exports', label: 'Exports', path: '/exports' },
   { key: 'settings', label: 'Settings', path: '/settings' },
 ] as const;

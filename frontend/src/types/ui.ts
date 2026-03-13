@@ -84,3 +84,20 @@ export interface ToastMessage {
   tone: 'info' | 'success' | 'error';
   durationMs?: number;
 }
+
+export interface FeatureMartSummaryItem {
+  feature: string;
+  onesCount: number;
+}
+
+export interface FeatureMartData {
+  fileName: string | null;
+  source: string;
+  generatedAt: string | null;
+  rowsCount: number;
+  featuresCount: number;
+  columns: string[];
+  featureColumns: string[];
+  rows: Array<Record<string, string | number>>;
+  featureSummary: FeatureMartSummaryItem[];
+}

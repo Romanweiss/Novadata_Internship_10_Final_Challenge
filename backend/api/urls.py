@@ -2,6 +2,7 @@ from django.urls import path
 
 from api.views import (
     ActionTriggerView,
+    FeatureMartView,
     ExportsListView,
     ExportsPresignView,
     OverviewIngestionSeriesView,
@@ -60,6 +61,7 @@ urlpatterns = [
     path("quality/mart-stats", QualityMartStatsView.as_view(), name="quality-mart-stats"),
     path("exports", ExportsListView.as_view(), name="exports-list"),
     path("exports/presign", ExportsPresignView.as_view(), name="exports-presign"),
+    path("feature-mart", FeatureMartView.as_view(), name="feature-mart"),
     path("settings/connections", SettingsConnectionsView.as_view(), name="settings-connections"),
     path("settings/safe-mode", SettingsSafeModeView.as_view(), name="settings-safe-mode"),
     path(

@@ -1,6 +1,7 @@
 import type {
   ApiConnections,
   ApiExportItem,
+  ApiFeatureMartData,
   ApiIngestionPoint,
   ApiMartStatsRow,
   ApiOverviewKpis,
@@ -19,6 +20,7 @@ import type {
   PaymentBreakdownItem,
   ServiceConnection,
   ServiceHealthItem,
+  FeatureMartData,
 } from '../types/ui';
 
 function formatCompactDelta(value: number | undefined): string {
@@ -193,4 +195,21 @@ export function mapConnections(payload: ApiConnections): ServiceConnection[] {
     { key: 'grafana', title: 'Grafana URL', value: payload.grafana_url, icon: 'chart' },
     { key: 'airflow', title: 'Airflow URL', value: payload.airflow_url, icon: 'workflow' },
   ];
+}
+
+export function mapFeatureMart(payload: ApiFeatureMartData): FeatureMartData {
+  return {
+    fileName: payload.file_name,
+    source: payload.source,
+    generatedAt: payload.generated_at,
+    rowsCount: payload.rows_count,
+    featuresCount: payload.features_count,
+    columns: payload.columns,
+    featureColumns: payload.feature_columns,
+    rows: payload.rows,
+    featureSummary: payload.feature_summary.map((item) => ({
+      feature: item.feature,
+      onesCount: item.ones_count,
+    })),
+  };
 }

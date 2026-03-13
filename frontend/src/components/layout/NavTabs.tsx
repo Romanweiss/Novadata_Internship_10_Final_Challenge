@@ -1,4 +1,4 @@
-import { Download, Gauge, ShieldAlert, Settings, Workflow } from 'lucide-react';
+import { Download, Gauge, Settings, ShieldAlert, Table2, Workflow } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 import { useAppState } from '../../app/useAppState';
@@ -9,6 +9,7 @@ const iconByKey = {
   overview: Gauge,
   pipelines: Workflow,
   'data-quality': ShieldAlert,
+  'feature-mart': Table2,
   exports: Download,
   settings: Settings,
 } as const;

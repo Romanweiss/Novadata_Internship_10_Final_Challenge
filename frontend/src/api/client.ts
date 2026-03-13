@@ -92,6 +92,23 @@ export type ApiConnections = {
   safe_mode: boolean;
 };
 
+export type ApiFeatureSummaryItem = {
+  feature: string;
+  ones_count: number;
+};
+
+export type ApiFeatureMartData = {
+  file_name: string | null;
+  source: string;
+  generated_at: string | null;
+  rows_count: number;
+  features_count: number;
+  columns: string[];
+  feature_columns: string[];
+  rows: Array<Record<string, string | number>>;
+  feature_summary: ApiFeatureSummaryItem[];
+};
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8001/api').replace(/\/$/, '');
 const API_TOKEN = import.meta.env.VITE_API_TOKEN ?? '';
 
@@ -167,6 +184,9 @@ export const apiClient = {
   },
   fetchSettingsConnections() {
     return request<ApiConnections>('/settings/connections');
+  },
+  fetchFeatureMart() {
+    return request<ApiFeatureMartData>('/feature-mart');
   },
   updateSafeMode(enabled: boolean) {
     return request<{ enabled: boolean }>('/settings/safe-mode', {
