@@ -1,4 +1,13 @@
-﻿from __future__ import annotations
+from __future__ import annotations
+
+"""
+ETL витрины признаков клиентов для ProbablyFresh.
+
+Важно про префикс "_" в именах функций:
+- это внутренние helper-функции текущего модуля;
+- они не предназначены как публичный API для внешнего импорта;
+- точка входа скрипта — функция main().
+"""
 
 import logging
 import shutil
@@ -15,14 +24,23 @@ import os
 
 
 def _repo_root() -> Path:
+    """Возвращает путь к корню репозитория (родитель папки jobs/)."""
     return Path(__file__).resolve().parents[1]
 
 
 def _load_env() -> None:
+    """Загружает переменные окружения из .env в корне репозитория."""
     load_dotenv(_repo_root() / ".env")
 
 
 def _required_env(name: str) -> str:
+    """Читает обязательную переменную окружения.
+
+    Args:
+        name: имя переменной.
+    Returns:
+        Непустое строковое значение.
+    """
     value = os.getenv(name, "").strip()
     if not value:
         raise RuntimeError(f"Environment variable {name} is required")
@@ -30,6 +48,13 @@ def _required_env(name: str) -> str:
 
 
 def _required_any_env(*names: str) -> str:
+    """Возвращает первое непустое значение из списка переменных.
+
+    Args:
+        *names: имена переменных в порядке приоритета.
+    Returns:
+        Первое найденное непустое значение.
+    """
     for name in names:
         value = os.getenv(name, "").strip()
         if value:
@@ -38,6 +63,14 @@ def _required_any_env(*names: str) -> str:
 
 
 def _optional_env(name: str, default: str) -> str:
+    """Читает опциональную переменную окружения с fallback на default.
+
+    Args:
+        name: имя переменной.
+        default: значение по умолчанию.
+    Returns:
+        Значение переменной или default.
+    """
     value = os.getenv(name)
     if value is None:
         return default
@@ -45,6 +78,14 @@ def _optional_env(name: str, default: str) -> str:
 
 
 def _optional_any_env(default: str, *names: str) -> str:
+    """Возвращает первое непустое значение или default.
+
+    Args:
+        default: значение по умолчанию.
+        *names: имена переменных в порядке приоритета.
+    Returns:
+        Найденное значение или default.
+    """
     for name in names:
         value = os.getenv(name)
         if value is not None and value.strip():
@@ -53,6 +94,11 @@ def _optional_any_env(default: str, *names: str) -> str:
 
 
 def _build_spark_session() -> SparkSession:
+    """Создаёт и конфигурирует SparkSession для ETL.
+
+    Returns:
+        Готовый SparkSession с UTC timezone и JDBC-драйвером ClickHouse.
+    """
     master = _optional_env("SPARK_MASTER", "local[*]")
     jdbc_jar = _optional_env("CLICKHOUSE_JDBC_JAR", "/opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar")
     logging.info("Starting SparkSession with master=%s", master)
@@ -75,6 +121,13 @@ def _build_spark_session() -> SparkSession:
 
 
 def _jdbc_reader(spark: SparkSession):
+    """Готовит базовый JDBC reader для чтения таблиц из ClickHouse.
+
+    Args:
+        spark: активная SparkSession.
+    Returns:
+        DataFrameReader с предзаполненными JDBC-настройками.
+    """
     ch_host = _required_env("CH_HOST")
     ch_port = _required_env("CH_PORT")
     ch_user = _required_env("CH_USER")
@@ -94,6 +147,14 @@ def _jdbc_reader(spark: SparkSession):
 
 
 def _load_table(jdbc_reader, table: str) -> DataFrame:
+    """Читает одну таблицу из ClickHouse через JDBC.
+
+    Args:
+        jdbc_reader: reader из _jdbc_reader().
+        table: имя таблицы в выбранной БД.
+    Returns:
+        DataFrame с данными таблицы.
+    """
     logging.info("Reading table via JDBC: %s", table)
     return jdbc_reader.option("dbtable", table).load()
 
@@ -104,6 +165,16 @@ def _build_features(
     products_df: DataFrame,
     purchase_items_df: DataFrame,
 ) -> DataFrame:
+    """Строит feature-матрицу клиентов (customer_id + 30 бинарных признаков).
+
+    Args:
+        customers_df: таблица клиентов MART.
+        purchases_df: таблица покупок MART.
+        products_df: таблица продуктов MART.
+        purchase_items_df: таблица позиций чеков MART.
+    Returns:
+        DataFrame вида (customer_id, feature_1..feature_30), где все фичи 0/1.
+    """
     feature_cols = [
         # Existing 10 features (kept as-is by name)
         "recurrent_buyer",
@@ -429,6 +500,13 @@ def _build_features(
 
 
 def _write_single_csv(features_df: DataFrame) -> Path:
+    """Пишет витрину в один CSV-файл через coalesce(1).
+
+    Args:
+        features_df: итоговый DataFrame с признаками.
+    Returns:
+        Путь к сгенерированному part-*.csv.
+    """
     tmp_dir = Path(tempfile.mkdtemp(prefix="probablyfresh_features_"))
     logging.info("Writing features CSV to temporary directory: %s", tmp_dir)
 
@@ -443,12 +521,26 @@ def _write_single_csv(features_df: DataFrame) -> Path:
 
 
 def _normalize_endpoint(endpoint: str) -> str:
+    """Приводит endpoint к URL-формату с протоколом.
+
+    Args:
+        endpoint: адрес/домен из env.
+    Returns:
+        URL с http(s)-префиксом.
+    """
     if endpoint.startswith("http://") or endpoint.startswith("https://"):
         return endpoint
     return f"https://{endpoint}"
 
 
 def _upload_to_s3(local_csv_path: Path) -> str:
+    """Загружает локальный CSV в S3-совместимое хранилище.
+
+    Args:
+        local_csv_path: путь к CSV-файлу.
+    Returns:
+        object_key загруженного файла в bucket.
+    """
     endpoint_url = _normalize_endpoint(_required_env("S3_ENDPOINT_URL"))
     region = _optional_any_env("ru-3", "S3_REGION", "AWS_DEFAULT_REGION")
     bucket = _required_env("S3_BUCKET")
@@ -474,6 +566,7 @@ def _upload_to_s3(local_csv_path: Path) -> str:
 
 
 def main() -> None:
+    """Точка входа ETL: чтение MART -> расчёт фич -> CSV -> загрузка в S3."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     _load_env()
 
@@ -484,6 +577,8 @@ def main() -> None:
     try:
         jdbc_reader = _jdbc_reader(spark)
 
+        # Кэшируем входные DataFrame (MEMORY_AND_DISK): ниже есть count(),
+        # а затем эти же данные повторно используются в _build_features().
         purchases_df = _load_table(jdbc_reader, "purchases_mart").persist(StorageLevel.MEMORY_AND_DISK)
         customers_df = _load_table(jdbc_reader, "customers_mart").persist(StorageLevel.MEMORY_AND_DISK)
         products_df = _load_table(jdbc_reader, "products_mart").persist(StorageLevel.MEMORY_AND_DISK)
@@ -498,6 +593,8 @@ def main() -> None:
             purchase_items_df.count(),
         )
 
+        # Кэшируем итоговую витрину: дальше выполняются count(), write(),
+        # а в debug-режиме также show() и filter().count().
         features_df = _build_features(customers_df, purchases_df, products_df, purchase_items_df).persist(
             StorageLevel.MEMORY_AND_DISK
         )
@@ -519,6 +616,7 @@ def main() -> None:
         logging.info("Upload completed successfully: %s", object_key)
         print(f"Uploaded features file: {object_key}")
     finally:
+        # Явно освобождаем кэш перед остановкой Spark.
         for df in reversed(persisted_dfs):
             try:
                 df.unpersist(blocking=False)
