@@ -1,0 +1,109 @@
+<svg width="360" height="80" viewBox="0 0 360 80" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @keyframes pulse-spine {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.6; }
+      }
+      @keyframes pulse-arc {
+        0%, 100% { stroke-opacity: 1; }
+        50%       { stroke-opacity: 0.5; }
+      }
+      @keyframes dot1 {
+        0%, 100% { opacity: 0.9; transform: scale(1); }
+        50%       { opacity: 0.4; transform: scale(0.75); }
+      }
+      @keyframes dot2 {
+        0%, 100% { opacity: 0.5; transform: scale(1); }
+        50%       { opacity: 0.2; transform: scale(0.75); }
+      }
+      @keyframes dot3 {
+        0%, 100% { opacity: 0.25; transform: scale(1); }
+        50%       { opacity: 0.08; transform: scale(0.75); }
+      }
+      @keyframes flow {
+        0%   { stroke-dashoffset: 80; opacity: 0; }
+        15%  { opacity: 1; }
+        85%  { opacity: 1; }
+        100% { stroke-dashoffset: 0; opacity: 0; }
+      }
+      @keyframes shimmer {
+        0%   { opacity: 0; }
+        30%  { opacity: 0.15; }
+        70%  { opacity: 0.15; }
+        100% { opacity: 0; }
+      }
+
+      .spine {
+        animation: pulse-spine 2.8s ease-in-out infinite;
+      }
+      .arc {
+        stroke-dasharray: 80;
+        stroke-dashoffset: 0;
+        animation: pulse-arc 2.8s ease-in-out infinite;
+      }
+      .flow-path {
+        stroke-dasharray: 80;
+        fill: none;
+        animation: flow 2.8s ease-in-out infinite;
+      }
+      .dot1 { transform-origin: 34px 65px; animation: dot1 2.8s ease-in-out infinite; }
+      .dot2 { transform-origin: 45px 65px; animation: dot2 2.8s ease-in-out infinite 0.15s; }
+      .dot3 { transform-origin: 54px 65px; animation: dot3 2.8s ease-in-out infinite 0.3s; }
+      .shimmer { animation: shimmer 2.8s ease-in-out infinite; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .spine, .arc, .flow-path, .dot1, .dot2, .dot3, .shimmer {
+          animation: none;
+        }
+      }
+    </style>
+  </defs>
+
+  <!-- Icon background -->
+  <rect x="0" y="8" width="64" height="64" rx="14" fill="#1a1a1a"/>
+
+  <!-- Subtle shimmer overlay on bg -->
+  <rect class="shimmer" x="0" y="8" width="64" height="64" rx="14" fill="#ffffff"/>
+
+  <!-- P spine -->
+  <rect class="spine" x="16" y="16" width="8.5" height="48" rx="4" fill="#d4d4d4"/>
+
+  <!-- Animated flow trace (travels along arc path, appears then fades) -->
+  <path class="flow-path"
+        d="M24.5 22 Q56 22 56 38 Q56 54 24.5 54"
+        stroke="#ffffff" stroke-width="6"
+        stroke-linecap="round" stroke-linejoin="round"
+        opacity="0.35"/>
+
+  <!-- P bowl arc (base, always visible) -->
+  <path class="arc"
+        d="M24.5 22 Q56 22 56 38 Q56 54 24.5 54"
+        fill="none" stroke="#d4d4d4" stroke-width="6"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Arc endpoint nodes -->
+  <circle cx="24.5" cy="22" r="3.5" fill="#d4d4d4" opacity="0.4"/>
+  <circle cx="24.5" cy="54" r="3.5" fill="#d4d4d4" opacity="0.4"/>
+
+  <!-- Trailing mint dots — grayscale, animated cascade -->
+  <circle class="dot1" cx="34" cy="65" r="4.5" fill="#a3a3a3"/>
+  <circle class="dot2" cx="45" cy="65" r="3"   fill="#737373"/>
+  <circle class="dot3" cx="54" cy="65" r="1.8" fill="#525252"/>
+
+  <!-- Wordmark -->
+  <text x="80" y="46"
+        font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif"
+        font-size="30" font-weight="500"
+        letter-spacing="-0.5px">
+    <tspan fill="#1a1a1a">Probably</tspan><tspan fill="#525252">Fresh</tspan>
+  </text>
+
+  <!-- Descriptor -->
+  <text x="81" y="64"
+        font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif"
+        font-size="10.5" font-weight="400"
+        letter-spacing="0.18em"
+        fill="#a3a3a3">ANALYTICS PLATFORM</text>
+
+</svg>

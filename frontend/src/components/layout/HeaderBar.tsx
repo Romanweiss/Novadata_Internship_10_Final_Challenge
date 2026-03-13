@@ -9,11 +9,8 @@ export function HeaderBar() {
   return (
     <header className="app-transition sticky top-0 z-30 border-b border-[var(--border)] bg-[color:color-mix(in_srgb,var(--bg),transparent_14%)] backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-[1180px] items-center justify-between px-6 py-4 lg:px-8">
-        <div className="flex items-center gap-3">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-[#0f1118] text-sm font-extrabold text-white dark:bg-white dark:text-[#111827]">
-            P
-          </span>
-          <span className="text-[1.72rem] text-xl font-extrabold tracking-tight">ProbablyFresh</span>
+        <div className="flex items-center">
+          <img src="/assets/system_logo_new.svg" alt="ProbablyFresh logo" className="h-10 w-auto object-contain md:h-11" />
         </div>
 
         <div className="flex items-center gap-3 text-sm">

@@ -1,0 +1,86 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @keyframes pulse-spine {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.55; }
+      }
+      @keyframes pulse-arc {
+        0%, 100% { stroke-opacity: 1; }
+        50%       { stroke-opacity: 0.45; }
+      }
+      @keyframes flow {
+        0%   { stroke-dashoffset: 80; opacity: 0; }
+        15%  { opacity: 1; }
+        85%  { opacity: 1; }
+        100% { stroke-dashoffset: 0; opacity: 0; }
+      }
+      @keyframes dot1 {
+        0%, 100% { opacity: 0.9; r: 4.5; }
+        50%       { opacity: 0.35; r: 3.5; }
+      }
+      @keyframes dot2 {
+        0%, 100% { opacity: 0.5; r: 3; }
+        50%       { opacity: 0.18; r: 2.2; }
+      }
+      @keyframes dot3 {
+        0%, 100% { opacity: 0.25; r: 1.8; }
+        50%       { opacity: 0.07; r: 1.2; }
+      }
+      @keyframes shimmer {
+        0%   { opacity: 0; }
+        40%  { opacity: 0.12; }
+        60%  { opacity: 0.12; }
+        100% { opacity: 0; }
+      }
+
+      .spine  { animation: pulse-spine 2.8s ease-in-out infinite; }
+      .arc    { animation: pulse-arc  2.8s ease-in-out infinite; }
+      .flow   {
+        stroke-dasharray: 80;
+        fill: none;
+        animation: flow 2.8s ease-in-out infinite;
+      }
+      .d1 { animation: dot1 2.8s ease-in-out infinite; }
+      .d2 { animation: dot2 2.8s ease-in-out infinite 0.18s; }
+      .d3 { animation: dot3 2.8s ease-in-out infinite 0.36s; }
+      .shimmer { animation: shimmer 2.8s ease-in-out infinite; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .spine, .arc, .flow, .d1, .d2, .d3, .shimmer { animation: none; }
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#1a1a1a"/>
+
+  <!-- Shimmer sweep -->
+  <rect class="shimmer" x="0" y="0" width="64" height="64" rx="14" fill="#ffffff"/>
+
+  <!-- P spine -->
+  <rect class="spine" x="14" y="10" width="8.5" height="38" rx="4" fill="#d4d4d4"/>
+
+  <!-- Arc endpoint nodes -->
+  <circle cx="22.5" cy="15" r="3" fill="#d4d4d4" opacity="0.35"/>
+  <circle cx="22.5" cy="43" r="3" fill="#d4d4d4" opacity="0.35"/>
+
+  <!-- Flow trace (animated travelling highlight) -->
+  <path class="flow"
+        d="M22.5 15 Q50 15 50 29 Q50 43 22.5 43"
+        stroke="#ffffff" stroke-width="6"
+        stroke-linecap="round" stroke-linejoin="round"
+        opacity="0.3"/>
+
+  <!-- P bowl arc (base) -->
+  <path class="arc"
+        d="M22.5 15 Q50 15 50 29 Q50 43 22.5 43"
+        fill="none" stroke="#d4d4d4" stroke-width="6"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Trailing dots — cascading pulse -->
+  <circle class="d1" cx="26" cy="55" r="4.5" fill="#a3a3a3"/>
+  <circle class="d2" cx="38" cy="55" r="3"   fill="#737373"/>
+  <circle class="d3" cx="48" cy="55" r="1.8" fill="#525252"/>
+
+</svg>
