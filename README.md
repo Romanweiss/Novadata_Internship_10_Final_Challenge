@@ -4,6 +4,10 @@
 
 `JSON -> MongoDB -> Kafka -> ClickHouse RAW -> ClickHouse MART -> PySpark ETL -> S3`
 
+<p align="center">
+  <img src="assets/architecture_style.svg" width="1000" style="border-radius:20px; overflow:hidden;" />
+</p>
+
 Дополнительно:
 - Grafana (дашборды и алерты),
 - Airflow (ежедневный DAG),
