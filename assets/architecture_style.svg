@@ -1,5 +1,15 @@
-<svg viewBox="0 0 1440 920" xmlns="http://www.w3.org/2000/svg" width="1440" height="920" style="font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;background:#f8fafc;">
+<svg viewBox="0 0 1440 920" xmlns="http://www.w3.org/2000/svg" width="1440" height="920" style="font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;background:transparent;">
   <defs>
+    <!-- Rounded clipping for whole illustration -->
+    <clipPath id="rounded-canvas">
+      <rect x="0" y="0" width="1440" height="920" rx="32" ry="32"/>
+    </clipPath>
+
+    <!-- Whole card shadow -->
+    <filter id="canvasShadow" x="-8%" y="-8%" width="116%" height="120%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#0f172a" flood-opacity="0.16"/>
+    </filter>
+
     <!-- Page background gradient -->
     <linearGradient id="pageBg" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#f8fafc"/>
@@ -56,480 +66,432 @@
     </marker>
   </defs>
 
-  <!-- ─── BACKGROUND ─── -->
-  <rect width="1440" height="920" fill="url(#pageBg)"/>
+  <!-- Outer elevated card -->
+  <g filter="url(#canvasShadow)">
+    <g clip-path="url(#rounded-canvas)">
+      <rect width="1440" height="920" fill="url(#pageBg)"/>
+      <rect x="1" y="1" width="1438" height="918" rx="31" ry="31" fill="none" stroke="#e2e8f0" stroke-width="1"/>
 
-  <!-- ─── HEADER ─── -->
-  <text x="720" y="40" text-anchor="middle" font-size="22" font-weight="700" fill="#0f172a" letter-spacing="-0.5">ProbablyFresh Analytics Platform</text>
-  <text x="720" y="60" text-anchor="middle" font-size="12" font-weight="400" fill="#64748b" letter-spacing="0.3">End-to-End Data Engineering Architecture</text>
-  <line x1="180" y1="72" x2="1260" y2="72" stroke="#e2e8f0" stroke-width="1"/>
+      <!-- ─── HEADER ─── -->
+      <text x="720" y="40" text-anchor="middle" font-size="22" font-weight="700" fill="#0f172a" letter-spacing="-0.5">ProbablyFresh Analytics Platform</text>
+      <text x="720" y="60" text-anchor="middle" font-size="12" font-weight="400" fill="#64748b" letter-spacing="0.3">End-to-End Data Engineering Architecture</text>
+      <line x1="180" y1="72" x2="1260" y2="72" stroke="#e2e8f0" stroke-width="1"/>
 
-  <!-- ═══════════════════════════════════ -->
-  <!-- ROW 1: CONTROL LAYER + ORCHESTRATION LAYER side by side -->
-  <!-- ═══════════════════════════════════ -->
+      <!-- ═══════════════════════════════════ -->
+      <!-- ROW 1: CONTROL LAYER + ORCHESTRATION LAYER side by side -->
+      <!-- ═══════════════════════════════════ -->
 
-  <!-- CONTROL LAYER zone -->
-  <rect x="22" y="82" width="680" height="185" rx="16" fill="url(#zoneControl)" stroke="#c7d2fe" stroke-width="1"/>
-  <text x="38" y="100" font-size="9.5" font-weight="600" fill="#6366f1" letter-spacing="1.5">CONTROL LAYER</text>
+      <!-- CONTROL LAYER zone -->
+      <rect x="22" y="82" width="680" height="185" rx="16" fill="url(#zoneControl)" stroke="#c7d2fe" stroke-width="1"/>
+      <text x="38" y="100" font-size="9.5" font-weight="600" fill="#6366f1" letter-spacing="1.5">CONTROL LAYER</text>
 
-  <!-- React UI card -->
-  <g filter="url(#cardShadowActive)">
-    <rect x="44" y="110" width="190" height="140" rx="14" fill="white" stroke="#e0e7ff" stroke-width="1"/>
-    <rect x="44" y="110" width="190" height="4" rx="2" fill="#4f46e5"/>
+      <!-- React UI card -->
+      <g filter="url(#cardShadowActive)">
+        <rect x="44" y="110" width="190" height="140" rx="14" fill="white" stroke="#e0e7ff" stroke-width="1"/>
+        <rect x="44" y="110" width="190" height="4" rx="2" fill="#4f46e5"/>
+      </g>
+      <g transform="translate(90,140)">
+        <circle cx="0" cy="0" r="4.5" fill="#4f46e5"/>
+        <ellipse cx="0" cy="0" rx="14" ry="5" fill="none" stroke="#a5b4fc" stroke-width="1.5"/>
+        <ellipse cx="0" cy="0" rx="14" ry="5" fill="none" stroke="#a5b4fc" stroke-width="1.5" transform="rotate(60)"/>
+        <ellipse cx="0" cy="0" rx="14" ry="5" fill="none" stroke="#a5b4fc" stroke-width="1.5" transform="rotate(120)"/>
+        <animateTransform attributeName="transform" type="rotate" from="0 90 140" to="360 90 140" dur="10s" repeatCount="indefinite"/>
+      </g>
+      <text x="139" y="136" font-size="13" font-weight="700" fill="#1e1b4b">React UI</text>
+      <text x="139" y="151" font-size="10" fill="#94a3b8">Control panel</text>
+      <text x="56" y="173" font-size="9" fill="#64748b">• Pipeline status</text>
+      <text x="56" y="187" font-size="9" fill="#64748b">• Metrics view</text>
+      <text x="56" y="201" font-size="9" fill="#64748b">• Job actions</text>
+      <rect x="56" y="215" width="60" height="18" rx="9" fill="#eef2ff"/>
+      <text x="86" y="227" text-anchor="middle" font-size="8" font-weight="600" fill="#4f46e5">● ACTIVE</text>
+
+      <!-- Django DRF card -->
+      <g filter="url(#cardShadowActive)">
+        <rect x="258" y="110" width="190" height="140" rx="14" fill="white" stroke="#e0e7ff" stroke-width="1"/>
+        <rect x="258" y="110" width="190" height="4" rx="2" fill="#0f172a"/>
+      </g>
+      <g transform="translate(300,143)">
+        <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f1f5f9"/>
+        <text x="0" y="7" text-anchor="middle" font-size="18" font-weight="800" fill="#0f172a">D</text>
+      </g>
+      <text x="330" y="136" font-size="13" font-weight="700" fill="#0f172a">Django DRF</text>
+      <text x="330" y="151" font-size="10" fill="#94a3b8">Backend API</text>
+      <text x="270" y="173" font-size="9" fill="#64748b">• REST endpoints</text>
+      <text x="270" y="187" font-size="9" fill="#64748b">• Pipeline status</text>
+      <text x="270" y="201" font-size="9" fill="#64748b">• Auth &amp; metrics</text>
+      <rect x="270" y="215" width="60" height="18" rx="9" fill="#f1f5f9"/>
+      <text x="300" y="227" text-anchor="middle" font-size="8" font-weight="600" fill="#475569">● READY</text>
+
+      <!-- ORCHESTRATION LAYER zone -->
+      <rect x="718" y="82" width="700" height="185" rx="16" fill="url(#zoneOrch)" stroke="#fed7aa" stroke-width="1"/>
+      <text x="734" y="100" font-size="9.5" font-weight="600" fill="#ea580c" letter-spacing="1.5">ORCHESTRATION LAYER  ·  independent scheduler</text>
+
+      <!-- Airflow card -->
+      <g filter="url(#cardShadowOrange)">
+        <rect x="738" y="110" width="660" height="140" rx="14" fill="white" stroke="#fed7aa" stroke-width="1"/>
+        <rect x="738" y="110" width="660" height="4" rx="2" fill="#f97316"/>
+      </g>
+      <g transform="translate(785,143)">
+        <rect x="-18" y="-16" width="36" height="36" rx="9" fill="#fff7ed"/>
+        <polygon points="0,-11 10,6 -10,6" fill="none" stroke="#f97316" stroke-width="2"/>
+        <circle cx="0" cy="0" r="3.5" fill="#f97316">
+          <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+      </g>
+      <text x="818" y="133" font-size="13" font-weight="700" fill="#7c2d12">Apache Airflow</text>
+      <text x="818" y="149" font-size="10" fill="#94a3b8">DAG: etl_to_s3_daily  ·  @daily</text>
+
+      <g transform="translate(745,162)">
+        <rect x="0" y="0" width="155" height="50" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1"/>
+        <text x="77" y="17" text-anchor="middle" font-size="8" font-weight="600" fill="#92400e">⏳  wait_clickhouse</text>
+        <text x="77" y="31" text-anchor="middle" font-size="8" fill="#b45309">sensor task</text>
+        <text x="77" y="44" text-anchor="middle" font-size="7" fill="#d97706">awaits CH data</text>
+
+        <line x1="155" y1="25" x2="175" y2="25" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+        <circle r="3" fill="#f97316" opacity="0.8">
+          <animateMotion dur="2.5s" repeatCount="indefinite" path="M 155,25 L 175,25"/>
+          <animate attributeName="opacity" values="0;1;0" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+
+        <rect x="177" y="0" width="155" height="50" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1"/>
+        <text x="254" y="17" text-anchor="middle" font-size="8" font-weight="600" fill="#92400e">⚡  run_etl</text>
+        <text x="254" y="31" text-anchor="middle" font-size="8" fill="#b45309">PySpark trigger</text>
+        <text x="254" y="44" text-anchor="middle" font-size="7" fill="#d97706">feature generation</text>
+
+        <line x1="332" y1="25" x2="352" y2="25" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+        <circle r="3" fill="#f97316" opacity="0.8">
+          <animateMotion dur="2.5s" begin="0.8s" repeatCount="indefinite" path="M 332,25 L 352,25"/>
+          <animate attributeName="opacity" values="0;1;0" dur="2.5s" begin="0.8s" repeatCount="indefinite"/>
+        </circle>
+
+        <rect x="354" y="0" width="155" height="50" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1"/>
+        <text x="431" y="17" text-anchor="middle" font-size="8" font-weight="600" fill="#92400e">✓  verify_s3</text>
+        <text x="431" y="31" text-anchor="middle" font-size="8" fill="#b45309">output check</text>
+        <text x="431" y="44" text-anchor="middle" font-size="7" fill="#d97706">confirms CSV export</text>
+
+        <circle r="3.5" fill="#f97316" opacity="0.6">
+          <animateMotion dur="4s" repeatCount="indefinite" path="M 0,25 L 510,25"/>
+          <animate attributeName="opacity" values="0;0.8;0" dur="4s" repeatCount="indefinite"/>
+        </circle>
+
+        <text x="530" y="20" font-size="8" fill="#d97706">independent</text>
+        <text x="530" y="32" font-size="8" fill="#d97706">scheduler</text>
+      </g>
+
+      <line x1="234" y1="180" x2="258" y2="180" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowPurple)"/>
+      <text x="246" y="173" text-anchor="middle" font-size="7.5" fill="#6366f1">API</text>
+      <circle r="2.5" fill="#6366f1">
+        <animateMotion dur="2s" repeatCount="indefinite" path="M 234,180 L 257,180"/>
+        <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"/>
+      </circle>
+
+      <!-- ═══════════════════════════════════ -->
+      <!-- ROW 2: DATA PIPELINE LAYER -->
+      <!-- ═══════════════════════════════════ -->
+      <rect x="22" y="287" width="1396" height="235" rx="16" fill="url(#zonePipeline)" stroke="#bae6fd" stroke-width="1"/>
+      <text x="38" y="306" font-size="9.5" font-weight="600" fill="#0369a1" letter-spacing="1.5">DATA PIPELINE LAYER</text>
+
+      <g filter="url(#cardShadow)">
+        <rect x="38" y="318" width="154" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="38" y="318" width="154" height="4" rx="2" fill="#64748b"/>
+      </g>
+      <g transform="translate(75,349)">
+        <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f8fafc"/>
+        <text x="0" y="7" text-anchor="middle" font-size="16" font-weight="700" fill="#334155">{}</text>
+      </g>
+      <text x="115" y="343" font-size="11" font-weight="700" fill="#1e293b">JSON</text>
+      <text x="115" y="357" font-size="10" fill="#94a3b8">Generator</text>
+      <text x="50" y="379" font-size="9" fill="#64748b">• Event source</text>
+      <text x="50" y="393" font-size="9" fill="#64748b">• Raw data files</text>
+      <rect x="50" y="475" width="10" height="10" rx="5" fill="#10b981"/>
+      <text x="66" y="484" font-size="8" fill="#64748b">producing</text>
+
+      <g filter="url(#cardShadow)">
+        <rect x="212" y="318" width="154" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="212" y="318" width="154" height="4" rx="2" fill="#16a34a"/>
+      </g>
+      <g transform="translate(246,349)">
+        <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f0fdf4"/>
+        <path d="M0,-11 C7,-5 8,2 0,14 C-8,2 -7,-5 0,-11 Z" fill="#16a34a" opacity="0.8"/>
+        <line x1="0" y1="-11" x2="0" y2="14" stroke="#15803d" stroke-width="1.2"/>
+      </g>
+      <text x="278" y="343" font-size="11" font-weight="700" fill="#1e293b">MongoDB</text>
+      <text x="278" y="357" font-size="10" fill="#94a3b8">Document store</text>
+      <text x="224" y="379" font-size="9" fill="#64748b">• Replica set</text>
+      <text x="224" y="393" font-size="9" fill="#64748b">• Change streams</text>
+      <rect x="224" y="475" width="10" height="10" rx="5" fill="#10b981"/>
+      <text x="240" y="484" font-size="8" fill="#64748b">primary</text>
+
+      <g filter="url(#cardShadow)">
+        <rect x="386" y="318" width="154" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="386" y="318" width="154" height="4" rx="2" fill="#7c3aed"/>
+      </g>
+      <g transform="translate(420,349)">
+        <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#faf5ff"/>
+        <path d="M-10,4 Q-4,-6 2,4 Q8,-6 14,4" fill="none" stroke="#7c3aed" stroke-width="2"/>
+        <path d="M-10,-2 Q-4,-12 2,-2 Q8,-12 14,-2" fill="none" stroke="#a78bfa" stroke-width="1.2" opacity="0.5"/>
+      </g>
+      <text x="452" y="343" font-size="11" font-weight="700" fill="#1e293b">Kafka</text>
+      <text x="452" y="357" font-size="10" fill="#94a3b8">Event streaming</text>
+      <text x="398" y="379" font-size="9" fill="#64748b">• Topics: events</text>
+      <text x="398" y="393" font-size="9" fill="#64748b">• Partitions: 8</text>
+      <rect x="398" y="475" width="10" height="10" rx="5" fill="#10b981"/>
+      <text x="414" y="484" font-size="8" fill="#64748b">streaming</text>
+
+      <g filter="url(#cardShadow)">
+        <rect x="560" y="318" width="170" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="560" y="318" width="170" height="4" rx="2" fill="#0284c7"/>
+      </g>
+      <g transform="translate(596,349)">
+        <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f0f9ff"/>
+        <rect x="-10" y="-10" width="7" height="20" rx="2" fill="#0284c7"/>
+        <rect x="-1" y="-10" width="7" height="20" rx="2" fill="#38bdf8" opacity="0.6"/>
+        <rect x="8" y="-10" width="7" height="20" rx="2" fill="#7dd3fc" opacity="0.4"/>
+      </g>
+      <text x="628" y="343" font-size="11" font-weight="700" fill="#1e293b">ClickHouse</text>
+      <text x="628" y="357" font-size="10" fill="#0284c7">RAW</text>
+      <text x="572" y="379" font-size="9" fill="#64748b">• Raw storage</text>
+      <text x="572" y="393" font-size="9" fill="#64748b">• MergeTree engine</text>
+      <rect x="572" y="475" width="10" height="10" rx="5" fill="#10b981"/>
+      <text x="588" y="484" font-size="8" fill="#64748b">ingesting</text>
+
+      <g filter="url(#cardShadow)">
+        <rect x="750" y="318" width="170" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="750" y="318" width="170" height="4" rx="2" fill="#0369a1"/>
+      </g>
+      <g transform="translate(786,349)">
+        <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f0f9ff"/>
+        <rect x="-10" y="-4" width="7" height="14" rx="2" fill="#0369a1"/>
+        <rect x="-1" y="-10" width="7" height="20" rx="2" fill="#0284c7" opacity="0.7"/>
+        <rect x="8" y="-7" width="7" height="17" rx="2" fill="#38bdf8" opacity="0.5"/>
+      </g>
+      <text x="818" y="343" font-size="11" font-weight="700" fill="#1e293b">ClickHouse</text>
+      <text x="818" y="357" font-size="10" fill="#0369a1">MART</text>
+      <text x="762" y="379" font-size="9" fill="#64748b">• Clean analytics layer</text>
+      <text x="762" y="393" font-size="9" fill="#64748b">• Aggregations</text>
+      <rect x="762" y="475" width="10" height="10" rx="5" fill="#10b981"/>
+      <text x="778" y="484" font-size="8" fill="#64748b">aggregating</text>
+
+      <g filter="url(#cardShadow)">
+        <rect x="940" y="318" width="162" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="940" y="318" width="162" height="4" rx="2" fill="#ea580c"/>
+      </g>
+      <g transform="translate(974,349)">
+        <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#fff7ed"/>
+        <path d="M6,-12 L-3,0 L3,0 L-6,12 L3,2 L-3,2 Z" fill="#ea580c"/>
+      </g>
+      <text x="1010" y="343" font-size="11" font-weight="700" fill="#1e293b">PySpark</text>
+      <text x="1010" y="357" font-size="10" fill="#94a3b8">Feature ETL</text>
+      <text x="952" y="379" font-size="9" fill="#64748b">• ETL transforms</text>
+      <text x="952" y="393" font-size="9" fill="#64748b">• Feature generation</text>
+      <rect x="952" y="475" width="10" height="10" rx="5" fill="#f97316" opacity="0.7"/>
+      <text x="968" y="484" font-size="8" fill="#64748b">processing</text>
+
+      <g filter="url(#cardShadow)">
+        <rect x="1122" y="318" width="276" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="1122" y="318" width="276" height="4" rx="2" fill="#65a30d"/>
+      </g>
+      <g transform="translate(1158,349)">
+        <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f7fee7"/>
+        <ellipse cx="0" cy="-7" rx="12" ry="5" fill="none" stroke="#65a30d" stroke-width="1.5"/>
+        <path d="M-12,-7 L-12,7 Q0,14 12,7 L12,-7" fill="none" stroke="#65a30d" stroke-width="1.5"/>
+        <text x="0" y="3" text-anchor="middle" font-size="7" font-weight="700" fill="#65a30d">S3</text>
+      </g>
+      <text x="1190" y="343" font-size="11" font-weight="700" fill="#1e293b">S3 Object Storage</text>
+      <text x="1190" y="357" font-size="10" fill="#94a3b8">CSV export</text>
+      <text x="1134" y="379" font-size="9" fill="#64748b">• analytic_result_YYYY_MM_DD.csv</text>
+      <text x="1134" y="393" font-size="9" fill="#64748b">• Versioned datasets</text>
+      <text x="1134" y="408" font-size="9" fill="#64748b">• Parquet / Delta Lake</text>
+      <rect x="1134" y="475" width="10" height="10" rx="5" fill="#10b981"/>
+      <text x="1150" y="484" font-size="8" fill="#64748b">storing</text>
+
+      <line x1="192" y1="410" x2="212" y2="410" stroke="#334155" stroke-width="1.5" marker-end="url(#arrowNavy)"/>
+      <circle r="2.5" fill="#475569">
+        <animateMotion dur="1.4s" repeatCount="indefinite" path="M 192,410 L 211,410"/>
+        <animate attributeName="opacity" values="0;1;0" dur="1.4s" repeatCount="indefinite"/>
+      </circle>
+
+      <line x1="366" y1="410" x2="386" y2="410" stroke="#334155" stroke-width="1.5" marker-end="url(#arrowNavy)"/>
+      <circle r="2.5" fill="#475569">
+        <animateMotion dur="1.4s" begin="0.2s" repeatCount="indefinite" path="M 366,410 L 385,410"/>
+        <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.2s" repeatCount="indefinite"/>
+      </circle>
+
+      <line x1="540" y1="410" x2="560" y2="410" stroke="#334155" stroke-width="1.5" marker-end="url(#arrowNavy)"/>
+      <circle r="2.5" fill="#475569">
+        <animateMotion dur="1.4s" begin="0.4s" repeatCount="indefinite" path="M 540,410 L 559,410"/>
+        <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.4s" repeatCount="indefinite"/>
+      </circle>
+
+      <line x1="730" y1="410" x2="750" y2="410" stroke="#334155" stroke-width="1.5" marker-end="url(#arrowNavy)"/>
+      <circle r="2.5" fill="#475569">
+        <animateMotion dur="1.4s" begin="0.6s" repeatCount="indefinite" path="M 730,410 L 749,410"/>
+        <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.6s" repeatCount="indefinite"/>
+      </circle>
+
+      <line x1="920" y1="410" x2="940" y2="410" stroke="#334155" stroke-width="1.5" marker-end="url(#arrowNavy)"/>
+      <circle r="2.5" fill="#475569">
+        <animateMotion dur="1.4s" begin="0.8s" repeatCount="indefinite" path="M 920,410 L 939,410"/>
+        <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.8s" repeatCount="indefinite"/>
+      </circle>
+
+      <line x1="1102" y1="410" x2="1122" y2="410" stroke="#334155" stroke-width="1.5" marker-end="url(#arrowNavy)"/>
+      <circle r="2.5" fill="#475569">
+        <animateMotion dur="1.4s" begin="1.0s" repeatCount="indefinite" path="M 1102,410 L 1121,410"/>
+        <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="1.0s" repeatCount="indefinite"/>
+      </circle>
+      <circle r="2" fill="#65a30d">
+        <animateMotion dur="1.4s" begin="1.4s" repeatCount="indefinite" path="M 1102,410 L 1121,410"/>
+        <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="1.4s" repeatCount="indefinite"/>
+      </circle>
+
+      <path d="M 985,267 L 985,290 L 1021,290 L 1021,318" stroke="#f97316" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arrowOrange)"/>
+      <text x="1006" y="285" text-anchor="middle" font-size="8" fill="#ea580c">run_etl</text>
+      <circle r="2.5" fill="#f97316">
+        <animateMotion dur="2s" repeatCount="indefinite" path="M 985,267 L 985,290 L 1021,290 L 1021,318"/>
+        <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"/>
+      </circle>
+
+      <path d="M 1200,267 L 1200,290 L 1260,290 L 1260,318" stroke="#f97316" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowOrange)" opacity="0.7"/>
+      <text x="1240" y="285" text-anchor="middle" font-size="8" fill="#ea580c">verify_s3</text>
+      <circle r="2" fill="#f97316">
+        <animateMotion dur="2.5s" begin="1s" repeatCount="indefinite" path="M 1200,267 L 1200,290 L 1260,290 L 1260,318"/>
+        <animate attributeName="opacity" values="0;1;0" dur="2.5s" begin="1s" repeatCount="indefinite"/>
+      </circle>
+
+      <path d="M 835,318 L 835,280 L 448,280 L 448,267" stroke="#6366f1" stroke-width="1" stroke-dasharray="4,4" fill="none" marker-end="url(#arrowPurple)" opacity="0.5"/>
+      <text x="640" y="277" text-anchor="middle" font-size="8" fill="#6366f1" opacity="0.7">pipeline status</text>
+
+      <!-- ═══════════════════════════════════ -->
+      <!-- ROW 3: OBSERVABILITY LAYER -->
+      <!-- ═══════════════════════════════════ -->
+      <rect x="22" y="545" width="1396" height="175" rx="16" fill="url(#zoneObs)" stroke="#bbf7d0" stroke-width="1"/>
+      <text x="38" y="563" font-size="9.5" font-weight="600" fill="#059669" letter-spacing="1.5">OBSERVABILITY LAYER</text>
+
+      <g filter="url(#cardShadowGreen)">
+        <rect x="200" y="575" width="420" height="120" rx="14" fill="white" stroke="#d1fae5" stroke-width="1"/>
+        <rect x="200" y="575" width="420" height="4" rx="2" fill="#10b981"/>
+      </g>
+      <g transform="translate(248,612)">
+        <rect x="-18" y="-18" width="36" height="36" rx="9" fill="#f0fdf4"/>
+        <circle cx="0" cy="0" r="12" fill="none" stroke="#10b981" stroke-width="2"/>
+        <path d="M-12,0 L0,0 L0,-12" fill="none" stroke="#10b981" stroke-width="2.5"/>
+        <circle cx="0" cy="0" r="3.5" fill="#10b981"/>
+      </g>
+      <text x="300" y="600" font-size="13" font-weight="700" fill="#064e3b">Grafana</text>
+      <text x="300" y="616" font-size="10" fill="#94a3b8">Dashboards · Alerting</text>
+      <g transform="translate(230,628)">
+        <rect x="0" y="10" width="10" height="22" rx="2" fill="#10b981" opacity="0.7"/>
+        <rect x="14" y="18" width="10" height="14" rx="2" fill="#10b981" opacity="0.5"/>
+        <rect x="28" y="14" width="10" height="18" rx="2" fill="#10b981" opacity="0.6"/>
+        <rect x="42" y="6" width="10" height="26" rx="2" fill="#10b981" opacity="0.8"/>
+        <rect x="56" y="10" width="10" height="22" rx="2" fill="#10b981" opacity="0.6"/>
+        <rect x="70" y="16" width="10" height="16" rx="2" fill="#10b981" opacity="0.5"/>
+      </g>
+      <text x="340" y="648" font-size="9" fill="#64748b">ClickHouse · Airflow · Pipeline metrics</text>
+      <rect x="490" y="630" width="10" height="10" rx="5" fill="#10b981"/>
+      <text x="506" y="639" font-size="8" fill="#64748b">all systems nominal</text>
+
+      <g filter="url(#cardShadowGreen)">
+        <rect x="700" y="575" width="340" height="120" rx="14" fill="white" stroke="#d1fae5" stroke-width="1"/>
+        <rect x="700" y="575" width="340" height="4" rx="2" fill="#0284c7"/>
+      </g>
+      <g transform="translate(742,612)">
+        <rect x="-18" y="-18" width="36" height="36" rx="9" fill="#f0f9ff"/>
+        <circle cx="0" cy="0" r="12" fill="#0284c7" opacity="0.15"/>
+        <path d="M-10,2 L10,-5 L3,2 L10,9 Z" fill="#0284c7"/>
+        <path d="M3,2 L5,9 L-1,5 Z" fill="#0369a1"/>
+      </g>
+      <text x="786" y="600" font-size="13" font-weight="700" fill="#0c4a6e">Telegram Alerts</text>
+      <text x="786" y="616" font-size="10" fill="#94a3b8">Bot notifications</text>
+      <g transform="translate(710,626)">
+        <rect x="0" y="0" width="300" height="34" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="8" y="8" width="18" height="18" rx="9" fill="#0284c7" opacity="0.15"/>
+        <text x="17" y="21" text-anchor="middle" font-size="10" fill="#0284c7">✈</text>
+        <text x="140" y="15" text-anchor="middle" font-size="8" font-weight="600" fill="#1e293b">⚠ etl_to_s3_daily completed</text>
+        <text x="140" y="27" text-anchor="middle" font-size="7.5" fill="#64748b">analytic_result_2025_01_15.csv  ·  just now</text>
+      </g>
+
+      <path d="M 835,503 L 835,527 L 410,527 L 410,575" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arrowGreen)"/>
+      <text x="622" y="524" text-anchor="middle" font-size="8" fill="#059669">metrics</text>
+      <circle r="2.5" fill="#10b981">
+        <animateMotion dur="3s" begin="0.5s" repeatCount="indefinite" path="M 835,503 L 835,527 L 410,527 L 410,575"/>
+        <animate attributeName="opacity" values="0;1;0" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+      </circle>
+
+      <path d="M 870,267 L 870,527 L 410,527" stroke="#10b981" stroke-width="1" stroke-dasharray="4,4" fill="none" opacity="0.45"/>
+      <text x="640" y="520" text-anchor="middle" font-size="7.5" fill="#059669" opacity="0.6">airflow metrics</text>
+
+      <line x1="620" y1="634" x2="700" y2="634" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowGreen)"/>
+      <text x="660" y="627" text-anchor="middle" font-size="8" fill="#059669">alerts</text>
+      <circle r="2.5" fill="#10b981">
+        <animateMotion dur="2s" repeatCount="indefinite" path="M 620,634 L 699,634"/>
+        <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"/>
+      </circle>
+
+      <!-- Footer -->
+      <rect x="440" y="748" width="560" height="48" rx="10" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="720" y="762" text-anchor="middle" font-size="8" font-weight="600" fill="#94a3b8" letter-spacing="2">LEGEND</text>
+
+      <line x1="508" y1="781" x2="538" y2="781" stroke="#334155" stroke-width="1.5"/>
+      <circle r="3" fill="#334155" cx="523" cy="781"/>
+      <text x="546" y="785" font-size="9" fill="#475569">Data Flow</text>
+
+      <line x1="634" y1="781" x2="664" y2="781" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <text x="672" y="785" font-size="9" fill="#475569">Control Flow</text>
+
+      <line x1="773" y1="781" x2="803" y2="781" stroke="#f97316" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <text x="811" y="785" font-size="9" fill="#475569">Orchestration</text>
+
+      <line x1="918" y1="781" x2="948" y2="781" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <text x="956" y="785" font-size="9" fill="#475569">Observability</text>
+
+      <rect x="388" y="812" width="664" height="48" rx="10" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="720" y="826" text-anchor="middle" font-size="8" font-weight="600" fill="#94a3b8" letter-spacing="2">STACK</text>
+
+      <g transform="translate(400,832)">
+        <rect x="0" y="0" width="52" height="22" rx="11" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+        <text x="26" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#334155">Python</text>
+      </g>
+      <g transform="translate(460,832)">
+        <rect x="0" y="0" width="52" height="22" rx="11" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+        <text x="26" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#334155">Docker</text>
+      </g>
+      <g transform="translate(520,832)">
+        <rect x="0" y="0" width="46" height="22" rx="11" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1"/>
+        <text x="23" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#4f46e5">React</text>
+      </g>
+      <g transform="translate(574,832)">
+        <rect x="0" y="0" width="52" height="22" rx="11" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+        <text x="26" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#15803d">Django</text>
+      </g>
+      <g transform="translate(634,832)">
+        <rect x="0" y="0" width="46" height="22" rx="11" fill="#fff7ed" stroke="#fed7aa" stroke-width="1"/>
+        <text x="23" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#ea580c">Spark</text>
+      </g>
+      <g transform="translate(688,832)">
+        <rect x="0" y="0" width="76" height="22" rx="11" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1"/>
+        <text x="38" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#0369a1">ClickHouse</text>
+      </g>
+      <g transform="translate(772,832)">
+        <rect x="0" y="0" width="56" height="22" rx="11" fill="#fff7ed" stroke="#fed7aa" stroke-width="1"/>
+        <text x="28" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#c2410c">Airflow</text>
+      </g>
+      <g transform="translate(836,832)">
+        <rect x="0" y="0" width="46" height="22" rx="11" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1"/>
+        <text x="23" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#7c3aed">Kafka</text>
+      </g>
+      <g transform="translate(890,832)">
+        <rect x="0" y="0" width="62" height="22" rx="11" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+        <text x="31" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#15803d">MongoDB</text>
+      </g>
+      <g transform="translate(960,832)">
+        <rect x="0" y="0" width="36" height="22" rx="11" fill="#fdf4ff" stroke="#f0abfc" stroke-width="1"/>
+        <text x="18" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#a21caf">SQL</text>
+      </g>
+
+      <text x="720" y="886" text-anchor="middle" font-size="8" fill="#94a3b8">ProbablyFresh Analytics Platform · Architecture v2.0</text>
+      <text x="720" y="900" text-anchor="middle" font-size="7.5" fill="#cbd5e1">JSON → MongoDB → Kafka → ClickHouse → PySpark → S3</text>
+    </g>
   </g>
-  <!-- React atom icon -->
-  <g transform="translate(90,140)">
-    <circle cx="0" cy="0" r="4.5" fill="#4f46e5"/>
-    <ellipse cx="0" cy="0" rx="14" ry="5" fill="none" stroke="#a5b4fc" stroke-width="1.5"/>
-    <ellipse cx="0" cy="0" rx="14" ry="5" fill="none" stroke="#a5b4fc" stroke-width="1.5" transform="rotate(60)"/>
-    <ellipse cx="0" cy="0" rx="14" ry="5" fill="none" stroke="#a5b4fc" stroke-width="1.5" transform="rotate(120)"/>
-    <animateTransform attributeName="transform" type="rotate" from="0 90 140" to="360 90 140" dur="10s" repeatCount="indefinite"/>
-  </g>
-  <text x="139" y="136" font-size="13" font-weight="700" fill="#1e1b4b">React UI</text>
-  <text x="139" y="151" font-size="10" fill="#94a3b8">Control panel</text>
-  <text x="56" y="173" font-size="9" fill="#64748b">• Pipeline status</text>
-  <text x="56" y="187" font-size="9" fill="#64748b">• Metrics view</text>
-  <text x="56" y="201" font-size="9" fill="#64748b">• Job actions</text>
-  <rect x="56" y="215" width="60" height="18" rx="9" fill="#eef2ff"/>
-  <text x="86" y="227" text-anchor="middle" font-size="8" font-weight="600" fill="#4f46e5">● ACTIVE</text>
-
-  <!-- Django DRF card -->
-  <g filter="url(#cardShadowActive)">
-    <rect x="258" y="110" width="190" height="140" rx="14" fill="white" stroke="#e0e7ff" stroke-width="1"/>
-    <rect x="258" y="110" width="190" height="4" rx="2" fill="#0f172a"/>
-  </g>
-  <!-- Django D icon -->
-  <g transform="translate(300,143)">
-    <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f1f5f9"/>
-    <text x="0" y="7" text-anchor="middle" font-size="18" font-weight="800" fill="#0f172a">D</text>
-  </g>
-  <text x="330" y="136" font-size="13" font-weight="700" fill="#0f172a">Django DRF</text>
-  <text x="330" y="151" font-size="10" fill="#94a3b8">Backend API</text>
-  <text x="270" y="173" font-size="9" fill="#64748b">• REST endpoints</text>
-  <text x="270" y="187" font-size="9" fill="#64748b">• Pipeline status</text>
-  <text x="270" y="201" font-size="9" fill="#64748b">• Auth &amp; metrics</text>
-  <rect x="270" y="215" width="60" height="18" rx="9" fill="#f1f5f9"/>
-  <text x="300" y="227" text-anchor="middle" font-size="8" font-weight="600" fill="#475569">● READY</text>
-
-  <!-- ORCHESTRATION LAYER zone -->
-  <rect x="718" y="82" width="700" height="185" rx="16" fill="url(#zoneOrch)" stroke="#fed7aa" stroke-width="1"/>
-  <text x="734" y="100" font-size="9.5" font-weight="600" fill="#ea580c" letter-spacing="1.5">ORCHESTRATION LAYER  ·  independent scheduler</text>
-
-  <!-- Airflow card - wide -->
-  <g filter="url(#cardShadowOrange)">
-    <rect x="738" y="110" width="660" height="140" rx="14" fill="white" stroke="#fed7aa" stroke-width="1"/>
-    <rect x="738" y="110" width="660" height="4" rx="2" fill="#f97316"/>
-  </g>
-  <!-- Airflow triangle icon -->
-  <g transform="translate(785,143)">
-    <rect x="-18" y="-16" width="36" height="36" rx="9" fill="#fff7ed"/>
-    <polygon points="0,-11 10,6 -10,6" fill="none" stroke="#f97316" stroke-width="2"/>
-    <circle cx="0" cy="0" r="3.5" fill="#f97316">
-      <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite"/>
-    </circle>
-  </g>
-  <text x="818" y="133" font-size="13" font-weight="700" fill="#7c2d12">Apache Airflow</text>
-  <text x="818" y="149" font-size="10" fill="#94a3b8">DAG: etl_to_s3_daily  ·  @daily</text>
-
-  <!-- DAG task pills -->
-  <g transform="translate(745,162)">
-    <!-- wait_clickhouse -->
-    <rect x="0" y="0" width="155" height="50" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1"/>
-    <text x="77" y="17" text-anchor="middle" font-size="8" font-weight="600" fill="#92400e">⏳  wait_clickhouse</text>
-    <text x="77" y="31" text-anchor="middle" font-size="8" fill="#b45309">sensor task</text>
-    <text x="77" y="44" text-anchor="middle" font-size="7" fill="#d97706">awaits CH data</text>
-
-    <!-- arrow -->
-    <line x1="155" y1="25" x2="175" y2="25" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
-    <!-- flow dot -->
-    <circle r="3" fill="#f97316" opacity="0.8">
-      <animateMotion dur="2.5s" repeatCount="indefinite" path="M 155,25 L 175,25"/>
-      <animate attributeName="opacity" values="0;1;0" dur="2.5s" repeatCount="indefinite"/>
-    </circle>
-
-    <!-- run_etl -->
-    <rect x="177" y="0" width="155" height="50" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1"/>
-    <text x="254" y="17" text-anchor="middle" font-size="8" font-weight="600" fill="#92400e">⚡  run_etl</text>
-    <text x="254" y="31" text-anchor="middle" font-size="8" fill="#b45309">PySpark trigger</text>
-    <text x="254" y="44" text-anchor="middle" font-size="7" fill="#d97706">feature generation</text>
-
-    <!-- arrow -->
-    <line x1="332" y1="25" x2="352" y2="25" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
-    <circle r="3" fill="#f97316" opacity="0.8">
-      <animateMotion dur="2.5s" begin="0.8s" repeatCount="indefinite" path="M 332,25 L 352,25"/>
-      <animate attributeName="opacity" values="0;1;0" dur="2.5s" begin="0.8s" repeatCount="indefinite"/>
-    </circle>
-
-    <!-- verify_s3 -->
-    <rect x="354" y="0" width="155" height="50" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1"/>
-    <text x="431" y="17" text-anchor="middle" font-size="8" font-weight="600" fill="#92400e">✓  verify_s3</text>
-    <text x="431" y="31" text-anchor="middle" font-size="8" fill="#b45309">output check</text>
-    <text x="431" y="44" text-anchor="middle" font-size="7" fill="#d97706">confirms CSV export</text>
-
-    <!-- DAG through-particle -->
-    <circle r="3.5" fill="#f97316" opacity="0.6">
-      <animateMotion dur="4s" repeatCount="indefinite" path="M 0,25 L 510,25"/>
-      <animate attributeName="opacity" values="0;0.8;0" dur="4s" repeatCount="indefinite"/>
-    </circle>
-
-    <!-- label -->
-    <text x="530" y="20" font-size="8" fill="#d97706">independent</text>
-    <text x="530" y="32" font-size="8" fill="#d97706">scheduler</text>
-  </g>
-
-  <!-- Control arrow: React → Django -->
-  <line x1="234" y1="180" x2="258" y2="180" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowPurple)"/>
-  <text x="246" y="173" text-anchor="middle" font-size="7.5" fill="#6366f1">API</text>
-  <circle r="2.5" fill="#6366f1">
-    <animateMotion dur="2s" repeatCount="indefinite" path="M 234,180 L 257,180"/>
-    <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- ═══════════════════════════════════ -->
-  <!-- ROW 2: DATA PIPELINE LAYER -->
-  <!-- ═══════════════════════════════════ -->
-  <rect x="22" y="287" width="1396" height="235" rx="16" fill="url(#zonePipeline)" stroke="#bae6fd" stroke-width="1"/>
-  <text x="38" y="306" font-size="9.5" font-weight="600" fill="#0369a1" letter-spacing="1.5">DATA PIPELINE LAYER</text>
-
-  <!-- JSON Generator card -->
-  <g filter="url(#cardShadow)">
-    <rect x="38" y="318" width="154" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
-    <rect x="38" y="318" width="154" height="4" rx="2" fill="#64748b"/>
-  </g>
-  <g transform="translate(75,349)">
-    <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f8fafc"/>
-    <text x="0" y="7" text-anchor="middle" font-size="16" font-weight="700" fill="#334155">{}</text>
-  </g>
-  <text x="115" y="343" font-size="11" font-weight="700" fill="#1e293b">JSON</text>
-  <text x="115" y="357" font-size="10" fill="#94a3b8">Generator</text>
-  <text x="50" y="379" font-size="9" fill="#64748b">• Event source</text>
-  <text x="50" y="393" font-size="9" fill="#64748b">• Raw data files</text>
-  <rect x="50" y="475" width="10" height="10" rx="5" fill="#10b981"/>
-  <text x="66" y="484" font-size="8" fill="#64748b">producing</text>
-
-  <!-- MongoDB card -->
-  <g filter="url(#cardShadow)">
-    <rect x="212" y="318" width="154" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
-    <rect x="212" y="318" width="154" height="4" rx="2" fill="#16a34a"/>
-  </g>
-  <g transform="translate(246,349)">
-    <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f0fdf4"/>
-    <path d="M0,-11 C7,-5 8,2 0,14 C-8,2 -7,-5 0,-11 Z" fill="#16a34a" opacity="0.8"/>
-    <line x1="0" y1="-11" x2="0" y2="14" stroke="#15803d" stroke-width="1.2"/>
-  </g>
-  <text x="278" y="343" font-size="11" font-weight="700" fill="#1e293b">MongoDB</text>
-  <text x="278" y="357" font-size="10" fill="#94a3b8">Document store</text>
-  <text x="224" y="379" font-size="9" fill="#64748b">• Replica set</text>
-  <text x="224" y="393" font-size="9" fill="#64748b">• Change streams</text>
-  <rect x="224" y="475" width="10" height="10" rx="5" fill="#10b981"/>
-  <text x="240" y="484" font-size="8" fill="#64748b">primary</text>
-
-  <!-- Kafka card -->
-  <g filter="url(#cardShadow)">
-    <rect x="386" y="318" width="154" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
-    <rect x="386" y="318" width="154" height="4" rx="2" fill="#7c3aed"/>
-  </g>
-  <g transform="translate(420,349)">
-    <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#faf5ff"/>
-    <path d="M-10,4 Q-4,-6 2,4 Q8,-6 14,4" fill="none" stroke="#7c3aed" stroke-width="2"/>
-    <path d="M-10,-2 Q-4,-12 2,-2 Q8,-12 14,-2" fill="none" stroke="#a78bfa" stroke-width="1.2" opacity="0.5"/>
-  </g>
-  <text x="452" y="343" font-size="11" font-weight="700" fill="#1e293b">Kafka</text>
-  <text x="452" y="357" font-size="10" fill="#94a3b8">Event streaming</text>
-  <text x="398" y="379" font-size="9" fill="#64748b">• Topics: events</text>
-  <text x="398" y="393" font-size="9" fill="#64748b">• Partitions: 8</text>
-  <rect x="398" y="475" width="10" height="10" rx="5" fill="#10b981"/>
-  <text x="414" y="484" font-size="8" fill="#64748b">streaming</text>
-
-  <!-- ClickHouse RAW card -->
-  <g filter="url(#cardShadow)">
-    <rect x="560" y="318" width="170" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
-    <rect x="560" y="318" width="170" height="4" rx="2" fill="#0284c7"/>
-  </g>
-  <g transform="translate(596,349)">
-    <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f0f9ff"/>
-    <rect x="-10" y="-10" width="7" height="20" rx="2" fill="#0284c7"/>
-    <rect x="-1" y="-10" width="7" height="20" rx="2" fill="#38bdf8" opacity="0.6"/>
-    <rect x="8" y="-10" width="7" height="20" rx="2" fill="#7dd3fc" opacity="0.4"/>
-  </g>
-  <text x="628" y="343" font-size="11" font-weight="700" fill="#1e293b">ClickHouse</text>
-  <text x="628" y="357" font-size="10" fill="#0284c7">RAW</text>
-  <text x="572" y="379" font-size="9" fill="#64748b">• Raw storage</text>
-  <text x="572" y="393" font-size="9" fill="#64748b">• MergeTree engine</text>
-  <rect x="572" y="475" width="10" height="10" rx="5" fill="#10b981"/>
-  <text x="588" y="484" font-size="8" fill="#64748b">ingesting</text>
-
-  <!-- ClickHouse MART card -->
-  <g filter="url(#cardShadow)">
-    <rect x="750" y="318" width="170" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
-    <rect x="750" y="318" width="170" height="4" rx="2" fill="#0369a1"/>
-  </g>
-  <g transform="translate(786,349)">
-    <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f0f9ff"/>
-    <rect x="-10" y="-4" width="7" height="14" rx="2" fill="#0369a1"/>
-    <rect x="-1" y="-10" width="7" height="20" rx="2" fill="#0284c7" opacity="0.7"/>
-    <rect x="8" y="-7" width="7" height="17" rx="2" fill="#38bdf8" opacity="0.5"/>
-  </g>
-  <text x="818" y="343" font-size="11" font-weight="700" fill="#1e293b">ClickHouse</text>
-  <text x="818" y="357" font-size="10" fill="#0369a1">MART</text>
-  <text x="762" y="379" font-size="9" fill="#64748b">• Clean analytics layer</text>
-  <text x="762" y="393" font-size="9" fill="#64748b">• Aggregations</text>
-  <rect x="762" y="475" width="10" height="10" rx="5" fill="#10b981"/>
-  <text x="778" y="484" font-size="8" fill="#64748b">aggregating</text>
-
-  <!-- PySpark card -->
-  <g filter="url(#cardShadow)">
-    <rect x="940" y="318" width="162" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
-    <rect x="940" y="318" width="162" height="4" rx="2" fill="#ea580c"/>
-  </g>
-  <g transform="translate(974,349)">
-    <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#fff7ed"/>
-    <path d="M6,-12 L-3,0 L3,0 L-6,12 L3,2 L-3,2 Z" fill="#ea580c"/>
-  </g>
-  <text x="1010" y="343" font-size="11" font-weight="700" fill="#1e293b">PySpark</text>
-  <text x="1010" y="357" font-size="10" fill="#94a3b8">Feature ETL</text>
-  <text x="952" y="379" font-size="9" fill="#64748b">• ETL transforms</text>
-  <text x="952" y="393" font-size="9" fill="#64748b">• Feature generation</text>
-  <rect x="952" y="475" width="10" height="10" rx="5" fill="#f97316" opacity="0.7"/>
-  <text x="968" y="484" font-size="8" fill="#64748b">processing</text>
-
-  <!-- S3 card -->
-  <g filter="url(#cardShadow)">
-    <rect x="1122" y="318" width="276" height="185" rx="14" fill="white" stroke="#e2e8f0" stroke-width="1"/>
-    <rect x="1122" y="318" width="276" height="4" rx="2" fill="#65a30d"/>
-  </g>
-  <g transform="translate(1158,349)">
-    <rect x="-16" y="-16" width="32" height="32" rx="8" fill="#f7fee7"/>
-    <ellipse cx="0" cy="-7" rx="12" ry="5" fill="none" stroke="#65a30d" stroke-width="1.5"/>
-    <path d="M-12,-7 L-12,7 Q0,14 12,7 L12,-7" fill="none" stroke="#65a30d" stroke-width="1.5"/>
-    <text x="0" y="3" text-anchor="middle" font-size="7" font-weight="700" fill="#65a30d">S3</text>
-  </g>
-  <text x="1190" y="343" font-size="11" font-weight="700" fill="#1e293b">S3 Object Storage</text>
-  <text x="1190" y="357" font-size="10" fill="#94a3b8">CSV export</text>
-  <text x="1134" y="379" font-size="9" fill="#64748b">• analytic_result_YYYY_MM_DD.csv</text>
-  <text x="1134" y="393" font-size="9" fill="#64748b">• Versioned datasets</text>
-  <text x="1134" y="408" font-size="9" fill="#64748b">• Parquet / Delta Lake</text>
-  <rect x="1134" y="475" width="10" height="10" rx="5" fill="#10b981"/>
-  <text x="1150" y="484" font-size="8" fill="#64748b">storing</text>
-
-  <!-- ─── PIPELINE DATA FLOW ARROWS ─── -->
-  <!-- JSON → MongoDB -->
-  <line x1="192" y1="410" x2="212" y2="410" stroke="#334155" stroke-width="1.5" marker-end="url(#arrowNavy)"/>
-  <circle r="2.5" fill="#475569">
-    <animateMotion dur="1.4s" repeatCount="indefinite" path="M 192,410 L 211,410"/>
-    <animate attributeName="opacity" values="0;1;0" dur="1.4s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- MongoDB → Kafka -->
-  <line x1="366" y1="410" x2="386" y2="410" stroke="#334155" stroke-width="1.5" marker-end="url(#arrowNavy)"/>
-  <circle r="2.5" fill="#475569">
-    <animateMotion dur="1.4s" begin="0.2s" repeatCount="indefinite" path="M 366,410 L 385,410"/>
-    <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.2s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- Kafka → CH RAW -->
-  <line x1="540" y1="410" x2="560" y2="410" stroke="#334155" stroke-width="1.5" marker-end="url(#arrowNavy)"/>
-  <circle r="2.5" fill="#475569">
-    <animateMotion dur="1.4s" begin="0.4s" repeatCount="indefinite" path="M 540,410 L 559,410"/>
-    <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.4s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- CH RAW → CH MART -->
-  <line x1="730" y1="410" x2="750" y2="410" stroke="#334155" stroke-width="1.5" marker-end="url(#arrowNavy)"/>
-  <circle r="2.5" fill="#475569">
-    <animateMotion dur="1.4s" begin="0.6s" repeatCount="indefinite" path="M 730,410 L 749,410"/>
-    <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.6s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- CH MART → PySpark -->
-  <line x1="920" y1="410" x2="940" y2="410" stroke="#334155" stroke-width="1.5" marker-end="url(#arrowNavy)"/>
-  <circle r="2.5" fill="#475569">
-    <animateMotion dur="1.4s" begin="0.8s" repeatCount="indefinite" path="M 920,410 L 939,410"/>
-    <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.8s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- PySpark → S3 -->
-  <line x1="1102" y1="410" x2="1122" y2="410" stroke="#334155" stroke-width="1.5" marker-end="url(#arrowNavy)"/>
-  <circle r="2.5" fill="#475569">
-    <animateMotion dur="1.4s" begin="1.0s" repeatCount="indefinite" path="M 1102,410 L 1121,410"/>
-    <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="1.0s" repeatCount="indefinite"/>
-  </circle>
-  <circle r="2" fill="#65a30d">
-    <animateMotion dur="1.4s" begin="1.4s" repeatCount="indefinite" path="M 1102,410 L 1121,410"/>
-    <animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="1.4s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- ─── ORCHESTRATION ARROWS: Airflow → PySpark + S3 ─── -->
-  <!-- Airflow run_etl → PySpark (down) -->
-  <path d="M 985,267 L 985,290 L 1021,290 L 1021,318" stroke="#f97316" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arrowOrange)"/>
-  <text x="1006" y="285" text-anchor="middle" font-size="8" fill="#ea580c">run_etl</text>
-  <circle r="2.5" fill="#f97316">
-    <animateMotion dur="2s" repeatCount="indefinite" path="M 985,267 L 985,290 L 1021,290 L 1021,318"/>
-    <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- Airflow verify_s3 → S3 (down) -->
-  <path d="M 1200,267 L 1200,290 L 1260,290 L 1260,318" stroke="#f97316" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowOrange)" opacity="0.7"/>
-  <text x="1240" y="285" text-anchor="middle" font-size="8" fill="#ea580c">verify_s3</text>
-  <circle r="2" fill="#f97316">
-    <animateMotion dur="2.5s" begin="1s" repeatCount="indefinite" path="M 1200,267 L 1200,290 L 1260,290 L 1260,318"/>
-    <animate attributeName="opacity" values="0;1;0" dur="2.5s" begin="1s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- ─── CONTROL FLOW: Django → status read from pipeline ─── -->
-  <path d="M 835,318 L 835,280 L 448,280 L 448,267" stroke="#6366f1" stroke-width="1" stroke-dasharray="4,4" fill="none" marker-end="url(#arrowPurple)" opacity="0.5"/>
-  <text x="640" y="277" text-anchor="middle" font-size="8" fill="#6366f1" opacity="0.7">pipeline status</text>
-
-  <!-- ═══════════════════════════════════ -->
-  <!-- ROW 3: OBSERVABILITY LAYER -->
-  <!-- ═══════════════════════════════════ -->
-  <rect x="22" y="545" width="1396" height="175" rx="16" fill="url(#zoneObs)" stroke="#bbf7d0" stroke-width="1"/>
-  <text x="38" y="563" font-size="9.5" font-weight="600" fill="#059669" letter-spacing="1.5">OBSERVABILITY LAYER</text>
-
-  <!-- Grafana card -->
-  <g filter="url(#cardShadowGreen)">
-    <rect x="200" y="575" width="420" height="120" rx="14" fill="white" stroke="#d1fae5" stroke-width="1"/>
-    <rect x="200" y="575" width="420" height="4" rx="2" fill="#10b981"/>
-  </g>
-  <g transform="translate(248,612)">
-    <rect x="-18" y="-18" width="36" height="36" rx="9" fill="#f0fdf4"/>
-    <circle cx="0" cy="0" r="12" fill="none" stroke="#10b981" stroke-width="2"/>
-    <path d="M-12,0 L0,0 L0,-12" fill="none" stroke="#10b981" stroke-width="2.5"/>
-    <circle cx="0" cy="0" r="3.5" fill="#10b981"/>
-  </g>
-  <text x="300" y="600" font-size="13" font-weight="700" fill="#064e3b">Grafana</text>
-  <text x="300" y="616" font-size="10" fill="#94a3b8">Dashboards · Alerting</text>
-  <!-- mini bar chart -->
-  <g transform="translate(230,628)">
-    <rect x="0" y="10" width="10" height="22" rx="2" fill="#10b981" opacity="0.7"/>
-    <rect x="14" y="18" width="10" height="14" rx="2" fill="#10b981" opacity="0.5"/>
-    <rect x="28" y="14" width="10" height="18" rx="2" fill="#10b981" opacity="0.6"/>
-    <rect x="42" y="6" width="10" height="26" rx="2" fill="#10b981" opacity="0.8"/>
-    <rect x="56" y="10" width="10" height="22" rx="2" fill="#10b981" opacity="0.6"/>
-    <rect x="70" y="16" width="10" height="16" rx="2" fill="#10b981" opacity="0.5"/>
-  </g>
-  <text x="340" y="648" font-size="9" fill="#64748b">ClickHouse · Airflow · Pipeline metrics</text>
-  <rect x="490" y="630" width="10" height="10" rx="5" fill="#10b981"/>
-  <text x="506" y="639" font-size="8" fill="#64748b">all systems nominal</text>
-
-  <!-- Telegram card -->
-  <g filter="url(#cardShadowGreen)">
-    <rect x="700" y="575" width="340" height="120" rx="14" fill="white" stroke="#d1fae5" stroke-width="1"/>
-    <rect x="700" y="575" width="340" height="4" rx="2" fill="#0284c7"/>
-  </g>
-  <g transform="translate(742,612)">
-    <rect x="-18" y="-18" width="36" height="36" rx="9" fill="#f0f9ff"/>
-    <circle cx="0" cy="0" r="12" fill="#0284c7" opacity="0.15"/>
-    <path d="M-10,2 L10,-5 L3,2 L10,9 Z" fill="#0284c7"/>
-    <path d="M3,2 L5,9 L-1,5 Z" fill="#0369a1"/>
-  </g>
-  <text x="786" y="600" font-size="13" font-weight="700" fill="#0c4a6e">Telegram Alerts</text>
-  <text x="786" y="616" font-size="10" fill="#94a3b8">Bot notifications</text>
-  <!-- message pill -->
-  <g transform="translate(710,626)">
-    <rect x="0" y="0" width="300" height="34" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
-    <rect x="8" y="8" width="18" height="18" rx="9" fill="#0284c7" opacity="0.15"/>
-    <text x="17" y="21" text-anchor="middle" font-size="10" fill="#0284c7">✈</text>
-    <text x="140" y="15" text-anchor="middle" font-size="8" font-weight="600" fill="#1e293b">⚠ etl_to_s3_daily completed</text>
-    <text x="140" y="27" text-anchor="middle" font-size="7.5" fill="#64748b">analytic_result_2025_01_15.csv  ·  just now</text>
-  </g>
-
-  <!-- ─── OBSERVABILITY ARROWS ─── -->
-  <!-- ClickHouse MART → Grafana -->
-  <path d="M 835,503 L 835,527 L 410,527 L 410,575" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arrowGreen)"/>
-  <text x="622" y="524" text-anchor="middle" font-size="8" fill="#059669">metrics</text>
-  <circle r="2.5" fill="#10b981">
-    <animateMotion dur="3s" begin="0.5s" repeatCount="indefinite" path="M 835,503 L 835,527 L 410,527 L 410,575"/>
-    <animate attributeName="opacity" values="0;1;0" dur="3s" begin="0.5s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- Airflow → Grafana -->
-  <path d="M 870,267 L 870,527 L 410,527" stroke="#10b981" stroke-width="1" stroke-dasharray="4,4" fill="none" opacity="0.45"/>
-  <text x="640" y="520" text-anchor="middle" font-size="7.5" fill="#059669" opacity="0.6">airflow metrics</text>
-
-  <!-- Grafana → Telegram -->
-  <line x1="620" y1="634" x2="700" y2="634" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowGreen)"/>
-  <text x="660" y="627" text-anchor="middle" font-size="8" fill="#059669">alerts</text>
-  <circle r="2.5" fill="#10b981">
-    <animateMotion dur="2s" repeatCount="indefinite" path="M 620,634 L 699,634"/>
-    <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- ═══════════════════════════════════ -->
-  <!-- FOOTER: LEGEND row (centered) -->
-  <!-- ═══════════════════════════════════ -->
-  <!-- Legend box: width=560, centered in 1440 → x=440 -->
-  <rect x="440" y="748" width="560" height="48" rx="10" fill="white" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="720" y="762" text-anchor="middle" font-size="8" font-weight="600" fill="#94a3b8" letter-spacing="2">LEGEND</text>
-
-  <!-- 4 items total width ≈ 440, centered at 720 → start x=500 -->
-  <!-- Data Flow @ 500 -->
-  <line x1="508" y1="781" x2="538" y2="781" stroke="#334155" stroke-width="1.5"/>
-  <circle r="3" fill="#334155" cx="523" cy="781"/>
-  <text x="546" y="785" font-size="9" fill="#475569">Data Flow</text>
-
-  <!-- Control Flow @ 620 -->
-  <line x1="634" y1="781" x2="664" y2="781" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5,3"/>
-  <text x="672" y="785" font-size="9" fill="#475569">Control Flow</text>
-
-  <!-- Orchestration @ 760 -->
-  <line x1="773" y1="781" x2="803" y2="781" stroke="#f97316" stroke-width="1.5" stroke-dasharray="5,3"/>
-  <text x="811" y="785" font-size="9" fill="#475569">Orchestration</text>
-
-  <!-- Observability @ 910 -->
-  <line x1="918" y1="781" x2="948" y2="781" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5,3"/>
-  <text x="956" y="785" font-size="9" fill="#475569">Observability</text>
-
-  <!-- ═══════════════════════════════════ -->
-  <!-- STACK row (centered) -->
-  <!-- ═══════════════════════════════════ -->
-  <!-- 10 pills: total width = 52+8+52+8+46+8+52+8+46+8+76+8+56+8+46+8+62+8+36 = 592, center at 720 → start x=424 -->
-  <rect x="388" y="812" width="664" height="48" rx="10" fill="white" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="720" y="826" text-anchor="middle" font-size="8" font-weight="600" fill="#94a3b8" letter-spacing="2">STACK</text>
-
-  <g transform="translate(400,832)">
-    <rect x="0" y="0" width="52" height="22" rx="11" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
-    <text x="26" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#334155">Python</text>
-  </g>
-  <g transform="translate(460,832)">
-    <rect x="0" y="0" width="52" height="22" rx="11" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
-    <text x="26" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#334155">Docker</text>
-  </g>
-  <g transform="translate(520,832)">
-    <rect x="0" y="0" width="46" height="22" rx="11" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1"/>
-    <text x="23" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#4f46e5">React</text>
-  </g>
-  <g transform="translate(574,832)">
-    <rect x="0" y="0" width="52" height="22" rx="11" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
-    <text x="26" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#15803d">Django</text>
-  </g>
-  <g transform="translate(634,832)">
-    <rect x="0" y="0" width="46" height="22" rx="11" fill="#fff7ed" stroke="#fed7aa" stroke-width="1"/>
-    <text x="23" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#ea580c">Spark</text>
-  </g>
-  <g transform="translate(688,832)">
-    <rect x="0" y="0" width="76" height="22" rx="11" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1"/>
-    <text x="38" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#0369a1">ClickHouse</text>
-  </g>
-  <g transform="translate(772,832)">
-    <rect x="0" y="0" width="56" height="22" rx="11" fill="#fff7ed" stroke="#fed7aa" stroke-width="1"/>
-    <text x="28" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#c2410c">Airflow</text>
-  </g>
-  <g transform="translate(836,832)">
-    <rect x="0" y="0" width="46" height="22" rx="11" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1"/>
-    <text x="23" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#7c3aed">Kafka</text>
-  </g>
-  <g transform="translate(890,832)">
-    <rect x="0" y="0" width="62" height="22" rx="11" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
-    <text x="31" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#15803d">MongoDB</text>
-  </g>
-  <g transform="translate(960,832)">
-    <rect x="0" y="0" width="36" height="22" rx="11" fill="#fdf4ff" stroke="#f0abfc" stroke-width="1"/>
-    <text x="18" y="15" text-anchor="middle" font-size="8" font-weight="500" fill="#a21caf">SQL</text>
-  </g>
-
-  <!-- Footer text -->
-  <text x="720" y="886" text-anchor="middle" font-size="8" fill="#94a3b8">ProbablyFresh Analytics Platform · Architecture v2.0</text>
-  <text x="720" y="900" text-anchor="middle" font-size="7.5" fill="#cbd5e1">JSON → MongoDB → Kafka → ClickHouse → PySpark → S3</text>
-
 </svg>
