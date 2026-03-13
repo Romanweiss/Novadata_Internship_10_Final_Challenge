@@ -121,7 +121,6 @@ export function SettingsPage() {
 
           <div className="flex flex-wrap gap-2 px-4 py-3 text-xs font-semibold text-[var(--text-muted)]">
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1">{t('settings.version')}</span>
-            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1">{t('settings.environment')}</span>
           </div>
         </Card>
       </section>

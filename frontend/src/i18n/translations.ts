@@ -213,7 +213,7 @@ const translations: Record<AppLanguage, DictionaryNode> = {
       about: 'About ProbablyFresh',
       aboutDescription:
         'ProbablyFresh Control Panel is the centralized management dashboard for observing and operating the data platform. It provides real-time visibility into ingestion pipelines, data quality metrics in the MART layer, and easy access to analytical exports.',
-      version: 'Version: 2.1.0-mock',
+      version: 'Version: 0.7.0',
       environment: 'Environment: Staging',
     },
     status: {
@@ -430,7 +430,7 @@ const translations: Record<AppLanguage, DictionaryNode> = {
       about: 'О ProbablyFresh',
       aboutDescription:
         'ProbablyFresh Control Panel — централизованный дашборд для наблюдения и управления data-платформой. Он показывает состояние ingestion-пайплайнов, метрики качества в MART-слое и быстрый доступ к аналитическим экспортам.',
-      version: 'Версия: 2.1.0-mock',
+      version: 'Версия: 0.7.0',
       environment: 'Окружение: Staging',
     },
     status: {
