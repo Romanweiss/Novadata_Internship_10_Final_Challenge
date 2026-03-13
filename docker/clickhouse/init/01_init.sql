@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS probablyfresh_raw.purchases_raw
     purchase_id String,
     customer_id String,
     store_id String,
-    total_amount String,
-    purchase_datetime String,
+    total_amount Nullable(Float64),
+    purchase_datetime Nullable(DateTime),
     payload String,
     ingested_at DateTime
 )
@@ -149,8 +149,8 @@ SELECT
     JSONExtractString(payload, 'purchase_id') AS purchase_id,
     JSONExtractString(payload, 'customer', 'customer_id') AS customer_id,
     JSONExtractString(payload, 'store', 'store_id') AS store_id,
-    JSONExtractRaw(payload, 'total_amount') AS total_amount,
-    JSONExtractString(payload, 'purchase_datetime') AS purchase_datetime,
+    JSONExtractFloat(payload, 'total_amount') AS total_amount,
+    parseDateTimeBestEffortOrNull(JSONExtractString(payload, 'purchase_datetime')) AS purchase_datetime,
     payload,
     now() AS ingested_at
 FROM probablyfresh_raw.purchases_kafka;
@@ -181,7 +181,7 @@ FROM
         JSONExtractFloat(item_payload, 'quantity') AS quantity,
         JSONExtractFloat(item_payload, 'price_per_unit') AS price_per_unit,
         JSONExtractFloat(item_payload, 'total_price') AS total_price,
-        parseDateTimeBestEffortOrNull(purchase_datetime) AS purchase_dt,
+        purchase_datetime AS purchase_dt,
         item_payload,
         ingested_at
     FROM probablyfresh_raw.purchases_raw
