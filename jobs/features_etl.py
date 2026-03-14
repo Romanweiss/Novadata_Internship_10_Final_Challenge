@@ -10,6 +10,7 @@ ETL витрины признаков клиентов для ProbablyFresh.
 """
 
 import logging
+import os
 import shutil
 import tempfile
 from datetime import datetime, timezone
@@ -18,9 +19,69 @@ from pathlib import Path
 import boto3
 from dotenv import load_dotenv
 from pyspark import StorageLevel
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import Column, DataFrame, SparkSession
 from pyspark.sql import functions as F
-import os
+
+
+# Business thresholds for binary features. Values are kept unchanged to preserve
+# current ETL behavior; the names make their meaning explicit.
+PAYMENT_PREFERENCE_MIN_SHARE = 0.7
+DAY_OF_WEEK_SHOPPER_MIN_SHARE = 0.6
+TIME_OF_DAY_SHOPPER_MIN_SHARE = 0.5
+RECURRENT_BUYER_MIN_PURCHASES_30D = 2
+FREQUENT_SHOPPER_MIN_PURCHASES_14D = 3
+BULK_BUYER_MIN_AVG_TOTAL_AMOUNT = 1000.0
+LOW_COST_BUYER_MAX_AVG_TOTAL_AMOUNT = 200.0
+HIGH_TICKET_MIN_TOTAL_AMOUNT_90D = 1500.0
+HIGH_QUANTITY_MIN_ITEMS_30D = 2.0
+CROSS_STORE_MIN_DISTINCT_STORES_90D = 2
+NIGHT_SHOPPER_START_HOUR = 20
+MORNING_SHOPPER_END_HOUR = 10
+
+# Reused rolling windows in days.
+PURCHASE_ACTIVITY_WINDOWS = (7, 14, 30, 90)
+ITEM_ACTIVITY_WINDOWS = (7, 30, 90)
+
+# Category matching rules are intentionally broad because source categories are
+# heterogeneous and can arrive in both Russian and English.
+MILK_CATEGORY_PATTERN = "молоч|dairy"
+MEAT_CATEGORY_PATTERN = "мяс|рыб|яйц|бобов|meat|fish|egg|bean|protein"
+FRUITS_CATEGORY_PATTERN = "фрукт|ягод|fruit|berry"
+VEGETABLES_CATEGORY_PATTERN = "овощ|зел|vegetable|green"
+BAKERY_CATEGORY_PATTERN = "зернов|хлеб|grain|bakery|bread"
+
+FEATURE_COLUMNS = [
+    "recurrent_buyer",
+    "delivery_user",
+    "bulk_buyer",
+    "low_cost_buyer",
+    "prefers_cash",
+    "prefers_card",
+    "weekend_shopper",
+    "weekday_shopper",
+    "night_shopper",
+    "morning_shopper",
+    "no_purchases",
+    "has_purchases_last_7d",
+    "has_purchases_last_14d",
+    "has_purchases_last_30d",
+    "has_purchases_last_90d",
+    "frequent_shopper_last_14d",
+    "high_ticket_last_90d",
+    "delivery_last_30d",
+    "cross_store_shopper_last_90d",
+    "mixed_payment_user_last_90d",
+    "bought_milk_last_7d",
+    "bought_milk_last_30d",
+    "bought_meat_last_7d",
+    "bought_meat_last_30d",
+    "bought_fruits_last_30d",
+    "bought_vegetables_last_30d",
+    "bought_bakery_last_30d",
+    "bought_organic_last_90d",
+    "high_quantity_buyer_last_30d",
+    "vegetarian_profile",
+]
 
 
 def _repo_root() -> Path:
@@ -159,6 +220,44 @@ def _load_table(jdbc_reader, table: str) -> DataFrame:
     return jdbc_reader.option("dbtable", table).load()
 
 
+def _int_flag(condition: Column) -> Column:
+    """Преобразует булево условие в бинарный флаг 0/1."""
+    return F.when(condition, F.lit(1)).otherwise(F.lit(0))
+
+
+def _binary_feature(condition: Column, alias: str) -> Column:
+    """Оформляет условие как итоговый бинарный признак с заданным alias."""
+    return condition.cast("int").alias(alias)
+
+
+def _coalesced_int(column_name: str) -> Column:
+    """Возвращает числовую колонку с безопасной подстановкой 0 для NULL."""
+    return F.coalesce(F.col(column_name), F.lit(0))
+
+
+def _coalesced_double(column_name: str) -> Column:
+    """Возвращает вещественную колонку с безопасной подстановкой 0.0 для NULL."""
+    return F.coalesce(F.col(column_name), F.lit(0.0))
+
+
+def _binary_metric(column_name: str) -> Column:
+    """Переиспользует уже рассчитанный бинарный признак и нормализует NULL -> 0."""
+    return _coalesced_int(column_name).cast("int").alias(column_name)
+
+
+def _recent_flag(timestamp_col: str, days: int) -> Column:
+    """Строит бинарный флаг попадания timestamp в окно последних N дней."""
+    return _int_flag(F.col(timestamp_col) >= F.expr(f"current_timestamp() - INTERVAL {days} DAYS"))
+
+
+def _add_recent_flags(df: DataFrame, timestamp_col: str, windows: tuple[int, ...]) -> DataFrame:
+    """Добавляет набор колонок вида is_last_{N}d для указанного timestamp."""
+    result = df
+    for days in windows:
+        result = result.withColumn(f"is_last_{days}d", _recent_flag(timestamp_col, days))
+    return result
+
+
 def _build_features(
     customers_df: DataFrame,
     purchases_df: DataFrame,
@@ -175,47 +274,16 @@ def _build_features(
     Returns:
         DataFrame вида (customer_id, feature_1..feature_30), где все фичи 0/1.
     """
-    feature_cols = [
-        # Existing 10 features (kept as-is by name)
-        "recurrent_buyer",
-        "delivery_user",
-        "bulk_buyer",
-        "low_cost_buyer",
-        "prefers_cash",
-        "prefers_card",
-        "weekend_shopper",
-        "weekday_shopper",
-        "night_shopper",
-        "morning_shopper",
-        # Additional 20 features (total = 30)
-        "no_purchases",
-        "has_purchases_last_7d",
-        "has_purchases_last_14d",
-        "has_purchases_last_30d",
-        "has_purchases_last_90d",
-        "frequent_shopper_last_14d",
-        "high_ticket_last_90d",
-        "delivery_last_30d",
-        "cross_store_shopper_last_90d",
-        "mixed_payment_user_last_90d",
-        "bought_milk_last_7d",
-        "bought_milk_last_30d",
-        "bought_meat_last_7d",
-        "bought_meat_last_30d",
-        "bought_fruits_last_30d",
-        "bought_vegetables_last_30d",
-        "bought_bakery_last_30d",
-        "bought_organic_last_90d",
-        "high_quantity_buyer_last_30d",
-        "vegetarian_profile",
-    ]
-
+    # customers_base задает якорный набор клиентов. Благодаря этому в итоговую
+    # витрину попадут и клиенты без покупок, которым затем проставятся нули.
     customers_base = (
         customers_df.select(F.lower(F.trim(F.col("customer_id"))).alias("customer_id"))
         .filter(F.col("customer_id").isNotNull() & (F.col("customer_id") != ""))
         .dropDuplicates(["customer_id"])
     )
 
+    # Нормализуем ключевые поля покупок и приводим типы к тем, с которыми далее
+    # безопасно считать окна, доли оплат и денежные агрегаты.
     purchases_clean = (
         purchases_df.select(
             F.lower(F.trim(F.col("customer_id"))).alias("customer_id"),
@@ -228,45 +296,26 @@ def _build_features(
         .filter(F.col("customer_id").isNotNull() & (F.col("customer_id") != ""))
     )
 
+    # На уровне отдельных покупок добавляем временные окна и бинарные флаги,
+    # из которых затем считаются customer-level shares и поведенческие признаки.
     purchases_metrics = (
-        purchases_clean.withColumn(
-            "is_last_7d",
-            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 7 DAYS"), F.lit(1)).otherwise(
-                F.lit(0)
-            ),
-        )
-        .withColumn(
-            "is_last_14d",
-            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 14 DAYS"), F.lit(1)).otherwise(
-                F.lit(0)
-            ),
-        )
-        .withColumn(
-            "is_last_30d",
-            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 30 DAYS"), F.lit(1)).otherwise(
-                F.lit(0)
-            ),
-        )
-        .withColumn(
-            "is_last_90d",
-            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 90 DAYS"), F.lit(1)).otherwise(
-                F.lit(0)
-            ),
-        )
-        .withColumn("cash_flag", F.when(F.col("payment_method") == "cash", F.lit(1)).otherwise(F.lit(0)))
-        .withColumn("card_flag", F.when(F.col("payment_method") == "card", F.lit(1)).otherwise(F.lit(0)))
+        _add_recent_flags(purchases_clean, "purchase_dt", PURCHASE_ACTIVITY_WINDOWS)
+        .withColumn("cash_flag", _int_flag(F.col("payment_method") == "cash"))
+        .withColumn("card_flag", _int_flag(F.col("payment_method") == "card"))
         .withColumn(
             "weekend_flag",
-            F.when(F.dayofweek(F.col("purchase_dt")).isin(1, 7), F.lit(1)).otherwise(F.lit(0)),
+            _int_flag(F.dayofweek(F.col("purchase_dt")).isin(1, 7)),
         )
         .withColumn(
             "weekday_flag",
-            F.when(F.dayofweek(F.col("purchase_dt")).between(2, 6), F.lit(1)).otherwise(F.lit(0)),
+            _int_flag(F.dayofweek(F.col("purchase_dt")).between(2, 6)),
         )
-        .withColumn("night_flag", F.when(F.hour(F.col("purchase_dt")) >= 20, F.lit(1)).otherwise(F.lit(0)))
-        .withColumn("morning_flag", F.when(F.hour(F.col("purchase_dt")) < 10, F.lit(1)).otherwise(F.lit(0)))
+        .withColumn("night_flag", _int_flag(F.hour(F.col("purchase_dt")) >= NIGHT_SHOPPER_START_HOUR))
+        .withColumn("morning_flag", _int_flag(F.hour(F.col("purchase_dt")) < MORNING_SHOPPER_END_HOUR))
     )
 
+    # shares вроде cash_share/card_share показывают долю покупок с данным
+    # свойством. Именно они потом сравниваются с бизнес-порогами 0.7/0.6/0.5.
     purchases_agg = purchases_metrics.groupBy("customer_id").agg(
         F.count(F.lit(1)).alias("purchases_all_time"),
         F.sum("is_last_7d").alias("purchases_last_7d"),
@@ -281,17 +330,11 @@ def _build_features(
         F.avg("night_flag").alias("night_share"),
         F.avg("morning_flag").alias("morning_share"),
         F.max("is_delivery").alias("delivery_any"),
-        F.max(
-            F.when((F.col("is_last_30d") == 1) & (F.col("is_delivery") == 1), F.lit(1)).otherwise(F.lit(0))
-        ).alias("delivery_any_30d"),
+        F.max(_int_flag((F.col("is_last_30d") == 1) & (F.col("is_delivery") == 1))).alias("delivery_any_30d"),
         F.max(F.when(F.col("is_last_90d") == 1, F.col("total_amount"))).alias("max_total_amount_90d"),
         F.countDistinct(F.when(F.col("is_last_90d") == 1, F.col("store_id"))).alias("distinct_stores_90d"),
-        F.max(
-            F.when((F.col("is_last_90d") == 1) & (F.col("payment_method") == "cash"), F.lit(1)).otherwise(F.lit(0))
-        ).alias("used_cash_90d"),
-        F.max(
-            F.when((F.col("is_last_90d") == 1) & (F.col("payment_method") == "card"), F.lit(1)).otherwise(F.lit(0))
-        ).alias("used_card_90d"),
+        F.max(_int_flag((F.col("is_last_90d") == 1) & (F.col("payment_method") == "cash"))).alias("used_cash_90d"),
+        F.max(_int_flag((F.col("is_last_90d") == 1) & (F.col("payment_method") == "card"))).alias("used_card_90d"),
     )
 
     product_group_expr = F.col("`group`") if "group" in products_df.columns else F.lit(None).cast("string")
@@ -314,6 +357,8 @@ def _build_features(
         .dropDuplicates(["product_id"])
     )
 
+    # Если category у позиции чека пустая, используем product_group из каталога
+    # продуктов как fallback для дальнейшей классификации.
     item_category_expr = (
         F.col("category")
         if "category" in purchase_items_df.columns
@@ -346,157 +391,163 @@ def _build_features(
                 F.col("product_group"),
             ),
         )
-        .withColumn(
-            "is_last_7d",
-            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 7 DAYS"), F.lit(1)).otherwise(
-                F.lit(0)
-            ),
-        )
-        .withColumn(
-            "is_last_30d",
-            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 30 DAYS"), F.lit(1)).otherwise(
-                F.lit(0)
-            ),
-        )
-        .withColumn(
-            "is_last_90d",
-            F.when(F.col("purchase_dt") >= F.expr("current_timestamp() - INTERVAL 90 DAYS"), F.lit(1)).otherwise(
-                F.lit(0)
-            ),
-        )
     )
+    items_enriched = _add_recent_flags(items_enriched, "purchase_dt", ITEM_ACTIVITY_WINDOWS)
 
+    # Regex-правила нарочно широкие: категории могут приходить в RU/EN и не быть
+    # строго стандартизированными, поэтому здесь используются устойчивые маски.
     category_text = F.coalesce(F.col("category_norm"), F.lit(""))
     items_flags = (
         items_enriched.withColumn(
             "is_milk_item",
-            F.when(category_text.rlike("молоч|dairy"), F.lit(1)).otherwise(F.lit(0)),
+            _int_flag(category_text.rlike(MILK_CATEGORY_PATTERN)),
         )
         .withColumn(
             "is_meat_item",
-            F.when(category_text.rlike("мяс|рыб|яйц|бобов|meat|fish|egg|bean|protein"), F.lit(1)).otherwise(F.lit(0)),
+            _int_flag(category_text.rlike(MEAT_CATEGORY_PATTERN)),
         )
         .withColumn(
             "is_fruits_item",
-            F.when(category_text.rlike("фрукт|ягод|fruit|berry"), F.lit(1)).otherwise(F.lit(0)),
+            _int_flag(category_text.rlike(FRUITS_CATEGORY_PATTERN)),
         )
         .withColumn(
             "is_vegetables_item",
-            F.when(category_text.rlike("овощ|зел|vegetable|green"), F.lit(1)).otherwise(F.lit(0)),
+            _int_flag(category_text.rlike(VEGETABLES_CATEGORY_PATTERN)),
         )
         .withColumn(
             "is_bakery_item",
-            F.when(category_text.rlike("зернов|хлеб|grain|bakery|bread"), F.lit(1)).otherwise(F.lit(0)),
+            _int_flag(category_text.rlike(BAKERY_CATEGORY_PATTERN)),
         )
     )
 
     items_agg = items_flags.groupBy("customer_id").agg(
-        F.max(F.when((F.col("is_milk_item") == 1) & (F.col("is_last_7d") == 1), F.lit(1)).otherwise(F.lit(0))).alias(
+        F.max(_int_flag((F.col("is_milk_item") == 1) & (F.col("is_last_7d") == 1))).alias(
             "bought_milk_last_7d"
         ),
-        F.max(F.when((F.col("is_milk_item") == 1) & (F.col("is_last_30d") == 1), F.lit(1)).otherwise(F.lit(0))).alias(
+        F.max(_int_flag((F.col("is_milk_item") == 1) & (F.col("is_last_30d") == 1))).alias(
             "bought_milk_last_30d"
         ),
-        F.max(F.when((F.col("is_meat_item") == 1) & (F.col("is_last_7d") == 1), F.lit(1)).otherwise(F.lit(0))).alias(
+        F.max(_int_flag((F.col("is_meat_item") == 1) & (F.col("is_last_7d") == 1))).alias(
             "bought_meat_last_7d"
         ),
-        F.max(F.when((F.col("is_meat_item") == 1) & (F.col("is_last_30d") == 1), F.lit(1)).otherwise(F.lit(0))).alias(
+        F.max(_int_flag((F.col("is_meat_item") == 1) & (F.col("is_last_30d") == 1))).alias(
             "bought_meat_last_30d"
         ),
-        F.max(
-            F.when((F.col("is_fruits_item") == 1) & (F.col("is_last_30d") == 1), F.lit(1)).otherwise(F.lit(0))
-        ).alias("bought_fruits_last_30d"),
-        F.max(
-            F.when((F.col("is_vegetables_item") == 1) & (F.col("is_last_30d") == 1), F.lit(1)).otherwise(F.lit(0))
-        ).alias("bought_vegetables_last_30d"),
-        F.max(
-            F.when((F.col("is_bakery_item") == 1) & (F.col("is_last_30d") == 1), F.lit(1)).otherwise(F.lit(0))
-        ).alias("bought_bakery_last_30d"),
-        F.max(
-            F.when((F.col("is_organic_int") == 1) & (F.col("is_last_90d") == 1), F.lit(1)).otherwise(F.lit(0))
-        ).alias("bought_organic_last_90d"),
-        F.max(F.when((F.col("quantity") > 2) & (F.col("is_last_30d") == 1), F.lit(1)).otherwise(F.lit(0))).alias(
+        F.max(_int_flag((F.col("is_fruits_item") == 1) & (F.col("is_last_30d") == 1))).alias("bought_fruits_last_30d"),
+        F.max(_int_flag((F.col("is_vegetables_item") == 1) & (F.col("is_last_30d") == 1))).alias("bought_vegetables_last_30d"),
+        F.max(_int_flag((F.col("is_bakery_item") == 1) & (F.col("is_last_30d") == 1))).alias("bought_bakery_last_30d"),
+        F.max(_int_flag((F.col("is_organic_int") == 1) & (F.col("is_last_90d") == 1))).alias("bought_organic_last_90d"),
+        F.max(_int_flag((F.col("quantity") > HIGH_QUANTITY_MIN_ITEMS_30D) & (F.col("is_last_30d") == 1))).alias(
             "high_quantity_buyer_last_30d"
         ),
-        F.max(F.when((F.col("is_meat_item") == 1) & (F.col("is_last_90d") == 1), F.lit(1)).otherwise(F.lit(0))).alias(
+        F.max(_int_flag((F.col("is_meat_item") == 1) & (F.col("is_last_90d") == 1))).alias(
             "has_meat_last_90d"
         ),
-        F.max(
-            F.when(
-                ((F.col("is_fruits_item") == 1) | (F.col("is_vegetables_item") == 1)) & (F.col("is_last_90d") == 1),
-                F.lit(1),
-            ).otherwise(F.lit(0))
-        ).alias("has_plant_last_90d"),
+        F.max(_int_flag(((F.col("is_fruits_item") == 1) | (F.col("is_vegetables_item") == 1)) & (F.col("is_last_90d") == 1))).alias(
+            "has_plant_last_90d"
+        ),
     )
 
     joined = customers_base.join(purchases_agg, on="customer_id", how="left").join(items_agg, on="customer_id", how="left")
 
+    # coalesce(..., 0) превращает отсутствующие агрегаты в нули. Это важно для
+    # клиентов без покупок: они должны получить 0 по большинству фич, а не NULL.
+    purchases_all_time = _coalesced_int("purchases_all_time")
+    purchases_last_7d = _coalesced_int("purchases_last_7d")
+    purchases_last_14d = _coalesced_int("purchases_last_14d")
+    purchases_last_30d = _coalesced_int("purchases_last_30d")
+    purchases_last_90d = _coalesced_int("purchases_last_90d")
+    avg_total_amount = _coalesced_double("avg_total_amount")
+    cash_share = _coalesced_double("cash_share")
+    card_share = _coalesced_double("card_share")
+    weekend_share = _coalesced_double("weekend_share")
+    weekday_share = _coalesced_double("weekday_share")
+    night_share = _coalesced_double("night_share")
+    morning_share = _coalesced_double("morning_share")
+    delivery_any = _coalesced_int("delivery_any")
+    delivery_any_30d = _coalesced_int("delivery_any_30d")
+    max_total_amount_90d = _coalesced_double("max_total_amount_90d")
+    distinct_stores_90d = _coalesced_int("distinct_stores_90d")
+    used_cash_90d = _coalesced_int("used_cash_90d")
+    used_card_90d = _coalesced_int("used_card_90d")
+    has_meat_last_90d = _coalesced_int("has_meat_last_90d")
+    has_plant_last_90d = _coalesced_int("has_plant_last_90d")
+
+    # no_purchases считается отдельной фичей и не выводится из остальных, чтобы
+    # downstream-потребители могли явно отделять "нулевую активность" от других
+    # поведенческих профилей.
     result = joined.select(
         "customer_id",
-        (F.coalesce(F.col("purchases_last_30d"), F.lit(0)) > 2).cast("int").alias("recurrent_buyer"),
-        (F.coalesce(F.col("delivery_any"), F.lit(0)) > 0).cast("int").alias("delivery_user"),
-        (
-            (F.coalesce(F.col("avg_total_amount"), F.lit(0.0)) > 1000)
-            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
-        ).cast("int").alias("bulk_buyer"),
-        (
-            (F.coalesce(F.col("avg_total_amount"), F.lit(0.0)) < 200)
-            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
-        ).cast("int").alias("low_cost_buyer"),
-        (
-            (F.coalesce(F.col("cash_share"), F.lit(0.0)) >= 0.7)
-            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
-        ).cast("int").alias("prefers_cash"),
-        (
-            (F.coalesce(F.col("card_share"), F.lit(0.0)) >= 0.7)
-            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
-        ).cast("int").alias("prefers_card"),
-        (
-            (F.coalesce(F.col("weekend_share"), F.lit(0.0)) >= 0.6)
-            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
-        ).cast("int").alias("weekend_shopper"),
-        (
-            (F.coalesce(F.col("weekday_share"), F.lit(0.0)) >= 0.6)
-            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
-        ).cast("int").alias("weekday_shopper"),
-        (
-            (F.coalesce(F.col("night_share"), F.lit(0.0)) >= 0.5)
-            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
-        ).cast("int").alias("night_shopper"),
-        (
-            (F.coalesce(F.col("morning_share"), F.lit(0.0)) >= 0.5)
-            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
-        ).cast("int").alias("morning_shopper"),
-        (F.coalesce(F.col("purchases_all_time"), F.lit(0)) == 0).cast("int").alias("no_purchases"),
-        (F.coalesce(F.col("purchases_last_7d"), F.lit(0)) > 0).cast("int").alias("has_purchases_last_7d"),
-        (F.coalesce(F.col("purchases_last_14d"), F.lit(0)) > 0).cast("int").alias("has_purchases_last_14d"),
-        (F.coalesce(F.col("purchases_last_30d"), F.lit(0)) > 0).cast("int").alias("has_purchases_last_30d"),
-        (F.coalesce(F.col("purchases_last_90d"), F.lit(0)) > 0).cast("int").alias("has_purchases_last_90d"),
-        (F.coalesce(F.col("purchases_last_14d"), F.lit(0)) >= 3).cast("int").alias("frequent_shopper_last_14d"),
-        (F.coalesce(F.col("max_total_amount_90d"), F.lit(0.0)) > 1500).cast("int").alias("high_ticket_last_90d"),
-        (F.coalesce(F.col("delivery_any_30d"), F.lit(0)) > 0).cast("int").alias("delivery_last_30d"),
-        (F.coalesce(F.col("distinct_stores_90d"), F.lit(0)) >= 2).cast("int").alias("cross_store_shopper_last_90d"),
-        (
-            (F.coalesce(F.col("used_cash_90d"), F.lit(0)) == 1)
-            & (F.coalesce(F.col("used_card_90d"), F.lit(0)) == 1)
-        ).cast("int").alias("mixed_payment_user_last_90d"),
-        F.coalesce(F.col("bought_milk_last_7d"), F.lit(0)).cast("int").alias("bought_milk_last_7d"),
-        F.coalesce(F.col("bought_milk_last_30d"), F.lit(0)).cast("int").alias("bought_milk_last_30d"),
-        F.coalesce(F.col("bought_meat_last_7d"), F.lit(0)).cast("int").alias("bought_meat_last_7d"),
-        F.coalesce(F.col("bought_meat_last_30d"), F.lit(0)).cast("int").alias("bought_meat_last_30d"),
-        F.coalesce(F.col("bought_fruits_last_30d"), F.lit(0)).cast("int").alias("bought_fruits_last_30d"),
-        F.coalesce(F.col("bought_vegetables_last_30d"), F.lit(0)).cast("int").alias("bought_vegetables_last_30d"),
-        F.coalesce(F.col("bought_bakery_last_30d"), F.lit(0)).cast("int").alias("bought_bakery_last_30d"),
-        F.coalesce(F.col("bought_organic_last_90d"), F.lit(0)).cast("int").alias("bought_organic_last_90d"),
-        F.coalesce(F.col("high_quantity_buyer_last_30d"), F.lit(0)).cast("int").alias("high_quantity_buyer_last_30d"),
-        (
-            (F.coalesce(F.col("has_meat_last_90d"), F.lit(0)) == 0)
-            & (F.coalesce(F.col("has_plant_last_90d"), F.lit(0)) == 1)
-            & (F.coalesce(F.col("purchases_all_time"), F.lit(0)) > 0)
-        ).cast("int").alias("vegetarian_profile"),
+        # Feature logic is intentionally conservative: preferences require a clear
+        # share threshold, and activity-based flags require at least one purchase.
+        _binary_feature(purchases_last_30d > RECURRENT_BUYER_MIN_PURCHASES_30D, "recurrent_buyer"),
+        _binary_feature(delivery_any > 0, "delivery_user"),
+        _binary_feature(
+            (avg_total_amount > BULK_BUYER_MIN_AVG_TOTAL_AMOUNT) & (purchases_all_time > 0),
+            "bulk_buyer",
+        ),
+        _binary_feature(
+            (avg_total_amount < LOW_COST_BUYER_MAX_AVG_TOTAL_AMOUNT) & (purchases_all_time > 0),
+            "low_cost_buyer",
+        ),
+        _binary_feature(
+            (cash_share >= PAYMENT_PREFERENCE_MIN_SHARE) & (purchases_all_time > 0),
+            "prefers_cash",
+        ),
+        _binary_feature(
+            (card_share >= PAYMENT_PREFERENCE_MIN_SHARE) & (purchases_all_time > 0),
+            "prefers_card",
+        ),
+        _binary_feature(
+            (weekend_share >= DAY_OF_WEEK_SHOPPER_MIN_SHARE) & (purchases_all_time > 0),
+            "weekend_shopper",
+        ),
+        _binary_feature(
+            (weekday_share >= DAY_OF_WEEK_SHOPPER_MIN_SHARE) & (purchases_all_time > 0),
+            "weekday_shopper",
+        ),
+        _binary_feature(
+            (night_share >= TIME_OF_DAY_SHOPPER_MIN_SHARE) & (purchases_all_time > 0),
+            "night_shopper",
+        ),
+        _binary_feature(
+            (morning_share >= TIME_OF_DAY_SHOPPER_MIN_SHARE) & (purchases_all_time > 0),
+            "morning_shopper",
+        ),
+        _binary_feature(purchases_all_time == 0, "no_purchases"),
+        _binary_feature(purchases_last_7d > 0, "has_purchases_last_7d"),
+        _binary_feature(purchases_last_14d > 0, "has_purchases_last_14d"),
+        _binary_feature(purchases_last_30d > 0, "has_purchases_last_30d"),
+        _binary_feature(purchases_last_90d > 0, "has_purchases_last_90d"),
+        _binary_feature(
+            purchases_last_14d >= FREQUENT_SHOPPER_MIN_PURCHASES_14D,
+            "frequent_shopper_last_14d",
+        ),
+        _binary_feature(max_total_amount_90d > HIGH_TICKET_MIN_TOTAL_AMOUNT_90D, "high_ticket_last_90d"),
+        _binary_feature(delivery_any_30d > 0, "delivery_last_30d"),
+        _binary_feature(
+            distinct_stores_90d >= CROSS_STORE_MIN_DISTINCT_STORES_90D,
+            "cross_store_shopper_last_90d",
+        ),
+        _binary_feature((used_cash_90d == 1) & (used_card_90d == 1), "mixed_payment_user_last_90d"),
+        _binary_metric("bought_milk_last_7d"),
+        _binary_metric("bought_milk_last_30d"),
+        _binary_metric("bought_meat_last_7d"),
+        _binary_metric("bought_meat_last_30d"),
+        _binary_metric("bought_fruits_last_30d"),
+        _binary_metric("bought_vegetables_last_30d"),
+        _binary_metric("bought_bakery_last_30d"),
+        _binary_metric("bought_organic_last_90d"),
+        _binary_metric("high_quantity_buyer_last_30d"),
+        # vegetarian_profile stays conservative: at least one plant purchase in 90d,
+        # no meat signal in the same period, and the customer is not empty.
+        _binary_feature(
+            (has_meat_last_90d == 0) & (has_plant_last_90d == 1) & (purchases_all_time > 0),
+            "vegetarian_profile",
+        ),
     )
 
-    return result.select("customer_id", *feature_cols)
+    return result.select("customer_id", *FEATURE_COLUMNS)
 
 
 def _write_single_csv(features_df: DataFrame) -> Path:
@@ -510,6 +561,8 @@ def _write_single_csv(features_df: DataFrame) -> Path:
     tmp_dir = Path(tempfile.mkdtemp(prefix="probablyfresh_features_"))
     logging.info("Writing features CSV to temporary directory: %s", tmp_dir)
 
+    # coalesce(1) нужен, чтобы downstream получил один итоговый CSV-файл, а не
+    # стандартный набор part-*.csv от Spark.
     features_df.coalesce(1).write.mode("overwrite").option("header", "true").csv(str(tmp_dir))
 
     part_files = sorted(tmp_dir.glob("part-*.csv"))
@@ -541,6 +594,8 @@ def _upload_to_s3(local_csv_path: Path) -> str:
     Returns:
         object_key загруженного файла в bucket.
     """
+    # Имя файла сохраняем в текущем формате analytic_result_YYYY_MM_DD.csv:
+    # на него уже ориентируются документация, smoke-check и UI.
     endpoint_url = _normalize_endpoint(_required_env("S3_ENDPOINT_URL"))
     region = _optional_any_env("ru-3", "S3_REGION", "AWS_DEFAULT_REGION")
     bucket = _required_env("S3_BUCKET")
