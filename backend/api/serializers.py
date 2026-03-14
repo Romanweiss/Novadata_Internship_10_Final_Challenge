@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from api.models import PipelinePreset, JobRun
+from api.models import ImportBatch, ImportRowError, JobRun, PipelinePreset
 
 
 class JobRunSerializer(serializers.ModelSerializer):
@@ -52,3 +52,51 @@ class PipelinePresetSerializer(serializers.ModelSerializer):
         if not isinstance(value, dict):
             raise serializers.ValidationError("params_json must be a JSON object.")
         return value
+
+
+class ImportBatchCreateSerializer(serializers.Serializer):
+    entity_type = serializers.ChoiceField(choices=ImportBatch.EntityType.choices)
+    file = serializers.FileField()
+
+    def validate_file(self, value):
+        if not value:
+            raise serializers.ValidationError("file is required.")
+        if getattr(value, "size", 0) <= 0:
+            raise serializers.ValidationError("Uploaded file is empty.")
+        return value
+
+
+class ImportBatchSerializer(serializers.ModelSerializer):
+    entity = serializers.CharField(source="entity_type", read_only=True)
+
+    class Meta:
+        model = ImportBatch
+        fields = [
+            "id",
+            "entity",
+            "entity_type",
+            "file_name",
+            "file_format",
+            "status",
+            "total_rows",
+            "valid_rows",
+            "invalid_rows",
+            "error_message",
+            "created_at",
+            "started_at",
+            "finished_at",
+        ]
+
+
+class ImportRowErrorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ImportRowError
+        fields = [
+            "id",
+            "row_number",
+            "field_name",
+            "error_code",
+            "message",
+            "raw_fragment",
+            "created_at",
+        ]

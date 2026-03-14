@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { useAppState } from '../app/useAppState';
 import { Card } from '../components/common/Card';
 import { ActionCard } from '../components/pipelines/ActionCard';
+import { DataImportCard } from '../components/pipelines/DataImportCard';
 import { JobConfirmModal } from '../components/pipelines/JobConfirmModal';
 import { pipelineActions, pipelineMapSteps } from '../mocks/data';
 import type { JobAction } from '../types/ui';
@@ -53,6 +54,10 @@ export function PipelinesPage() {
             />
           );
         })}
+      </section>
+
+      <section>
+        <DataImportCard />
       </section>
 
       <section>

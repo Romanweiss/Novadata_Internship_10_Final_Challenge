@@ -3,16 +3,25 @@ from __future__ import annotations
 from uuid import UUID
 
 from django.shortcuts import get_object_or_404
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
-from api.models import PipelinePreset, JobRun, get_safe_mode
-from api.serializers import JobRunSerializer, PipelinePresetSerializer, SafeModeSerializer
+from api.models import ImportBatch, PipelinePreset, JobRun, get_safe_mode
+from api.serializers import (
+    ImportBatchCreateSerializer,
+    ImportBatchSerializer,
+    ImportRowErrorSerializer,
+    JobRunSerializer,
+    PipelinePresetSerializer,
+    SafeModeSerializer,
+)
 from api.services.actions import enqueue_action
 from api.services.errors import ServiceError
 from api.services.exports import list_exports, presign_export
 from api.services.feature_mart import get_feature_mart_payload
 from api.services.health import collect_services_health
+from api.services.imports import enqueue_import
 from api.services.metrics import (
     get_ingestion_series,
     get_last_runs,
@@ -167,6 +176,42 @@ class FeatureMartView(APIView):
             return ok(get_feature_mart_payload())
         except ServiceError as exc:
             return fail(exc.code, exc.message, exc.details, status=exc.status_code)
+
+
+class ImportBatchCreateView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        serializer = ImportBatchCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        requested_by = request.user.username if request.user and request.user.is_authenticated else None
+
+        try:
+            batch = enqueue_import(
+                entity_type=serializer.validated_data["entity_type"],
+                uploaded_file=serializer.validated_data["file"],
+                requested_by=requested_by,
+            )
+        except ServiceError as exc:
+            return fail(exc.code, exc.message, exc.details, status=exc.status_code)
+
+        return ok(ImportBatchSerializer(batch).data, status=202)
+
+
+class ImportBatchStatusView(APIView):
+    def get(self, request, batch_id: UUID):
+        batch = get_object_or_404(ImportBatch, id=batch_id)
+        return ok(ImportBatchSerializer(batch).data)
+
+
+class ImportBatchErrorsView(APIView):
+    def get(self, request, batch_id: UUID):
+        batch = get_object_or_404(ImportBatch, id=batch_id)
+        limit = _parse_positive_int(request.query_params.get("limit"), default=200, min_value=1, max_value=1000)
+        queryset = batch.row_errors.all().order_by("row_number", "id")
+        serializer = ImportRowErrorSerializer(queryset[:limit], many=True)
+        return ok({"items": serializer.data, "total": batch.invalid_rows})
 
 
 class SettingsConnectionsView(APIView):

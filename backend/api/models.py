@@ -176,6 +176,69 @@ class PipelinePreset(models.Model):
         return f"{self.name} ({self.job_name})"
 
 
+class ImportBatch(models.Model):
+    class EntityType(models.TextChoices):
+        STORES = "stores", "stores"
+        PRODUCTS = "products", "products"
+        CUSTOMERS = "customers", "customers"
+        PURCHASES = "purchases", "purchases"
+
+    class Status(models.TextChoices):
+        QUEUED = "queued", "queued"
+        RUNNING = "running", "running"
+        SUCCESS = "success", "success"
+        FAILED = "failed", "failed"
+        PARTIAL = "partial", "partial"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    entity_type = models.CharField(max_length=32, choices=EntityType.choices)
+    file_name = models.CharField(max_length=255)
+    file_format = models.CharField(max_length=16, blank=True)
+    file_path = models.CharField(max_length=512)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.QUEUED)
+    requested_by = models.CharField(max_length=150, blank=True, null=True)
+    total_rows = models.BigIntegerField(default=0)
+    valid_rows = models.BigIntegerField(default=0)
+    invalid_rows = models.BigIntegerField(default=0)
+    error_message = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(blank=True, null=True)
+    finished_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["status", "created_at"], name="api_importba_status_7ae4f8_idx"),
+            models.Index(fields=["entity_type", "created_at"], name="api_importba_entity__f7fe1b_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.entity_type}:{self.file_name}:{self.status}"
+
+
+class ImportRowError(models.Model):
+    batch = models.ForeignKey(
+        ImportBatch,
+        on_delete=models.CASCADE,
+        related_name="row_errors",
+    )
+    row_number = models.PositiveIntegerField(default=0)
+    field_name = models.CharField(max_length=128, blank=True)
+    error_code = models.CharField(max_length=64)
+    message = models.TextField()
+    raw_fragment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("row_number", "id")
+        indexes = [
+            models.Index(fields=["batch", "row_number"], name="api_importro_batch_i_6b68df_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.batch_id}:{self.row_number}:{self.error_code}"
+
+
 SAFE_MODE_SETTING_KEY = "safe_mode"
 
 

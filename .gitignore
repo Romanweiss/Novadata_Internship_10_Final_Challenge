@@ -27,3 +27,4 @@ Thumbs.db
 # Backend runtime files
 *.sqlite3
 backend/run_logs/
+backend/import_uploads/

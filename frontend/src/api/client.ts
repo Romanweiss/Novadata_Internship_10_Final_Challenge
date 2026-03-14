@@ -109,6 +109,31 @@ export type ApiFeatureMartData = {
   feature_summary: ApiFeatureSummaryItem[];
 };
 
+export type ApiImportBatch = {
+  id: string;
+  entity_type: 'stores' | 'products' | 'customers' | 'purchases';
+  file_name: string;
+  file_format: string;
+  status: 'queued' | 'running' | 'success' | 'failed' | 'partial';
+  total_rows: number;
+  valid_rows: number;
+  invalid_rows: number;
+  error_message: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+};
+
+export type ApiImportRowError = {
+  id: number;
+  row_number: number;
+  field_name: string;
+  error_code: string;
+  message: string;
+  raw_fragment: string | null;
+  created_at: string;
+};
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8001/api').replace(/\/$/, '');
 const API_TOKEN = import.meta.env.VITE_API_TOKEN ?? '';
 
@@ -127,6 +152,32 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: buildHeaders(init?.headers),
+  });
+
+  const contentType = response.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+  const payload = (isJson ? await response.json() : null) as ApiEnvelope<T> | null;
+
+  if (!response.ok) {
+    const message = payload?.error?.message || `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+
+  if (!payload?.ok) {
+    throw new Error(payload?.error?.message || 'API responded with ok=false');
+  }
+
+  return payload.data;
+}
+
+async function requestFormData<T>(path: string, body: FormData): Promise<T> {
+  const headers = buildHeaders();
+  headers.delete('Content-Type');
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    body,
+    headers,
   });
 
   const contentType = response.headers.get('content-type') || '';
@@ -187,6 +238,18 @@ export const apiClient = {
   },
   fetchFeatureMart() {
     return request<ApiFeatureMartData>('/feature-mart');
+  },
+  createImport(entityType: ApiImportBatch['entity_type'], file: File) {
+    const formData = new FormData();
+    formData.append('entity_type', entityType);
+    formData.append('file', file);
+    return requestFormData<ApiImportBatch>('/imports', formData);
+  },
+  fetchImportBatch(batchId: string) {
+    return request<ApiImportBatch>(`/imports/${batchId}`);
+  },
+  fetchImportErrors(batchId: string, limit = 200) {
+    return request<{ items: ApiImportRowError[]; total: number }>(`/imports/${batchId}/errors?limit=${limit}`);
   },
   updateSafeMode(enabled: boolean) {
     return request<{ enabled: boolean }>('/settings/safe-mode', {
