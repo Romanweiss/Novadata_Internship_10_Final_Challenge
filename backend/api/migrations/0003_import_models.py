@@ -56,8 +56,8 @@ class Migration(migrations.Migration):
             options={
                 "ordering": ("-created_at",),
                 "indexes": [
-                    models.Index(fields=["status", "created_at"], name="api_importba_status_7ae4f8_idx"),
-                    models.Index(fields=["entity_type", "created_at"], name="api_importba_entity__f7fe1b_idx"),
+                    models.Index(fields=["status", "created_at"], name="api_impbt_status_idx"),
+                    models.Index(fields=["entity_type", "created_at"], name="api_impbt_entity_idx"),
                 ],
             },
         ),
@@ -83,7 +83,7 @@ class Migration(migrations.Migration):
             options={
                 "ordering": ("row_number", "id"),
                 "indexes": [
-                    models.Index(fields=["batch", "row_number"], name="api_importro_batch_i_6b68df_idx"),
+                    models.Index(fields=["batch", "row_number"], name="api_imprerr_batch_idx"),
                 ],
             },
         ),
