@@ -12,6 +12,7 @@ from api.serializers import (
     ImportBatchCreateSerializer,
     ImportBatchSerializer,
     ImportRowErrorSerializer,
+    ImportStagingRecordSerializer,
     JobRunSerializer,
     PipelinePresetSerializer,
     SafeModeSerializer,
@@ -21,7 +22,7 @@ from api.services.errors import ServiceError
 from api.services.exports import list_exports, presign_export
 from api.services.feature_mart import get_feature_mart_payload
 from api.services.health import collect_services_health
-from api.services.imports import enqueue_import
+from api.services.imports import enqueue_import, enqueue_replay
 from api.services.metrics import (
     get_ingestion_series,
     get_last_runs,
@@ -212,6 +213,25 @@ class ImportBatchErrorsView(APIView):
         queryset = batch.row_errors.all().order_by("row_number", "id")
         serializer = ImportRowErrorSerializer(queryset[:limit], many=True)
         return ok({"items": serializer.data, "total": batch.invalid_rows})
+
+
+class ImportBatchStagingView(APIView):
+    def get(self, request, batch_id: UUID):
+        batch = get_object_or_404(ImportBatch, id=batch_id)
+        limit = _parse_positive_int(request.query_params.get("limit"), default=100, min_value=1, max_value=500)
+        queryset = batch.staging_records.all().order_by("row_number", "id")
+        serializer = ImportStagingRecordSerializer(queryset[:limit], many=True)
+        return ok({"items": serializer.data, "total": batch.staged_rows})
+
+
+class ImportBatchReplayView(APIView):
+    def post(self, request, batch_id: UUID):
+        requested_by = request.user.username if request.user and request.user.is_authenticated else None
+        try:
+            batch = enqueue_replay(batch_id=str(batch_id), requested_by=requested_by)
+        except ServiceError as exc:
+            return fail(exc.code, exc.message, exc.details, status=exc.status_code)
+        return ok(ImportBatchSerializer(batch).data, status=202)
 
 
 class SettingsConnectionsView(APIView):

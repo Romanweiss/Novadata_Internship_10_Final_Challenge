@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from api.models import AlertEvent, AppSetting, ExportAudit, ImportBatch, ImportRowError, JobRun, PipelinePreset
+from api.models import AlertEvent, AppSetting, ExportAudit, ImportBatch, ImportRowError, ImportStagingRecord, JobRun, PipelinePreset
 
 
 @admin.register(JobRun)
@@ -82,6 +82,8 @@ class ImportBatchAdmin(admin.ModelAdmin):
         "total_rows",
         "valid_rows",
         "invalid_rows",
+        "staged_rows",
+        "replay_count",
         "created_at",
         "finished_at",
     )
@@ -95,8 +97,19 @@ class ImportBatchAdmin(admin.ModelAdmin):
         "total_rows",
         "valid_rows",
         "invalid_rows",
+        "staged_rows",
+        "replay_count",
+        "last_replayed_at",
         "error_message",
         "file_path",
         "file_format",
     )
     inlines = [ImportRowErrorInline]
+
+
+@admin.register(ImportStagingRecord)
+class ImportStagingRecordAdmin(admin.ModelAdmin):
+    list_display = ("id", "entity_type", "business_key", "row_number", "batch", "created_at")
+    list_filter = ("entity_type",)
+    search_fields = ("business_key", "batch__id")
+    readonly_fields = ("created_at",)

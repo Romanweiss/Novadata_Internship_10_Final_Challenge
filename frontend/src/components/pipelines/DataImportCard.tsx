@@ -1,11 +1,17 @@
-import { Database, FileWarning, UploadCloud } from 'lucide-react';
+import { Database, FileWarning, RotateCcw, UploadCloud } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { apiClient, type ApiImportBatch, type ApiImportRowError } from '../../api/client';
+import {
+  apiClient,
+  type ApiImportBatch,
+  type ApiImportRowError,
+  type ApiImportStagingRecord,
+} from '../../api/client';
 import { useAppState } from '../../app/useAppState';
 import { cn } from '../../utils/format';
 import { Card } from '../common/Card';
 import { ImportErrorsModal } from './ImportErrorsModal';
+import { ImportStagingModal } from './ImportStagingModal';
 
 const ENTITY_OPTIONS: ApiImportBatch['entity_type'][] = ['stores', 'products', 'customers', 'purchases'];
 const LAST_IMPORT_BATCH_STORAGE_KEY = 'pf-last-import-batch-id';
@@ -43,6 +49,7 @@ export function DataImportCard() {
   const [entityType, setEntityType] = useState<ApiImportBatch['entity_type']>('stores');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [replaying, setReplaying] = useState(false);
   const [batch, setBatch] = useState<ApiImportBatch | null>(null);
   const [inlineError, setInlineError] = useState('');
   const [errorsOpen, setErrorsOpen] = useState(false);
@@ -50,6 +57,11 @@ export function DataImportCard() {
   const [errorsLoadMessage, setErrorsLoadMessage] = useState('');
   const [errors, setErrors] = useState<ApiImportRowError[]>([]);
   const [errorsTotal, setErrorsTotal] = useState(0);
+  const [stagingOpen, setStagingOpen] = useState(false);
+  const [stagingLoading, setStagingLoading] = useState(false);
+  const [stagingLoadMessage, setStagingLoadMessage] = useState('');
+  const [stagingItems, setStagingItems] = useState<ApiImportStagingRecord[]>([]);
+  const [stagingTotal, setStagingTotal] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -91,6 +103,7 @@ export function DataImportCard() {
   }, [batch, t]);
 
   const hasErrors = (batch?.invalid_rows ?? 0) > 0;
+  const hasStaging = (batch?.staged_rows ?? 0) > 0;
   const batchStatusLabel = batch ? t(`pipelines.import.status.${batch.status}`) : '-';
 
   const summaryItems = useMemo(
@@ -101,9 +114,16 @@ export function DataImportCard() {
             { key: 'totalRows', label: t('pipelines.import.totalRows'), value: String(batch.total_rows) },
             { key: 'validRows', label: t('pipelines.import.validRows'), value: String(batch.valid_rows) },
             { key: 'invalidRows', label: t('pipelines.import.invalidRows'), value: String(batch.invalid_rows) },
+            { key: 'stagedRows', label: t('pipelines.import.stagedRows'), value: String(batch.staged_rows) },
+            { key: 'replayCount', label: t('pipelines.import.replayCount'), value: String(batch.replay_count) },
             { key: 'createdAt', label: t('pipelines.import.createdAt'), value: formatDateTime(batch.created_at) },
             { key: 'startedAt', label: t('pipelines.import.startedAt'), value: formatDateTime(batch.started_at) },
             { key: 'finishedAt', label: t('pipelines.import.finishedAt'), value: formatDateTime(batch.finished_at) },
+            {
+              key: 'lastReplayedAt',
+              label: t('pipelines.import.lastReplayedAt'),
+              value: formatDateTime(batch.last_replayed_at),
+            },
           ]
         : [],
     [batch, t],
@@ -151,6 +171,44 @@ export function DataImportCard() {
       setErrorsLoadMessage(error instanceof Error ? error.message : t('pipelines.import.loadErrorsFailed'));
     } finally {
       setErrorsLoading(false);
+    }
+  }
+
+  async function handleOpenStaging() {
+    if (!batch) return;
+    setStagingOpen(true);
+    setStagingLoading(true);
+    setStagingLoadMessage('');
+
+    try {
+      const payload = await apiClient.fetchImportStaging(batch.id, 200);
+      setStagingItems(payload.items);
+      setStagingTotal(payload.total);
+    } catch (error) {
+      setStagingItems([]);
+      setStagingTotal(0);
+      setStagingLoadMessage(error instanceof Error ? error.message : t('pipelines.import.loadStagingFailed'));
+    } finally {
+      setStagingLoading(false);
+    }
+  }
+
+  async function handleReplay() {
+    if (!batch) return;
+    setReplaying(true);
+    setInlineError('');
+
+    try {
+      const payload = await apiClient.replayImportBatch(batch.id);
+      setBatch(payload);
+      setErrors([]);
+      setErrorsTotal(0);
+      setStagingItems([]);
+      setStagingTotal(0);
+    } catch (error) {
+      setInlineError(error instanceof Error ? error.message : t('pipelines.import.replayFailed'));
+    } finally {
+      setReplaying(false);
     }
   }
 
@@ -265,6 +323,31 @@ export function DataImportCard() {
                       {t('pipelines.import.noErrors')}
                     </span>
                   )}
+
+                  {hasStaging ? (
+                    <button
+                      type="button"
+                      onClick={handleOpenStaging}
+                      className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/10"
+                    >
+                      <Database className="h-4 w-4" />
+                      {t('pipelines.import.viewStaging')}
+                    </button>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-slate-500/12 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      {t('pipelines.import.noStaging')}
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleReplay}
+                    disabled={replaying || isImportInProgress(batch.status)}
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] px-4 py-2 text-sm font-semibold hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-white/10"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    {replaying ? t('pipelines.import.replaying') : t('pipelines.import.replay')}
+                  </button>
                 </div>
               </>
             ) : (
@@ -281,6 +364,14 @@ export function DataImportCard() {
         total={errorsTotal}
         items={errors}
         onClose={() => setErrorsOpen(false)}
+      />
+      <ImportStagingModal
+        open={stagingOpen}
+        loading={stagingLoading}
+        errorMessage={stagingLoadMessage}
+        total={stagingTotal}
+        items={stagingItems}
+        onClose={() => setStagingOpen(false)}
       />
     </>
   );

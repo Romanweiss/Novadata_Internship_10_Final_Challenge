@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from api.models import ImportBatch, ImportRowError, JobRun, PipelinePreset
+from api.models import ImportBatch, ImportRowError, ImportStagingRecord, JobRun, PipelinePreset
 
 
 class JobRunSerializer(serializers.ModelSerializer):
@@ -81,10 +81,13 @@ class ImportBatchSerializer(serializers.ModelSerializer):
             "total_rows",
             "valid_rows",
             "invalid_rows",
+            "staged_rows",
+            "replay_count",
             "error_message",
             "created_at",
             "started_at",
             "finished_at",
+            "last_replayed_at",
         ]
 
 
@@ -98,5 +101,17 @@ class ImportRowErrorSerializer(serializers.ModelSerializer):
             "error_code",
             "message",
             "raw_fragment",
+            "created_at",
+        ]
+
+
+class ImportStagingRecordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ImportStagingRecord
+        fields = [
+            "id",
+            "row_number",
+            "business_key",
+            "payload_json",
             "created_at",
         ]

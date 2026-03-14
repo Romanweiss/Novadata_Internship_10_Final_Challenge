@@ -11,7 +11,7 @@ from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.utils import timezone
 
-from api.models import ImportBatch, ImportRowError
+from api.models import ImportBatch, ImportRowError, ImportStagingRecord
 from api.services.errors import ServiceError
 from api.services.settings import env_int, env_str
 
@@ -95,12 +95,34 @@ def enqueue_import(
             requested_by=requested_by or None,
         )
 
-    thread = threading.Thread(target=_process_import_batch, args=(str(batch.id),), daemon=True)
+    thread = threading.Thread(target=_process_import_batch, args=(str(batch.id), False), daemon=True)
     thread.start()
     return batch
 
 
-def _process_import_batch(batch_id: str) -> None:
+def enqueue_replay(*, batch_id: str, requested_by: str | None = None) -> ImportBatch:
+    batch = ImportBatch.objects.filter(id=batch_id).first()
+    if not batch:
+        raise ServiceError("IMPORT_BATCH_NOT_FOUND", "Import batch was not found.", 404)
+    if batch.status in {ImportBatch.Status.QUEUED, ImportBatch.Status.RUNNING}:
+        raise ServiceError("IMPORT_BATCH_BUSY", "Import batch is already queued or running.", 409)
+    if not Path(batch.file_path).exists():
+        raise ServiceError("IMPORT_FILE_MISSING", "Stored batch file is missing, replay is unavailable.", 404)
+
+    batch.status = ImportBatch.Status.QUEUED
+    batch.started_at = None
+    batch.finished_at = None
+    batch.error_message = None
+    if requested_by:
+        batch.requested_by = requested_by
+    batch.save(update_fields=["status", "started_at", "finished_at", "error_message", "requested_by"])
+
+    thread = threading.Thread(target=_process_import_batch, args=(str(batch.id), True), daemon=True)
+    thread.start()
+    return batch
+
+
+def _process_import_batch(batch_id: str, is_replay: bool = False) -> None:
     batch = ImportBatch.objects.filter(id=batch_id).first()
     if not batch:
         return
@@ -112,7 +134,9 @@ def _process_import_batch(batch_id: str) -> None:
     total_rows = 0
     valid_rows = 0
     invalid_rows = 0
+    staged_rows = 0
     batch_errors: list[ImportRowError] = []
+    staging_records: list[ImportStagingRecord] = []
     status = ImportBatch.Status.SUCCESS
     error_message = ""
 
@@ -137,6 +161,15 @@ def _process_import_batch(batch_id: str) -> None:
                         )
             else:
                 valid_rows += 1
+                staging_records.append(
+                    ImportStagingRecord(
+                        batch=batch,
+                        entity_type=batch.entity_type,
+                        row_number=max(row_number, 0),
+                        business_key=_extract_business_key(batch.entity_type, row),
+                        payload_json=row,
+                    )
+                )
 
         if total_rows == 0:
             status = ImportBatch.Status.FAILED
@@ -146,6 +179,7 @@ def _process_import_batch(batch_id: str) -> None:
             error_message = "No valid rows matched the schema contract."
         elif invalid_rows > 0:
             status = ImportBatch.Status.PARTIAL
+        staged_rows = valid_rows
     except ServiceError as exc:
         status = ImportBatch.Status.FAILED
         error_message = exc.message
@@ -178,26 +212,37 @@ def _process_import_batch(batch_id: str) -> None:
         total_rows = 0
         valid_rows = 0
         invalid_rows = 1
+        staged_rows = 0
 
     with transaction.atomic():
         ImportRowError.objects.filter(batch=batch).delete()
+        ImportStagingRecord.objects.filter(batch=batch).delete()
         if batch_errors:
             ImportRowError.objects.bulk_create(batch_errors)
+        if staging_records:
+            ImportStagingRecord.objects.bulk_create(staging_records)
 
         batch.status = status
         batch.total_rows = total_rows
         batch.valid_rows = valid_rows
         batch.invalid_rows = invalid_rows
+        batch.staged_rows = staged_rows
         batch.error_message = error_message or None
         batch.finished_at = timezone.now()
+        if is_replay:
+            batch.replay_count += 1
+            batch.last_replayed_at = batch.finished_at
         batch.save(
             update_fields=[
                 "status",
                 "total_rows",
                 "valid_rows",
                 "invalid_rows",
+                "staged_rows",
+                "replay_count",
                 "error_message",
                 "finished_at",
+                "last_replayed_at",
             ]
         )
 
@@ -276,6 +321,19 @@ def _validate_row(entity_type: str, row: Any) -> list[tuple[str, str, str]]:
                 )
             )
     return errors
+
+
+def _extract_business_key(entity_type: str, row: dict[str, Any]) -> str:
+    field_groups = REQUIRED_ENTITY_FIELDS.get(entity_type, ())
+    for field_group in field_groups:
+        for field_name in field_group:
+            value = row.get(field_name)
+            if value is None:
+                continue
+            text = value.strip() if isinstance(value, str) else str(value)
+            if text:
+                return text
+    return f"row-{uuid.uuid4().hex}"
 
 
 def _has_non_empty_value(row: dict[str, Any], field_name: str) -> bool:

@@ -118,10 +118,13 @@ export type ApiImportBatch = {
   total_rows: number;
   valid_rows: number;
   invalid_rows: number;
+  staged_rows: number;
+  replay_count: number;
   error_message: string | null;
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
+  last_replayed_at: string | null;
 };
 
 export type ApiImportRowError = {
@@ -131,6 +134,14 @@ export type ApiImportRowError = {
   error_code: string;
   message: string;
   raw_fragment: string | null;
+  created_at: string;
+};
+
+export type ApiImportStagingRecord = {
+  id: number;
+  row_number: number;
+  business_key: string;
+  payload_json: Record<string, unknown>;
   created_at: string;
 };
 
@@ -250,6 +261,15 @@ export const apiClient = {
   },
   fetchImportErrors(batchId: string, limit = 200) {
     return request<{ items: ApiImportRowError[]; total: number }>(`/imports/${batchId}/errors?limit=${limit}`);
+  },
+  fetchImportStaging(batchId: string, limit = 100) {
+    return request<{ items: ApiImportStagingRecord[]; total: number }>(`/imports/${batchId}/staging?limit=${limit}`);
+  },
+  replayImportBatch(batchId: string) {
+    return request<ApiImportBatch>(`/imports/${batchId}/replay`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
   },
   updateSafeMode(enabled: boolean) {
     return request<{ enabled: boolean }>('/settings/safe-mode', {

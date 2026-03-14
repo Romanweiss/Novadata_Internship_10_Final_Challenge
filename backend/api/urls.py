@@ -7,6 +7,8 @@ from api.views import (
     ExportsPresignView,
     ImportBatchCreateView,
     ImportBatchErrorsView,
+    ImportBatchReplayView,
+    ImportBatchStagingView,
     ImportBatchStatusView,
     OverviewIngestionSeriesView,
     OverviewKpisView,
@@ -68,6 +70,8 @@ urlpatterns = [
     path("imports", ImportBatchCreateView.as_view(), name="imports-create"),
     path("imports/<uuid:batch_id>", ImportBatchStatusView.as_view(), name="imports-status"),
     path("imports/<uuid:batch_id>/errors", ImportBatchErrorsView.as_view(), name="imports-errors"),
+    path("imports/<uuid:batch_id>/staging", ImportBatchStagingView.as_view(), name="imports-staging"),
+    path("imports/<uuid:batch_id>/replay", ImportBatchReplayView.as_view(), name="imports-replay"),
     path("settings/connections", SettingsConnectionsView.as_view(), name="settings-connections"),
     path("settings/safe-mode", SettingsSafeModeView.as_view(), name="settings-safe-mode"),
     path(

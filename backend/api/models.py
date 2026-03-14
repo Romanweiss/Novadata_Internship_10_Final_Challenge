@@ -200,10 +200,13 @@ class ImportBatch(models.Model):
     total_rows = models.BigIntegerField(default=0)
     valid_rows = models.BigIntegerField(default=0)
     invalid_rows = models.BigIntegerField(default=0)
+    staged_rows = models.BigIntegerField(default=0)
+    replay_count = models.PositiveIntegerField(default=0)
     error_message = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(blank=True, null=True)
     finished_at = models.DateTimeField(blank=True, null=True)
+    last_replayed_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ("-created_at",)
@@ -214,6 +217,29 @@ class ImportBatch(models.Model):
 
     def __str__(self) -> str:
         return f"{self.entity_type}:{self.file_name}:{self.status}"
+
+
+class ImportStagingRecord(models.Model):
+    batch = models.ForeignKey(
+        ImportBatch,
+        on_delete=models.CASCADE,
+        related_name="staging_records",
+    )
+    entity_type = models.CharField(max_length=32, choices=ImportBatch.EntityType.choices)
+    row_number = models.PositiveIntegerField(default=0)
+    business_key = models.CharField(max_length=255)
+    payload_json = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("row_number", "id")
+        indexes = [
+            models.Index(fields=["batch", "row_number"], name="api_impstg_batch_idx"),
+            models.Index(fields=["entity_type", "business_key"], name="api_impstg_key_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.entity_type}:{self.business_key}:{self.batch_id}"
 
 
 class ImportRowError(models.Model):
