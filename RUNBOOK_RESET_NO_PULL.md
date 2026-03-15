@@ -145,8 +145,27 @@ docker compose --env-file .env up -d backend frontend
 docker compose --env-file .env ps backend frontend
 ```
 
+Важно:
+- `backend` при старте сам выполняет `python backend/manage.py migrate` и `python backend/manage.py ensure_api_token`;
+- локально Django для этого сценария не нужен;
+- если новая миграция была добавлена уже после запуска контейнера `backend`, примените её вручную:
+
+```powershell
+docker compose --env-file .env exec backend python backend/manage.py showmigrations api
+docker compose --env-file .env exec backend python backend/manage.py migrate
+```
+
 Проверка:
 - Frontend UI: `http://localhost:5173`
 - Backend API: `http://localhost:8001/api`
 - API docs: `http://localhost:8001/api/docs/`
 - Django admin: `http://localhost:8001/admin/`
+
+Дополнительно:
+- во вкладке `Pipelines` доступен блок `Загрузка данных`;
+- текущий ingestion сохраняет ошибки batch и валидные строки в staging layer, но не вмешивается в основной pipeline MongoDB/Kafka;
+- для проверки можно использовать endpoint-ы:
+  - `POST /api/imports`
+  - `GET /api/imports/{id}`
+  - `GET /api/imports/{id}/errors`
+  - `GET /api/imports/{id}/staging`

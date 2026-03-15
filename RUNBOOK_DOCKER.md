@@ -220,12 +220,74 @@ docker compose --env-file .env ps backend frontend
 
 Что делает:
 - поднимает API и UI поверх уже поднятой инфраструктуры.
+- при старте `backend` автоматически выполняет:
+  - `python backend/manage.py migrate`
+  - `python backend/manage.py ensure_api_token`
+  - `python backend/manage.py runserver 0.0.0.0:8001`
 
 Использует:
 - `docker/backend/Dockerfile`
 - `docker/frontend/Dockerfile`
 - `backend/`
 - `frontend/`
+
+Важно:
+- локально Django устанавливать не нужно;
+- все проверки и миграции выполняются через контейнер `backend`;
+- если новая миграция появилась после того, как `backend` уже был запущен, выполните ручной `migrate`.
+
+### 5.1 Проверка и ручной запуск миграций backend
+
+Проверить список миграций `api`:
+
+```powershell
+docker compose --env-file .env exec backend python backend/manage.py showmigrations api
+```
+
+Применить миграции вручную:
+
+```powershell
+docker compose --env-file .env exec backend python backend/manage.py migrate
+```
+
+Проверить, что ingestion-таблицы существуют:
+
+```powershell
+docker compose --env-file .env exec backend python backend/manage.py shell -c "from django.db import connection; print('\n'.join(sorted(t for t in connection.introspection.table_names() if t.startswith('api_import'))))"
+```
+
+Ожидаемые таблицы:
+- `api_importbatch`
+- `api_importrowerror`
+- `api_importstagingrecord`
+
+### 5.2 Проверка managed ingestion и staging layer
+
+Текущий ingestion работает как безопасное расширение:
+- файл загружается через UI/API;
+- создается `ImportBatch`;
+- строки валидируются;
+- ошибки пишутся в `ImportRowError`;
+- валидные строки сохраняются в изолированный staging layer;
+- данные пока не пушатся автоматически в MongoDB/Kafka.
+
+UI-проверка:
+- открыть `http://localhost:5173`;
+- перейти во вкладку `Pipelines`;
+- найти блок `Загрузка данных`.
+
+API endpoint-ы первого и второго безопасного этапа:
+- `POST http://localhost:8001/api/imports`
+- `GET http://localhost:8001/api/imports/{id}`
+- `GET http://localhost:8001/api/imports/{id}/errors`
+- `GET http://localhost:8001/api/imports/{id}/staging`
+- `POST http://localhost:8001/api/imports/{id}/replay`
+
+Что проверить вручную:
+- batch создается и получает статус `queued/running/success/failed/partial`;
+- ошибки доступны через `/errors`;
+- валидные строки доступны через `/staging`;
+- повторный прогон batch работает через `/replay` и увеличивает `replay_count`.
 
 ## 6. Airflow DAG (ручной запуск)
 
