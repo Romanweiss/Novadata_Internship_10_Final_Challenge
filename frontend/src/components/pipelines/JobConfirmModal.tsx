@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Play, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 import { useAppState } from '../../app/useAppState';
 import type { JobAction } from '../../types/ui';
@@ -27,7 +28,7 @@ export function JobConfirmModal({ action, open, onClose, onConfirm }: JobConfirm
       : descriptionKey
     : '';
 
-  return (
+  const modal = (
     <AnimatePresence>
       {open && action ? (
         <motion.div
@@ -84,4 +85,10 @@ export function JobConfirmModal({ action, open, onClose, onConfirm }: JobConfirm
       ) : null}
     </AnimatePresence>
   );
+
+  if (typeof document === 'undefined') {
+    return modal;
+  }
+
+  return createPortal(modal, document.body);
 }
