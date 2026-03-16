@@ -21,13 +21,15 @@ export function HeaderBar() {
 
           <span className="h-5 w-px bg-[var(--border)]" />
 
-          <button
-            type="button"
+          <a
+            href="/documentation"
+            target="_blank"
+            rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-full px-2.5 py-1.5 text-[0.85rem] text-[var(--text-muted)] hover:bg-black/5 hover:text-[var(--text)] dark:hover:bg-white/10"
           >
             <BookOpenText className="h-4 w-4" />
             {t('header.docs')}
-          </button>
+          </a>
 
           <div className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] p-0.5">
             <Languages className="ml-1 h-3.5 w-3.5 text-[var(--text-muted)]" />

@@ -2,6 +2,7 @@
 
 import { AppLayout } from './app/AppLayout';
 import { DataQualityPage } from './pages/DataQualityPage';
+import { DocumentationPage } from './pages/DocumentationPage';
 import { ExportsPage } from './pages/ExportsPage';
 import { FeatureMartPage } from './pages/FeatureMartPage';
 import { OverviewPage } from './pages/OverviewPage';
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/feature-mart" element={<FeatureMartPage />} />
         <Route path="/exports" element={<ExportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/documentation" element={<DocumentationPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
