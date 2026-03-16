@@ -11,6 +11,23 @@
   ServiceHealthItem,
 } from '../types/ui';
 
+function createMockIngestionSeries(values: number[]): IngestionPoint[] {
+  const baseDate = new Date();
+  baseDate.setHours(0, 0, 0, 0);
+  baseDate.setDate(baseDate.getDate() - (values.length - 1));
+
+  return values.map((rows, index) => {
+    const current = new Date(baseDate);
+    current.setDate(baseDate.getDate() + index);
+    return {
+      day: current.toLocaleDateString(undefined, { weekday: 'short' }),
+      rows,
+      dateLabel: current.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }),
+      yearLabel: current.toLocaleDateString('ru-RU', { year: 'numeric' }),
+    };
+  });
+}
+
 export const navItems = [
   { key: 'overview', label: 'Overview', path: '/' },
   { key: 'pipelines', label: 'Pipelines', path: '/pipelines' },
@@ -27,15 +44,15 @@ export const kpiItems: KPIItem[] = [
   { key: 'items', title: 'Items (mart)', value: '480', change: '0', icon: 'layers' },
 ];
 
-export const ingestionSeries: IngestionPoint[] = [
-  { day: 'Thu', rows: 530000 },
-  { day: 'Fri', rows: 545000 },
-  { day: 'Sat', rows: 417523 },
-  { day: 'Sun', rows: 185000 },
-  { day: 'Mon', rows: 592300 },
-  { day: 'Tue', rows: 518200 },
-  { day: 'Wed', rows: 372900 },
-];
+export const ingestionSeries: IngestionPoint[] = createMockIngestionSeries([
+  530000,
+  545000,
+  417523,
+  185000,
+  592300,
+  518200,
+  372900,
+]);
 
 export const serviceHealth: ServiceHealthItem[] = [
   { id: 'ch', name: 'ClickHouse', status: 'healthy', checkedAgo: '2s ago' },

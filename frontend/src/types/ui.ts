@@ -14,6 +14,8 @@ export interface KPIItem {
 export interface IngestionPoint {
   day: string;
   rows: number;
+  dateLabel?: string;
+  yearLabel?: string;
 }
 
 export interface ServiceHealthItem {

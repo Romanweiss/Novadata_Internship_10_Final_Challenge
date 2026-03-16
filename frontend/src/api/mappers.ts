@@ -43,6 +43,18 @@ function toWeekdayLabel(input: string): string {
   return date.toLocaleDateString(undefined, { weekday: 'short' });
 }
 
+function toDayMonthLabel(input: string): string {
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+}
+
+function toYearLabel(input: string): string {
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('ru-RU', { year: 'numeric' });
+}
+
 function toRelativeCheckedAgo(iso: string): string {
   const ts = new Date(iso).getTime();
   if (Number.isNaN(ts)) return 'n/a';
@@ -115,6 +127,8 @@ export function mapIngestionSeries(points: ApiIngestionPoint[]): IngestionPoint[
   return points.map((point) => ({
     day: toWeekdayLabel(point.day),
     rows: point.rows,
+    dateLabel: toDayMonthLabel(point.day),
+    yearLabel: toYearLabel(point.day),
   }));
 }
 
