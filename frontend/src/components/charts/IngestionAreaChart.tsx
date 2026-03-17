@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 
 import type { IngestionPoint } from '../../types/ui';
+import { useAppState } from '../../app/useAppState';
 
 interface IngestionAreaChartProps {
   data: IngestionPoint[];
@@ -87,6 +88,7 @@ function IngestionTooltipContent({ active, label, payload }: TooltipContentProps
 }
 
 export function IngestionAreaChart({ data }: IngestionAreaChartProps) {
+  const { language } = useAppState();
   const uniqueId = useId().replace(/:/g, '');
   const gradientId = `ingestionGradient-${uniqueId}`;
   const clipId = `ingestionRevealClip-${uniqueId}`;
@@ -103,6 +105,8 @@ export function IngestionAreaChart({ data }: IngestionAreaChartProps) {
   const axisMax = axisTickMax + axisStep;
   const yTicks = Array.from({ length: Math.max(2, Math.round(axisMax / axisStep) + 1) }, (_, idx) => idx * axisStep);
   const chartYear = formatYearLabel(chartData);
+  const yAxisCaption = language === 'ru' ? 'Количество загрузок' : 'Ingestion volume';
+  const xAxisCaption = language === 'ru' ? 'Дата' : 'Date';
   const [revealProgress, setRevealProgress] = useState(0);
 
   useEffect(() => {
@@ -121,6 +125,7 @@ export function IngestionAreaChart({ data }: IngestionAreaChartProps) {
 
   return (
     <div>
+      <div className="mb-1 text-[0.76rem] font-semibold tracking-[0.02em] text-[var(--text-muted)]">{yAxisCaption}</div>
       <ResponsiveContainer width="100%" height={332}>
         <AreaChart data={chartData} margin={{ top: 26, right: 18, left: 8, bottom: 34 }}>
           <defs>
@@ -218,6 +223,9 @@ export function IngestionAreaChart({ data }: IngestionAreaChartProps) {
         </AreaChart>
       </ResponsiveContainer>
 
+      <div className="mt-1 text-center text-[0.78rem] font-medium tracking-[0.01em] text-[var(--text-muted)]">
+        {xAxisCaption}
+      </div>
       {chartYear ? (
         <div className="mt-1 text-center text-[0.95rem] font-semibold tracking-wide text-[var(--text-muted)]">
           {chartYear}
