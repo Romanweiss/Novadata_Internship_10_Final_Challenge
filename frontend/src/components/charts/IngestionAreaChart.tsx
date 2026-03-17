@@ -11,8 +11,8 @@ import {
   YAxis,
 } from 'recharts';
 
-import type { IngestionPoint } from '../../types/ui';
 import { useAppState } from '../../app/useAppState';
+import type { IngestionPoint } from '../../types/ui';
 
 interface IngestionAreaChartProps {
   data: IngestionPoint[];
@@ -105,8 +105,8 @@ export function IngestionAreaChart({ data }: IngestionAreaChartProps) {
   const axisMax = axisTickMax + axisStep;
   const yTicks = Array.from({ length: Math.max(2, Math.round(axisMax / axisStep) + 1) }, (_, idx) => idx * axisStep);
   const chartYear = formatYearLabel(chartData);
-  const yAxisCaption = language === 'ru' ? 'Количество загрузок' : 'Ingestion volume';
-  const xAxisCaption = language === 'ru' ? 'Дата' : 'Date';
+  const yAxisCaption = language === 'ru' ? '\u041a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u043e \u0437\u0430\u0433\u0440\u0443\u0437\u043e\u043a' : 'Ingestion volume';
+  const xAxisCaption = language === 'ru' ? '\u0414\u0430\u0442\u0430' : 'Date';
   const [revealProgress, setRevealProgress] = useState(0);
 
   useEffect(() => {
@@ -217,6 +217,8 @@ export function IngestionAreaChart({ data }: IngestionAreaChartProps) {
             strokeLinejoin="round"
             fill="none"
             isAnimationActive={false}
+            pathLength={100}
+            strokeDasharray={`${Math.max(revealProgress * 100, 0)} 100`}
             dot={false}
             activeDot={false}
           />

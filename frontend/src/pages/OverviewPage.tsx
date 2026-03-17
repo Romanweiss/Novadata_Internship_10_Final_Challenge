@@ -10,13 +10,70 @@ import { Card } from '../components/common/Card';
 import { KpiCard } from '../components/common/KpiCard';
 import { LastRunsList } from '../components/common/LastRunsList';
 import { ServicesHealthList } from '../components/common/ServicesHealthList';
-import { ingestionSeries, kpiItems, paymentBreakdown, serviceHealth } from '../mocks/data';
+import { kpiItems, paymentBreakdown, serviceHealth } from '../mocks/data';
 import type { IngestionPoint, KPIItem, PaymentBreakdownItem, ServiceHealthItem } from '../types/ui';
 
+const OVERVIEW_REFRESH_MS = 45_000;
+
+function areKpisEqual(left: KPIItem[], right: KPIItem[]) {
+  return (
+    left.length === right.length &&
+    left.every(
+      (item, idx) =>
+        item.key === right[idx]?.key &&
+        item.title === right[idx]?.title &&
+        item.value === right[idx]?.value &&
+        item.change === right[idx]?.change &&
+        item.icon === right[idx]?.icon,
+    )
+  );
+}
+
+function areIngestionPointsEqual(left: IngestionPoint[], right: IngestionPoint[]) {
+  return (
+    left.length === right.length &&
+    left.every(
+      (point, idx) =>
+        point.day === right[idx]?.day &&
+        point.rows === right[idx]?.rows &&
+        point.dateLabel === right[idx]?.dateLabel &&
+        point.yearLabel === right[idx]?.yearLabel,
+    )
+  );
+}
+
+function areServicesEqual(left: ServiceHealthItem[], right: ServiceHealthItem[]) {
+  return (
+    left.length === right.length &&
+    left.every(
+      (item, idx) =>
+        item.id === right[idx]?.id &&
+        item.name === right[idx]?.name &&
+        item.status === right[idx]?.status &&
+        item.checkedAgo === right[idx]?.checkedAgo,
+    )
+  );
+}
+
+function arePaymentsEqual(left: PaymentBreakdownItem[], right: PaymentBreakdownItem[]) {
+  return (
+    left.length === right.length &&
+    left.every(
+      (item, idx) =>
+        item.id === right[idx]?.id &&
+        item.method === right[idx]?.method &&
+        item.count === right[idx]?.count &&
+        item.value === right[idx]?.value &&
+        item.color === right[idx]?.color,
+    )
+  );
+}
+
 export function OverviewPage() {
-  const { lastRuns, t } = useAppState();
+  const { language, lastRuns, t } = useAppState();
   const [kpis, setKpis] = useState<KPIItem[]>(kpiItems);
-  const [ingestion, setIngestion] = useState<IngestionPoint[]>(ingestionSeries);
+  const [ingestion, setIngestion] = useState<IngestionPoint[] | null>(null);
+  const [ingestionLoading, setIngestionLoading] = useState(true);
   const [services, setServices] = useState<ServiceHealthItem[]>(serviceHealth);
   const [payments, setPayments] = useState<PaymentBreakdownItem[]>(paymentBreakdown);
 
@@ -31,11 +88,20 @@ export function OverviewPage() {
 
       if (mountedRef && !mountedRef.current) return;
 
-      setKpis(mapKpisToCards(kpiPayload));
-      setIngestion(mapIngestionSeries(ingestionPayload.points));
-      setServices(mapServicesHealth(servicePayload.services));
-      setPayments(mapPayments(paymentPayload.items));
+      const nextKpis = mapKpisToCards(kpiPayload);
+      const nextIngestion = mapIngestionSeries(ingestionPayload.points);
+      const nextServices = mapServicesHealth(servicePayload.services);
+      const nextPayments = mapPayments(paymentPayload.items);
+
+      setKpis((current) => (areKpisEqual(current, nextKpis) ? current : nextKpis));
+      setIngestion((current) => (current && areIngestionPointsEqual(current, nextIngestion) ? current : nextIngestion));
+      setIngestionLoading(false);
+      setServices((current) => (areServicesEqual(current, nextServices) ? current : nextServices));
+      setPayments((current) => (arePaymentsEqual(current, nextPayments) ? current : nextPayments));
     } catch {
+      if (mountedRef?.current) {
+        setIngestionLoading(false);
+      }
       // Fallback to local mocks if API is unavailable or auth is missing.
     }
   }, []);
@@ -46,7 +112,7 @@ export function OverviewPage() {
 
     const timer = window.setInterval(() => {
       void fetchOverviewData(mounted);
-    }, 10_000);
+    }, OVERVIEW_REFRESH_MS);
 
     return () => {
       mounted.current = false;
@@ -71,7 +137,20 @@ export function OverviewPage() {
       <section className="grid gap-5 xl:grid-cols-[1fr_340px]">
         <Card className="p-5">
           <h3 className="mb-2 text-xl font-bold">{t('overview.ingestionTitle')}</h3>
-          <IngestionAreaChart data={ingestion} />
+          {ingestion ? (
+            <IngestionAreaChart data={ingestion} />
+          ) : ingestionLoading ? (
+            <div className="space-y-4 pt-2">
+              <div className="h-3 w-40 animate-pulse rounded-full bg-[var(--surface-muted)]" />
+              <div className="h-[332px] animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)]/75" />
+            </div>
+          ) : (
+            <div className="flex h-[356px] items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-muted)]/45 px-6 text-center text-sm leading-6 text-[var(--text-muted)]">
+              {language === 'ru'
+                ? 'Данные по активности загрузки пока недоступны.'
+                : 'Ingestion activity data is currently unavailable.'}
+            </div>
+          )}
         </Card>
 
         <ServicesHealthList items={services} />
