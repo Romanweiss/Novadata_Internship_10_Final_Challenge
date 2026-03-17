@@ -4,6 +4,7 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -48,10 +49,41 @@ interface AxisTickProps {
   };
 }
 
+interface TooltipContentProps {
+  active?: boolean;
+  label?: string | number;
+  payload?: Array<{
+    value?: number | string;
+  }>;
+}
+
 function formatYearLabel(points: IngestionPoint[]) {
   const years = Array.from(new Set(points.map((point) => point.yearLabel).filter(Boolean)));
   if (years.length === 0) return '';
   return years.join(' / ');
+}
+
+function IngestionTooltipContent({ active, label, payload }: TooltipContentProps) {
+  if (!active || !payload?.length) return null;
+
+  const value = payload[0]?.value;
+
+  return (
+    <div
+      style={{
+        borderRadius: 14,
+        border: '1px solid var(--border)',
+        background: 'var(--surface)',
+        boxShadow: '0 12px 24px -18px rgba(15, 23, 42, 0.65)',
+        padding: '12px 14px',
+      }}
+    >
+      <div style={{ color: 'var(--text-muted)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
+      <div style={{ color: 'var(--text)', fontWeight: 700 }}>
+        {Math.round(Number(value || 0)).toLocaleString('ru-RU')}
+      </div>
+    </div>
+  );
 }
 
 export function IngestionAreaChart({ data }: IngestionAreaChartProps) {
@@ -153,30 +185,32 @@ export function IngestionAreaChart({ data }: IngestionAreaChartProps) {
           />
 
           <Tooltip
-            cursor={{ stroke: 'var(--border-strong)' }}
-            separator=": "
-            formatter={(value) => Math.round(Number(value || 0)).toLocaleString('ru-RU')}
+            cursor={false}
             labelFormatter={(value) => {
               const point = chartData[Math.round(Number(value || 0))];
               return point?.dateLabel ? `${point.day}, ${point.dateLabel}` : point?.day ?? '';
             }}
-            contentStyle={{
-              borderRadius: 14,
-              border: '1px solid var(--border)',
-              background: 'var(--surface)',
-              boxShadow: '0 12px 24px -18px rgba(15, 23, 42, 0.65)',
-            }}
-            itemStyle={{ color: 'var(--text)' }}
-            labelStyle={{ color: 'var(--text-muted)', fontWeight: 600 }}
+            content={<IngestionTooltipContent />}
           />
 
           <Area
             type="monotone"
             dataKey="rows"
-            stroke="#111827"
-            strokeWidth={2.8}
             fill={`url(#${gradientId})`}
             clipPath={`url(#${clipId})`}
+            isAnimationActive={false}
+            stroke="none"
+            dot={false}
+            activeDot={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="rows"
+            stroke="#111827"
+            strokeWidth={2.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
             isAnimationActive={false}
             dot={false}
             activeDot={false}
