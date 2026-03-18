@@ -1,4 +1,4 @@
-﻿import { Download, Gauge, Settings, ShieldAlert, Table2, Workflow } from 'lucide-react';
+﻿import { Info, Download, Gauge, Settings, ShieldAlert, Table2, Workflow } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 import { useAppState } from '../../app/useAppState';
@@ -12,6 +12,7 @@ const iconByKey = {
   'feature-mart': Table2,
   exports: Download,
   settings: Settings,
+  'about-project': Info,
 } as const;
 
 export function NavTabs() {

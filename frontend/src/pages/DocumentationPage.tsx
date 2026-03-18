@@ -56,10 +56,6 @@ export function DocumentationPage() {
       </section>
 
       <section className="space-y-3">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3.5 py-1.5 text-sm font-semibold text-[var(--text-muted)] shadow-card">
-          <BookOpenText className="h-4 w-4" />
-          {content.noteTitle}
-        </div>
         <div>
           <h1 className="text-4xl text-[2.1rem] font-extrabold tracking-tight">{content.title}</h1>
           <p className="mt-2 max-w-[860px] text-[1rem] leading-7 text-[var(--text-muted)]">{content.subtitle}</p>

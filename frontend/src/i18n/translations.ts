@@ -19,6 +19,7 @@ const translations: Record<AppLanguage, DictionaryNode> = {
       'feature-mart': 'Feature Mart',
       exports: 'Exports',
       settings: 'Settings',
+      'about-project': 'About Project',
     },
     kpi: {
       stores: 'Stores (uniq)',
@@ -284,6 +285,47 @@ const translations: Record<AppLanguage, DictionaryNode> = {
       version: 'Version: 0.7.0',
       environment: 'Environment: Staging',
     },
+    aboutProject: {
+      title: 'About Project',
+      subtitle:
+        'A concise overview of the platform, its architecture, technologies and training purpose.',
+      overviewTitle: 'ProbablyFresh Analytics Platform',
+      overviewText:
+        'This is an educational and practice-oriented analytics platform that implements a full Data Engineering pipeline from event generation to data marts and export of analytical results.',
+      pipelineTitle: 'Pipeline Architecture',
+      pipelineSteps: {
+        step1: 'JSON -> MongoDB',
+        step2: 'MongoDB -> Kafka',
+        step3: 'Kafka -> ClickHouse (RAW layer)',
+        step4: 'RAW -> MART layer (aggregates and marts)',
+        step5: 'PySpark ETL -> customer feature generation',
+        step6: 'Export of results to S3',
+      },
+      technologiesTitle: 'Technologies Used',
+      technologies: {
+        mongo: 'MongoDB - raw event storage',
+        kafka: 'Kafka - streaming data transfer',
+        clickhouse: 'ClickHouse - analytical storage (RAW + MART)',
+        pyspark: 'PySpark - ETL and feature engineering',
+        airflow: 'Airflow - pipeline orchestration',
+        s3: 'S3 - result storage',
+        grafana: 'Grafana - monitoring and visualization',
+        backend: 'Django + DRF - backend API',
+        frontend: 'React + TypeScript - frontend',
+      },
+      featuresTitle: 'Project Highlights',
+      features: {
+        endToEnd: 'End-to-end pipeline',
+        docker: 'Runs in a Docker environment',
+        marts: 'Supports analytical data marts',
+        quality: 'Includes data quality control',
+        scalability: 'Can be extended and scaled further',
+        pii: 'PII anonymization via SHA-256 + salt',
+      },
+      purposeTitle: 'Purpose',
+      purposeText:
+        'The project is intended for learning, demonstration and practice of Data Engineering skills, including streaming and batch pipelines, analytical databases and user interface development.',
+    },
     status: {
       success: 'success',
       failed: 'failed',
@@ -304,6 +346,7 @@ const translations: Record<AppLanguage, DictionaryNode> = {
       'feature-mart': 'Витрина признаков',
       exports: 'Экспорты',
       settings: 'Настройки',
+      'about-project': 'О проекте',
     },
     kpi: {
       stores: 'Магазины (uniq)',
@@ -568,6 +611,47 @@ const translations: Record<AppLanguage, DictionaryNode> = {
         'ProbablyFresh Control Panel — централизованный дашборд для наблюдения и управления data-платформой. Он показывает состояние ingestion-пайплайнов, метрики качества в MART-слое и быстрый доступ к аналитическим экспортам.',
       version: 'Версия: 0.7.0',
       environment: 'Окружение: Staging',
+    },
+    aboutProject: {
+      title: 'О проекте',
+      subtitle:
+        'Краткое описание платформы, её архитектуры, технологий и учебного назначения.',
+      overviewTitle: 'ProbablyFresh Analytics Platform',
+      overviewText:
+        'Это учебно-практическая аналитическая платформа, реализующая полный цикл обработки данных (Data Engineering pipeline) от генерации событий до построения витрин и экспорта результатов.',
+      pipelineTitle: 'Архитектура пайплайна',
+      pipelineSteps: {
+        step1: 'JSON -> MongoDB',
+        step2: 'MongoDB -> Kafka',
+        step3: 'Kafka -> ClickHouse (RAW слой)',
+        step4: 'RAW -> MART слой (агрегаты и витрины)',
+        step5: 'PySpark ETL -> формирование признаков клиентов',
+        step6: 'Экспорт результатов в S3',
+      },
+      technologiesTitle: 'Используемые технологии',
+      technologies: {
+        mongo: 'MongoDB - хранение сырых событий',
+        kafka: 'Kafka - потоковая передача данных',
+        clickhouse: 'ClickHouse - аналитическое хранилище (RAW + MART)',
+        pyspark: 'PySpark - ETL и построение признаков',
+        airflow: 'Airflow - оркестрация пайплайнов',
+        s3: 'S3 - хранение результатов',
+        grafana: 'Grafana - мониторинг и визуализация',
+        backend: 'Django + DRF - backend API',
+        frontend: 'React + TypeScript - frontend',
+      },
+      featuresTitle: 'Особенности проекта',
+      features: {
+        endToEnd: 'end-to-end pipeline',
+        docker: 'работа в Docker-среде',
+        marts: 'поддержка аналитических витрин',
+        quality: 'контроль качества данных',
+        scalability: 'возможность расширения и масштабирования',
+        pii: 'обезличивание PII (через SHA-256 + salt)',
+      },
+      purposeTitle: 'Назначение',
+      purposeText:
+        'Проект предназначен для обучения, демонстрации и отработки навыков Data Engineering, включая построение потоковых и batch-пайплайнов, работу с аналитическими СУБД и разработку пользовательских интерфейсов.',
     },
     status: {
       success: 'успешно',

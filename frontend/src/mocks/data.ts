@@ -35,6 +35,7 @@ export const navItems = [
   { key: 'feature-mart', label: 'Feature Mart', path: '/feature-mart' },
   { key: 'exports', label: 'Exports', path: '/exports' },
   { key: 'settings', label: 'Settings', path: '/settings' },
+  { key: 'about-project', label: 'About Project', path: '/about-project' },
 ] as const;
 
 export const kpiItems: KPIItem[] = [

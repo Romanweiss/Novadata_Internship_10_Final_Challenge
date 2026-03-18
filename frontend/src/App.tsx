@@ -1,6 +1,7 @@
 ﻿import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { AppLayout } from './app/AppLayout';
+import { AboutProjectPage } from './pages/AboutProjectPage';
 import { DataQualityPage } from './pages/DataQualityPage';
 import { DocumentationPage } from './pages/DocumentationPage';
 import { ExportsPage } from './pages/ExportsPage';
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/feature-mart" element={<FeatureMartPage />} />
         <Route path="/exports" element={<ExportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/about-project" element={<AboutProjectPage />} />
         <Route path="/documentation" element={<DocumentationPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
