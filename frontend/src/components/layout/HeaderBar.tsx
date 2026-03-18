@@ -1,4 +1,5 @@
 import { BookOpenText, Languages, MoonStar, SunMedium } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { useAppState } from '../../app/useAppState';
 import { cn } from '../../utils/format';
@@ -9,9 +10,9 @@ export function HeaderBar() {
   return (
     <header className="app-transition sticky top-0 z-30 border-b border-[var(--border)] bg-[color:color-mix(in_srgb,var(--bg),transparent_30%)] backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-[1180px] items-center justify-between px-6 py-4 lg:px-8">
-        <div className="flex items-center">
+        <Link to="/" className="flex items-center rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-strong)]">
           <img src="/assets/system_logo_new.svg" alt="ProbablyFresh logo" className="h-10 w-auto object-contain md:h-11" />
-        </div>
+        </Link>
 
         <div className="flex items-center gap-3 text-sm">
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">

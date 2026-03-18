@@ -1,4 +1,4 @@
-import { Download, Gauge, Settings, ShieldAlert, Table2, Workflow } from 'lucide-react';
+﻿import { Download, Gauge, Settings, ShieldAlert, Table2, Workflow } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 import { useAppState } from '../../app/useAppState';

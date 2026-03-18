@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 import { BookOpenText, FileCog, Gauge, Settings, ShieldCheck, Table2, UploadCloud, Workflow } from 'lucide-react';
 
 import { useAppState } from '../app/useAppState';
@@ -25,11 +25,36 @@ export function DocumentationPage() {
   return (
     <motion.div
       key="documentation"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.25 }}
       className="space-y-7"
     >
+      <section className="sticky top-24 z-20 mt-8">
+        <nav className="flex w-full flex-nowrap items-center gap-2 overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-card app-transition">
+          {content.sections.map((section) => {
+            const Icon = sectionIconById[section.id as keyof typeof sectionIconById] ?? BookOpenText;
+            const navTitle =
+              section.id === 'global'
+                ? language === 'ru'
+                  ? 'Интерфейс'
+                  : 'Interface'
+                : section.title;
+
+            return (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-[var(--text-muted)] app-transition hover:bg-black/5 hover:text-[var(--text)] dark:hover:bg-white/10"
+              >
+                <Icon className="h-4 w-4" />
+                {navTitle}
+              </a>
+            );
+          })}
+        </nav>
+      </section>
+
       <section className="space-y-3">
         <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3.5 py-1.5 text-sm font-semibold text-[var(--text-muted)] shadow-card">
           <BookOpenText className="h-4 w-4" />
@@ -52,18 +77,6 @@ export function DocumentationPage() {
           </div>
         </div>
       </Card>
-
-      <section className="flex flex-wrap gap-2">
-        {content.sections.map((section) => (
-          <a
-            key={section.id}
-            href={`#${section.id}`}
-            className="pill inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-[var(--text-muted)] app-transition hover:border-[var(--border-strong)] hover:text-[var(--text)]"
-          >
-            {section.title}
-          </a>
-        ))}
-      </section>
 
       <section className="space-y-5">
         {content.sections.map((section, index) => {
