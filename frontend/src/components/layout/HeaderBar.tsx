@@ -7,7 +7,7 @@ export function HeaderBar() {
   const { theme, toggleTheme, language, setLanguage, t } = useAppState();
 
   return (
-    <header className="app-transition sticky top-0 z-30 border-b border-[var(--border)] bg-[color:color-mix(in_srgb,var(--bg),transparent_14%)] backdrop-blur-xl">
+    <header className="app-transition sticky top-0 z-30 border-b border-[var(--border)] bg-[color:color-mix(in_srgb,var(--bg),transparent_30%)] backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-[1180px] items-center justify-between px-6 py-4 lg:px-8">
         <div className="flex items-center">
           <img src="/assets/system_logo_new.svg" alt="ProbablyFresh logo" className="h-10 w-auto object-contain md:h-11" />
