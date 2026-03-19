@@ -1,19 +1,18 @@
 import { motion } from 'framer-motion';
 import { Download, Eye, File, Filter, Search } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useAppState } from '../app/useAppState';
 import { apiClient } from '../api/client';
 import { mapExports } from '../api/mappers';
 import { Card } from '../components/common/Card';
-import { exportsList } from '../mocks/data';
 import type { ExportFile } from '../types/ui';
 import { cn } from '../utils/format';
 
 export function ExportsPage() {
   const { t } = useAppState();
   const [query, setQuery] = useState('');
-  const [exportsData, setExportsData] = useState<ExportFile[]>(exportsList);
+  const [exportsData, setExportsData] = useState<ExportFile[] | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -27,17 +26,7 @@ export function ExportsPage() {
         setExportsData(mapExports(payload.items));
       } catch {
         if (!mounted) return;
-        // Fallback to local mocks if API is unavailable.
-        const normalized = query.trim().toLowerCase();
-        if (!normalized) {
-          setExportsData(exportsList);
-        } else {
-          setExportsData(
-            exportsList.filter(
-              (row) => row.filename.toLowerCase().includes(normalized) || row.date.includes(normalized),
-            ),
-          );
-        }
+        setExportsData((current) => current ?? []);
       } finally {
         if (mounted) {
           setLoading(false);
@@ -50,7 +39,7 @@ export function ExportsPage() {
     };
   }, [query]);
 
-  const filtered = useMemo(() => exportsData, [exportsData]);
+  const filtered = exportsData ?? [];
 
   const handleView = async (row: ExportFile) => {
     if (!row.key) return;
@@ -123,7 +112,18 @@ export function ExportsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((row) => {
+              {loading && exportsData === null
+                ? Array.from({ length: 4 }, (_, index) => (
+                    <tr key={`exports-skeleton-${index}`} className="border-t border-[var(--border)]">
+                      <td className="px-3 py-3" colSpan={6}>
+                        <div className="flex animate-pulse items-center gap-3">
+                          <div className="h-4 w-4 rounded bg-[var(--surface-muted)]" />
+                          <div className="h-4 w-full rounded bg-[var(--surface-muted)]/80" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                : filtered.map((row) => {
                 const localizedStatus = row.status === 'Ready' ? t('exports.ready') : t('exports.processing');
                 return (
                   <tr key={row.id} className="border-t border-[var(--border)]">

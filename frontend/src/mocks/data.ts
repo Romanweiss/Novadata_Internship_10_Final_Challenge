@@ -1,6 +1,5 @@
 ﻿import type {
   DuplicateTrendPoint,
-  ExportFile,
   IngestionPoint,
   JobAction,
   JobRun,
@@ -131,41 +130,6 @@ export const martQualityRows: MartQualityRow[] = [
     duplicates: '5',
     invalid: '0',
     ratio: '10.0%',
-  },
-];
-
-export const exportsList: ExportFile[] = [
-  {
-    id: 'exp-1',
-    filename: 'analytic_result_2026_02_25.csv',
-    date: '2026-02-25',
-    rows: '125 000',
-    size: '45 MB',
-    status: 'Ready',
-  },
-  {
-    id: 'exp-2',
-    filename: 'mart_dump_2026_02_24.csv',
-    date: '2026-02-24',
-    rows: '450 000',
-    size: '120 MB',
-    status: 'Ready',
-  },
-  {
-    id: 'exp-3',
-    filename: 'features_2026_02_23.parquet',
-    date: '2026-02-23',
-    rows: '2 000 000',
-    size: '350 MB',
-    status: 'Ready',
-  },
-  {
-    id: 'exp-4',
-    filename: 'daily_report_2026_02_25.pdf',
-    date: '2026-02-25',
-    rows: '-',
-    size: '2 MB',
-    status: 'Processing',
   },
 ];
 
