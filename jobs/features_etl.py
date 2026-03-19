@@ -573,6 +573,27 @@ def _write_single_csv(features_df: DataFrame) -> Path:
     return part_files[0]
 
 
+def _write_parquet_dataset(features_df: DataFrame) -> Path:
+    """Writes the feature mart to a parquet directory with snappy compression.
+
+    Args:
+        features_df: final DataFrame with customer features.
+    Returns:
+        Path to the directory containing generated parquet part files.
+    """
+    tmp_dir = Path(tempfile.mkdtemp(prefix="probablyfresh_features_parquet_"))
+    logging.info("Writing features Parquet to temporary directory: %s", tmp_dir)
+
+    features_df.write.mode("overwrite").option("compression", "snappy").parquet(str(tmp_dir))
+
+    part_files = sorted(tmp_dir.glob("part-*.parquet"))
+    if not part_files:
+        raise RuntimeError(f"Spark output does not contain part-*.parquet in {tmp_dir}")
+
+    logging.info("Created Parquet dataset directory: %s", tmp_dir)
+    return tmp_dir
+
+
 def _normalize_endpoint(endpoint: str) -> str:
     """Приводит endpoint к URL-формату с протоколом.
 
@@ -586,25 +607,55 @@ def _normalize_endpoint(endpoint: str) -> str:
     return f"https://{endpoint}"
 
 
-def _upload_to_s3(local_csv_path: Path) -> str:
-    """Загружает локальный CSV в S3-совместимое хранилище.
-
-    Args:
-        local_csv_path: путь к CSV-файлу.
-    Returns:
-        object_key загруженного файла в bucket.
-    """
-    # Имя файла сохраняем в текущем формате analytic_result_YYYY_MM_DD.csv:
-    # на него уже ориентируются документация, smoke-check и UI.
+def _s3_upload_config() -> tuple[str, str, str, str, str, str]:
+    """Collects connection parameters for the S3-compatible storage."""
     endpoint_url = _normalize_endpoint(_required_env("S3_ENDPOINT_URL"))
     region = _optional_any_env("ru-3", "S3_REGION", "AWS_DEFAULT_REGION")
     bucket = _required_env("S3_BUCKET")
     access_key = _required_any_env("S3_ACCESS_KEY", "AWS_ACCESS_KEY_ID")
     secret_key = _required_any_env("S3_SECRET_KEY", "AWS_SECRET_ACCESS_KEY")
     prefix = _optional_any_env("", "S3_OBJECT_PREFIX")
+    return endpoint_url, region, bucket, access_key, secret_key, prefix
 
-    object_name = f"analytic_result_{datetime.now(timezone.utc):%Y_%m_%d}.csv"
-    object_key = f"{prefix.strip('/')}/{object_name}" if prefix.strip("/") else object_name
+
+def _build_csv_object_key(prefix: str, export_dt: datetime) -> str:
+    """Builds the CSV object key while preserving the current naming scheme."""
+    object_name = f"analytic_result_{export_dt:%Y_%m_%d}.csv"
+    return f"{prefix.strip('/')}/{object_name}" if prefix.strip("/") else object_name
+
+
+def _build_parquet_object_prefix(prefix: str, export_dt: datetime) -> str:
+    """Builds the parquet export prefix next to the current CSV artifact."""
+    object_name = f"analytic_result_{export_dt:%Y_%m_%d}"
+    parquet_prefix = f"{prefix.strip('/')}/parquet" if prefix.strip("/") else "parquet"
+    return f"{parquet_prefix}/{object_name}"
+
+
+def _delete_s3_prefix(client, bucket: str, prefix: str) -> None:
+    """Deletes all objects under the given prefix in the S3-compatible storage."""
+    paginator = client.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        contents = page.get("Contents", [])
+        if not contents:
+            continue
+
+        delete_batch = [{"Key": item["Key"]} for item in contents]
+        client.delete_objects(Bucket=bucket, Delete={"Objects": delete_batch, "Quiet": True})
+
+
+def _upload_to_s3(local_csv_path: Path, export_dt: datetime) -> str:
+    """Uploads the local CSV export to the S3-compatible storage.
+
+    Args:
+        local_csv_path: path to the CSV file.
+        export_dt: shared export timestamp used for consistent artifact names.
+    Returns:
+        Uploaded object key in the bucket.
+    """
+    # Keep the current CSV file name format analytic_result_YYYY_MM_DD.csv
+    # because documentation, smoke-checks, and UI already rely on it.
+    endpoint_url, region, bucket, access_key, secret_key, prefix = _s3_upload_config()
+    object_key = _build_csv_object_key(prefix, export_dt)
 
     logging.info("Uploading %s to s3://%s/%s", local_csv_path, bucket, object_key)
 
@@ -620,13 +671,49 @@ def _upload_to_s3(local_csv_path: Path) -> str:
     return object_key
 
 
+def _upload_parquet_to_s3(local_parquet_dir: Path, export_dt: datetime) -> str:
+    """Uploads the parquet export directory to the S3-compatible storage.
+
+    Args:
+        local_parquet_dir: path to the directory with parquet part files.
+        export_dt: shared export timestamp used for consistent artifact names.
+    Returns:
+        Uploaded parquet directory prefix in the bucket.
+    """
+    endpoint_url, region, bucket, access_key, secret_key, prefix = _s3_upload_config()
+    object_prefix = _build_parquet_object_prefix(prefix, export_dt)
+
+    logging.info("Uploading parquet dataset %s to s3://%s/%s", local_parquet_dir, bucket, object_prefix)
+
+    client = boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        region_name=region,
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+    )
+
+    # Repeated exports on the same day reuse the same prefix, so clear the old
+    # parquet parts first to keep the dataset idempotent for downstream readers.
+    _delete_s3_prefix(client, bucket, object_prefix)
+
+    for file_path in sorted(local_parquet_dir.rglob('*')):
+        if not file_path.is_file() or file_path.name.startswith('.'):
+            continue
+        relative_path = file_path.relative_to(local_parquet_dir).as_posix()
+        client.upload_file(str(file_path), bucket, f"{object_prefix}/{relative_path}")
+
+    return object_prefix
+
+
 def main() -> None:
-    """Точка входа ETL: чтение MART -> расчёт фич -> CSV -> загрузка в S3."""
+    """Точка входа ETL: чтение MART -> расчёт фич -> CSV/Parquet -> загрузка в S3."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     _load_env()
 
     spark = _build_spark_session()
     temp_csv_path: Path | None = None
+    temp_parquet_dir: Path | None = None
     persisted_dfs: list[DataFrame] = []
 
     try:
@@ -665,11 +752,21 @@ def main() -> None:
                 features_df.filter(F.col("no_purchases") == 1).count(),
             )
 
+        export_dt = datetime.now(timezone.utc)
         temp_csv_path = _write_single_csv(features_df)
-        object_key = _upload_to_s3(temp_csv_path)
+        temp_parquet_dir = _write_parquet_dataset(features_df)
+        csv_object_key = _upload_to_s3(temp_csv_path, export_dt)
+        parquet_object_prefix = _upload_parquet_to_s3(temp_parquet_dir, export_dt)
 
-        logging.info("Upload completed successfully: %s", object_key)
-        print(f"Uploaded features file: {object_key}")
+        logging.info(
+            "Upload completed successfully: csv=%s parquet=%s",
+            csv_object_key,
+            parquet_object_prefix,
+        )
+        print(
+            "Uploaded features files: "
+            f"csv={csv_object_key}, parquet={parquet_object_prefix}"
+        )
     finally:
         # Явно освобождаем кэш перед остановкой Spark.
         for df in reversed(persisted_dfs):
@@ -681,6 +778,9 @@ def main() -> None:
         if temp_csv_path is not None:
             shutil.rmtree(temp_csv_path.parent, ignore_errors=True)
             logging.info("Removed temporary directory: %s", temp_csv_path.parent)
+        if temp_parquet_dir is not None:
+            shutil.rmtree(temp_parquet_dir, ignore_errors=True)
+            logging.info("Removed temporary directory: %s", temp_parquet_dir)
 
 
 if __name__ == "__main__":
