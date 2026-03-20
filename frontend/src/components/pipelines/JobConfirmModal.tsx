@@ -3,16 +3,18 @@ import { Play, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 import { useAppState } from '../../app/useAppState';
+import { PageLoader } from '../common/PageLoader';
 import type { JobAction } from '../../types/ui';
 
 interface JobConfirmModalProps {
   action: JobAction | null;
   open: boolean;
+  running: boolean;
   onClose: () => void;
   onConfirm: (action: JobAction) => Promise<void>;
 }
 
-export function JobConfirmModal({ action, open, onClose, onConfirm }: JobConfirmModalProps) {
+export function JobConfirmModal({ action, open, running, onClose, onConfirm }: JobConfirmModalProps) {
   const { t } = useAppState();
 
   const titleKey = action ? t(`actions.${action.key}.title`) : '';
@@ -53,33 +55,46 @@ export function JobConfirmModal({ action, open, onClose, onConfirm }: JobConfirm
               <button
                 type="button"
                 onClick={onClose}
+                disabled={running}
                 className="rounded-full p-1.5 text-[var(--text-muted)] hover:bg-black/5 hover:text-[var(--text)] dark:hover:bg-white/10"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--text-muted)]">
-              {t('modal.warning')}
-            </div>
+            {running ? (
+              <div className="space-y-3">
+                <PageLoader className="min-h-[220px]" />
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-[var(--text)]">{t('modal.runningTitle')}</p>
+                  <p className="mt-1 text-sm text-[var(--text-muted)]">{t('modal.runningDescription')}</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--text-muted)]">
+                  {t('modal.warning')}
+                </div>
 
-            <div className="flex justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-full border border-[var(--border-strong)] px-4 py-2 font-semibold text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10"
-              >
-                {t('modal.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={() => onConfirm(action)}
-                className="inline-flex items-center gap-2 rounded-full bg-[#111827] px-4 py-2 font-semibold text-white hover:bg-[#0b1220] dark:bg-white dark:text-[#111827]"
-              >
-                <Play className="h-4 w-4" />
-                {t('modal.runJob')}
-              </button>
-            </div>
+                <div className="flex justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded-full border border-[var(--border-strong)] px-4 py-2 font-semibold text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10"
+                  >
+                    {t('modal.cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onConfirm(action)}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#111827] px-4 py-2 font-semibold text-white hover:bg-[#0b1220] dark:bg-white dark:text-[#111827]"
+                  >
+                    <Play className="h-4 w-4" />
+                    {t('modal.runJob')}
+                  </button>
+                </div>
+              </>
+            )}
           </motion.div>
         </motion.div>
       ) : null}

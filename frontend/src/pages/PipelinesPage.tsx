@@ -13,18 +13,27 @@ import type { JobAction } from '../types/ui';
 export function PipelinesPage() {
   const { runJob, safeMode, t } = useAppState();
   const [selectedAction, setSelectedAction] = useState<JobAction | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
 
   const selectedKey = useMemo(() => selectedAction?.key, [selectedAction]);
 
-  const closeModal = () => setSelectedAction(null);
+  const closeModal = () => {
+    if (isRunning) return;
+    setSelectedAction(null);
+  };
 
   const handleRun = async (action: JobAction) => {
     if (safeMode && action.key === 'mart-refresh') {
       setSelectedAction(null);
       return;
     }
-    await runJob(action);
-    setSelectedAction(null);
+    setIsRunning(true);
+    try {
+      await runJob(action);
+      setSelectedAction(null);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   return (
@@ -85,6 +94,7 @@ export function PipelinesPage() {
       <JobConfirmModal
         open={Boolean(selectedAction)}
         action={selectedAction}
+        running={isRunning}
         onClose={closeModal}
         onConfirm={handleRun}
       />

@@ -156,6 +156,8 @@ const translations: Record<AppLanguage, DictionaryNode> = {
         'Are you sure you want to trigger this action manually? This will interact with configured services and may consume resources.',
       cancel: 'Cancel',
       runJob: 'Run Job',
+      runningTitle: 'Job is running',
+      runningDescription: 'Please wait until the pipeline action completes.',
     },
     toast: {
       safeModeUpdatedTitle: 'Safe mode updated',
@@ -491,6 +493,8 @@ const translations: Record<AppLanguage, DictionaryNode> = {
         'Вы уверены, что хотите запустить это действие вручную? Будут задействованы настроенные сервисы и ресурсы.',
       cancel: 'Отмена',
       runJob: 'Запустить задачу',
+      runningTitle: 'Задача выполняется',
+      runningDescription: 'Подождите, пока действие пайплайна завершится.',
     },
     toast: {
       safeModeUpdatedTitle: 'Safe Mode обновлен',
