@@ -1,0 +1,129 @@
+<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @keyframes spine-pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.45; }
+      }
+      @keyframes arc-pulse {
+        0%, 100% { stroke-opacity: 1; }
+        50%       { stroke-opacity: 0.4; }
+      }
+      @keyframes flow-trace {
+        0%        { stroke-dashoffset: 120; opacity: 0; }
+        8%        { opacity: 0.45; }
+        70%       { stroke-dashoffset: 0; opacity: 0.45; }
+        85%, 100% { stroke-dashoffset: 0; opacity: 0; }
+      }
+      @keyframes dot-1 {
+        0%, 20%   { opacity: 0; transform: translateX(-6px) scale(0.5); }
+        45%       { opacity: 0.9; transform: translateX(0) scale(1); }
+        75%       { opacity: 0.9; transform: translateX(0) scale(1); }
+        95%, 100% { opacity: 0; transform: translateX(4px) scale(0.6); }
+      }
+      @keyframes dot-2 {
+        0%, 30%   { opacity: 0; transform: translateX(-6px) scale(0.5); }
+        55%       { opacity: 0.55; transform: translateX(0) scale(1); }
+        75%       { opacity: 0.55; transform: translateX(0) scale(1); }
+        95%, 100% { opacity: 0; transform: translateX(4px) scale(0.6); }
+      }
+      @keyframes dot-3 {
+        0%, 40%   { opacity: 0; transform: translateX(-6px) scale(0.5); }
+        65%       { opacity: 0.28; transform: translateX(0) scale(1); }
+        75%       { opacity: 0.28; transform: translateX(0) scale(1); }
+        95%, 100% { opacity: 0; transform: translateX(4px) scale(0.6); }
+      }
+      @keyframes shimmer-bg {
+        0%        { opacity: 0; }
+        40%       { opacity: 0.08; }
+        60%       { opacity: 0.08; }
+        100%      { opacity: 0; }
+      }
+      @keyframes node-ping-top {
+        0%        { r: 3; opacity: 0.35; }
+        60%       { r: 7; opacity: 0; }
+        100%      { r: 3; opacity: 0; }
+      }
+      @keyframes node-ping-bot {
+        0%        { r: 3; opacity: 0.35; }
+        60%       { r: 7; opacity: 0; }
+        100%      { r: 3; opacity: 0; }
+      }
+      @keyframes orbit-spin {
+        0%   { stroke-dashoffset: 251; }
+        100% { stroke-dashoffset: 0; }
+      }
+
+      .spine    { animation: spine-pulse  2.6s ease-in-out infinite; }
+      .arc-base { animation: arc-pulse    2.6s ease-in-out infinite; }
+      .arc-flow {
+        stroke-dasharray: 120;
+        fill: none;
+        animation: flow-trace 2.6s ease-in-out infinite;
+      }
+      .shimmer  { animation: shimmer-bg   2.6s ease-in-out infinite; }
+      .d1 { transform-origin: 44px 72px; animation: dot-1 2.6s ease-in-out infinite; }
+      .d2 { transform-origin: 55px 72px; animation: dot-2 2.6s ease-in-out infinite; }
+      .d3 { transform-origin: 64px 72px; animation: dot-3 2.6s ease-in-out infinite; }
+      .ping-top { animation: node-ping-top 2.6s ease-out infinite 0.3s; }
+      .ping-bot { animation: node-ping-bot 2.6s ease-out infinite 1.1s; }
+      .orbit    {
+        stroke-dasharray: 251;
+        animation: orbit-spin 2.6s linear infinite;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .spine, .arc-base, .arc-flow, .shimmer,
+        .d1, .d2, .d3, .ping-top, .ping-bot, .orbit {
+          animation: none;
+        }
+      }
+    </style>
+  </defs>
+
+  <!-- Outer spinning orbit ring -->
+  <circle class="orbit"
+    cx="48" cy="48" r="40"
+    fill="none"
+    stroke="#cbd5e1"
+    stroke-width="1"
+    stroke-linecap="round"
+    opacity="0.4"
+    transform="rotate(-90 48 48)"/>
+
+  <!-- Icon background -->
+  <rect x="16" y="16" width="64" height="64" rx="14" fill="#1a1a1a"/>
+
+  <!-- Shimmer sweep -->
+  <rect class="shimmer" x="16" y="16" width="64" height="64" rx="14" fill="#ffffff"/>
+
+  <!-- P spine -->
+  <rect class="spine" x="30" y="24" width="8.5" height="46" rx="4" fill="#d4d4d4"/>
+
+  <!-- Ping rings on arc endpoints -->
+  <circle class="ping-top" cx="38.5" cy="29" r="3" fill="none" stroke="#d4d4d4" stroke-width="1.5"/>
+  <circle class="ping-bot" cx="38.5" cy="61" r="3" fill="none" stroke="#a3a3a3" stroke-width="1.5"/>
+
+  <!-- Arc endpoint nodes (static) -->
+  <circle cx="38.5" cy="29" r="3" fill="#d4d4d4" opacity="0.4"/>
+  <circle cx="38.5" cy="61" r="3" fill="#d4d4d4" opacity="0.4"/>
+
+  <!-- Flow trace -->
+  <path class="arc-flow"
+    d="M38.5 29 Q68 29 68 45 Q68 61 38.5 61"
+    stroke="#ffffff" stroke-width="7"
+    stroke-linecap="round" stroke-linejoin="round"
+    opacity="0.3"/>
+
+  <!-- P bowl arc -->
+  <path class="arc-base"
+    d="M38.5 29 Q68 29 68 45 Q68 61 38.5 61"
+    fill="none" stroke="#d4d4d4" stroke-width="7"
+    stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Trailing dots -->
+  <circle class="d1" cx="44" cy="72" r="4.5" fill="#a3a3a3"/>
+  <circle class="d2" cx="55" cy="72" r="3"   fill="#737373"/>
+  <circle class="d3" cx="64" cy="72" r="1.8" fill="#525252"/>
+
+</svg>

@@ -7,6 +7,7 @@ import { apiClient } from '../api/client';
 import { mapDuplicatesTrend, mapMartStats } from '../api/mappers';
 import { DuplicatesTrendChart } from '../components/charts/DuplicatesTrendChart';
 import { Card } from '../components/common/Card';
+import { PageLoader } from '../components/common/PageLoader';
 import { DUPLICATES_BAD_THRESHOLD_PERCENT } from '../constants/quality';
 import { duplicatesRatio, duplicatesTrend, martQualityRows } from '../mocks/data';
 import type { DuplicateTrendPoint, MartQualityRow } from '../types/ui';
@@ -40,6 +41,7 @@ export function DataQualityPage() {
   const [telegramEnabled, setTelegramEnabled] = useState<boolean>(true);
   const [trend, setTrend] = useState<DuplicateTrendPoint[]>(duplicatesTrend);
   const [tableRows, setTableRows] = useState<MartQualityRow[]>(martQualityRows);
+  const [pageReady, setPageReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -62,7 +64,11 @@ export function DataQualityPage() {
         setTelegramEnabled(overall.telegram_enabled);
         setTrend(mapDuplicatesTrend(trendPayload.points));
         setTableRows(mapMartStats(martStatsPayload.rows));
+        setPageReady(true);
       } catch {
+        if (mounted) {
+          setPageReady(true);
+        }
         // Keep mock values if backend is unavailable.
       }
     })();
@@ -98,6 +104,10 @@ export function DataQualityPage() {
       transition={{ duration: 0.25 }}
       className="space-y-5"
     >
+      {!pageReady ? <PageLoader className="min-h-[calc(100vh-220px)]" /> : null}
+
+      {pageReady ? (
+        <>
       <section className="grid gap-5 xl:grid-cols-[1fr_330px]">
         <Card className="border-l-4 border-l-emerald-500 p-5">
           <div className="grid gap-4 lg:grid-cols-[1fr_240px] lg:items-center">
@@ -206,6 +216,8 @@ export function DataQualityPage() {
           </table>
         </div>
       </Card>
+        </>
+      ) : null}
     </motion.div>
   );
 }

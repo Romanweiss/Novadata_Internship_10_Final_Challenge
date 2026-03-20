@@ -6,6 +6,7 @@ import { useAppState } from '../app/useAppState';
 import { apiClient } from '../api/client';
 import { mapExports } from '../api/mappers';
 import { Card } from '../components/common/Card';
+import { PageLoader } from '../components/common/PageLoader';
 import type { ExportFile } from '../types/ui';
 import { cn } from '../utils/format';
 
@@ -13,7 +14,7 @@ export function ExportsPage() {
   const { t } = useAppState();
   const [query, setQuery] = useState('');
   const [exportsData, setExportsData] = useState<ExportFile[] | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -99,7 +100,10 @@ export function ExportsPage() {
       </section>
 
       <Card className="overflow-hidden p-0">
-        <div className="overflow-x-auto">
+        {loading && exportsData === null ? (
+          <PageLoader className="min-h-[420px]" />
+        ) : (
+          <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="bg-[var(--surface-muted)] text-[var(--text-muted)]">
               <tr>
@@ -112,18 +116,7 @@ export function ExportsPage() {
               </tr>
             </thead>
             <tbody>
-              {loading && exportsData === null
-                ? Array.from({ length: 4 }, (_, index) => (
-                    <tr key={`exports-skeleton-${index}`} className="border-t border-[var(--border)]">
-                      <td className="px-3 py-3" colSpan={6}>
-                        <div className="flex animate-pulse items-center gap-3">
-                          <div className="h-4 w-4 rounded bg-[var(--surface-muted)]" />
-                          <div className="h-4 w-full rounded bg-[var(--surface-muted)]/80" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                : filtered.map((row) => {
+              {filtered.map((row) => {
                 const localizedStatus = row.status === 'Ready' ? t('exports.ready') : t('exports.processing');
                 return (
                   <tr key={row.id} className="border-t border-[var(--border)]">
@@ -180,7 +173,8 @@ export function ExportsPage() {
               ) : null}
             </tbody>
           </table>
-        </div>
+          </div>
+        )}
       </Card>
     </motion.div>
   );

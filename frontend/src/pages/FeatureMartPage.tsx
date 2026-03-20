@@ -6,6 +6,7 @@ import { useAppState } from '../app/useAppState';
 import { apiClient } from '../api/client';
 import { mapFeatureMart } from '../api/mappers';
 import { Card } from '../components/common/Card';
+import { PageLoader } from '../components/common/PageLoader';
 import type { FeatureMartData } from '../types/ui';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
@@ -111,7 +112,7 @@ export function FeatureMartPage() {
 
       {loading ? (
         <Card className="p-6">
-          <p className="text-sm text-[var(--text-muted)]">{t('featureMart.loading')}</p>
+          <PageLoader className="min-h-[320px]" />
         </Card>
       ) : null}
 

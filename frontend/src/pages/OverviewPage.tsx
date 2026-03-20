@@ -9,6 +9,7 @@ import { PaymentDonutChart } from '../components/charts/PaymentDonutChart';
 import { Card } from '../components/common/Card';
 import { KpiCard } from '../components/common/KpiCard';
 import { LastRunsList } from '../components/common/LastRunsList';
+import { PageLoader } from '../components/common/PageLoader';
 import { ServicesHealthList } from '../components/common/ServicesHealthList';
 import { kpiItems, paymentBreakdown, serviceHealth } from '../mocks/data';
 import type { IngestionPoint, KPIItem, PaymentBreakdownItem, ServiceHealthItem } from '../types/ui';
@@ -76,6 +77,7 @@ export function OverviewPage() {
   const [ingestionLoading, setIngestionLoading] = useState(true);
   const [services, setServices] = useState<ServiceHealthItem[]>(serviceHealth);
   const [payments, setPayments] = useState<PaymentBreakdownItem[]>(paymentBreakdown);
+  const [pageReady, setPageReady] = useState(false);
 
   const fetchOverviewData = useCallback(async (mountedRef?: { current: boolean }) => {
     try {
@@ -98,9 +100,11 @@ export function OverviewPage() {
       setIngestionLoading(false);
       setServices((current) => (areServicesEqual(current, nextServices) ? current : nextServices));
       setPayments((current) => (arePaymentsEqual(current, nextPayments) ? current : nextPayments));
+      setPageReady(true);
     } catch {
       if (mountedRef?.current) {
         setIngestionLoading(false);
+        setPageReady(true);
       }
       // Fallback to local mocks if API is unavailable or auth is missing.
     }
@@ -128,6 +132,10 @@ export function OverviewPage() {
       transition={{ duration: 0.25 }}
       className="space-y-6"
     >
+      {!pageReady ? <PageLoader className="min-h-[calc(100vh-220px)]" /> : null}
+
+      {pageReady ? (
+        <>
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {kpis.map((item, idx) => (
           <KpiCard key={item.key} item={item} index={idx} />
@@ -164,6 +172,8 @@ export function OverviewPage() {
 
         <LastRunsList runs={lastRuns.slice(0, 5)} compact />
       </section>
+        </>
+      ) : null}
     </motion.div>
   );
 }

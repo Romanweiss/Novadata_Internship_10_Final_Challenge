@@ -6,6 +6,7 @@ import { useAppState } from '../app/useAppState';
 import { apiClient } from '../api/client';
 import { mapConnections } from '../api/mappers';
 import { Card } from '../components/common/Card';
+import { PageLoader } from '../components/common/PageLoader';
 import { serviceConnections } from '../mocks/data';
 import type { ServiceConnection } from '../types/ui';
 
@@ -19,6 +20,7 @@ const iconByConnection = {
 export function SettingsPage() {
   const { safeMode, setSafeMode, t } = useAppState();
   const [connections, setConnections] = useState<ServiceConnection[]>(serviceConnections);
+  const [pageReady, setPageReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -30,6 +32,10 @@ export function SettingsPage() {
         setConnections(mapConnections(payload));
       } catch {
         // Keep mock connections if backend is unavailable.
+      } finally {
+        if (mounted) {
+          setPageReady(true);
+        }
       }
     })();
 
@@ -46,6 +52,10 @@ export function SettingsPage() {
       transition={{ duration: 0.25 }}
       className="space-y-6"
     >
+      {!pageReady ? <PageLoader className="min-h-[calc(100vh-220px)]" /> : null}
+
+      {pageReady ? (
+        <>
       <section>
         <h1 className="text-4xl text-[2.1rem] font-extrabold tracking-tight">{t('settings.title')}</h1>
         <p className="mt-1 text-[0.98rem] text-[var(--text-muted)]">{t('settings.subtitle')}</p>
@@ -124,6 +134,8 @@ export function SettingsPage() {
           </div>
         </Card>
       </section>
+        </>
+      ) : null}
     </motion.div>
   );
 }
