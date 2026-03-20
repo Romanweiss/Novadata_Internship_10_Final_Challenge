@@ -32,6 +32,14 @@ const translations: Record<AppLanguage, DictionaryNode> = {
       paymentsTitle: 'Purchases by Payment Method',
       servicesHealthTitle: 'Services Health',
       lastRunsTitle: 'Last Runs',
+      noPaymentData: 'No payment data.',
+      paymentTooltip: '{count} purchases ({percent}%)',
+      paymentMethods: {
+        card: 'Card',
+        cash: 'Cash',
+        sbp: 'SBP',
+        other: 'Other',
+      },
     },
     pipelines: {
       title: 'One-click actions',
@@ -359,6 +367,14 @@ const translations: Record<AppLanguage, DictionaryNode> = {
       paymentsTitle: 'Покупки по способу оплаты',
       servicesHealthTitle: 'Состояние сервисов',
       lastRunsTitle: 'Последние запуски',
+      noPaymentData: 'Нет данных по оплатам.',
+      paymentTooltip: '{count} покупок ({percent}%)',
+      paymentMethods: {
+        card: 'Карта',
+        cash: 'Наличные',
+        sbp: 'СБП',
+        other: 'Другое',
+      },
     },
     pipelines: {
       title: 'One-click действия',

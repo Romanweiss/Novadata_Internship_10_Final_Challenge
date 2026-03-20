@@ -2,13 +2,22 @@ import { animate, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
+import { useAppState } from '../../app/useAppState';
 import type { PaymentBreakdownItem } from '../../types/ui';
 
 interface PaymentDonutChartProps {
   data: PaymentBreakdownItem[];
 }
 
+function getPaymentMethodLabel(method: string, t: (key: string, params?: Record<string, string | number>) => string): string {
+  const normalized = method.trim().toLowerCase();
+  const key = `overview.paymentMethods.${normalized}`;
+  const translated = t(key);
+  return translated === key ? method : translated;
+}
+
 export function PaymentDonutChart({ data }: PaymentDonutChartProps) {
+  const { t } = useAppState();
   const [endAngle, setEndAngle] = useState(90);
 
   const chartData = useMemo(
@@ -30,7 +39,7 @@ export function PaymentDonutChart({ data }: PaymentDonutChartProps) {
   }, [chartData]);
 
   if (!chartData.length) {
-    return <p className="px-1 text-sm text-[var(--text-muted)]">No payment data.</p>;
+    return <p className="px-1 text-sm text-[var(--text-muted)]">{t('overview.noPaymentData')}</p>;
   }
 
   return (
@@ -59,7 +68,13 @@ export function PaymentDonutChart({ data }: PaymentDonutChartProps) {
             <Tooltip
               formatter={(value, _name, item) => {
                 const payload = item.payload as PaymentBreakdownItem;
-                return [`${Number(value).toLocaleString()} purchases (${payload.value}%)`, payload.method];
+                return [
+                  t('overview.paymentTooltip', {
+                    count: Number(value).toLocaleString(),
+                    percent: payload.value,
+                  }),
+                  getPaymentMethodLabel(payload.method, t),
+                ];
               }}
               contentStyle={{
                 borderRadius: 14,
@@ -83,7 +98,7 @@ export function PaymentDonutChart({ data }: PaymentDonutChartProps) {
           >
             <span className="inline-flex items-center gap-2 text-[var(--text)]">
               <span className="h-3 w-3 rounded-full" style={{ background: item.color }} />
-              {item.method}
+              {getPaymentMethodLabel(item.method, t)}
             </span>
             <span className="font-bold text-[var(--text)]">{item.value}% ({item.count.toLocaleString()})</span>
           </motion.li>
