@@ -173,7 +173,18 @@ docker compose --env-file .env run --rm app spark-submit --master local[*] --jar
 
 Что делает:
 - считает 30 бинарных фич;
-- сохраняет `analytic_result_YYYY_MM_DD.csv` в S3.
+- по умолчанию сохраняет только `analytic_result_YYYY_MM_DD.csv` в S3.
+
+Опционально, если нужен дополнительный parquet-экспорт:
+
+```powershell
+docker compose --env-file .env run --rm -e FEATURES_EXPORT_PARQUET=1 app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py
+```
+
+Важно:
+- parquet выключен по умолчанию;
+- parquet заметно замедляет ETL, поэтому включайте его только при явной необходимости;
+- smoke-check по-прежнему ориентируется на обязательный CSV-артефакт.
 
 Использует:
 - `jobs/features_etl.py`
@@ -358,6 +369,7 @@ Start-Sleep -Seconds 5
 Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
 docker compose --env-file .env run --rm app python scripts/pii_hash_selfcheck.py
 docker compose --env-file .env run --rm app python scripts/smoke_check.py
+# CSV-only by default. Add -e FEATURES_EXPORT_PARQUET=1 only when parquet is explicitly needed.
 docker compose --env-file .env run --rm app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py
 docker compose --env-file .env build backend frontend
 docker compose --env-file .env up -d backend frontend

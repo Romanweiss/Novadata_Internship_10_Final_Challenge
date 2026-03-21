@@ -104,7 +104,9 @@ MART таблицы:
 
 - источники: MART таблицы (`customers`, `purchases`, `products`, `purchase_items`);
 - расчет 30 бинарных признаков (0/1);
-- результат: CSV `analytic_result_YYYY_MM_DD.csv` в S3.
+- результат по умолчанию: CSV `analytic_result_YYYY_MM_DD.csv` в S3;
+- optional parquet-экспорт включается только явным флагом `FEATURES_EXPORT_PARQUET=1`;
+- при включении parquet ETL дополнительно сохраняет parquet dataset со `snappy` compression и выводит warning о замедлении.
 
 ## 5. Data Quality и источники истины метрик
 
@@ -165,9 +167,10 @@ DAG: `airflow/dags/etl_to_s3_daily.py`
 ## 9. Backend API (Django + DRF)
 
 Backend дает:
-- API для вкладок UI (`overview`, `pipelines`, `quality`, `exports`, `settings`);
+- API для вкладок UI (`overview`, `pipelines`, `quality`, `feature-mart`, `exports`, `settings`);
 - action-endpoints для ручного запуска job;
 - polling статуса запусков (`runs/{id}`);
+- endpoint-ы managed ingestion/staging (`imports`, `errors`, `staging`, `replay`);
 - токен-аутентификацию, OpenAPI, админку.
 
 Основной адрес:
@@ -176,8 +179,10 @@ Backend дает:
 ## 10. Frontend control panel (React)
 
 Frontend предоставляет:
-- 5 вкладок: Overview / Pipelines / Data Quality / Exports / Settings;
+- вкладки: Overview / Pipelines / Data Quality / Feature Mart / Exports / Settings / About Project;
+- отдельную страницу Documentation из шапки интерфейса;
 - запуск job из UI и отображение статусов;
+- выбор optional parquet-экспорта прямо в модалке запуска Features ETL;
 - визуализацию метрик и health сервисов;
 - настройки Safe Mode и системных подключений.
 

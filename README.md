@@ -27,7 +27,7 @@ JSON files
   -> ClickHouse RAW
   -> ClickHouse MART
   -> PySpark features ETL
-  -> S3 (analytic_result_YYYY_MM_DD.csv)
+  -> S3 (CSV by default, optional Parquet)
 
 Monitoring/Control:
   Grafana + Telegram alerts
@@ -120,7 +120,7 @@ Airflow
 4. Применить SQL в строгом порядке: `01_init.sql` -> `02_mart.sql`.
 5. Запустить: `generate_data` -> `load_to_mongo` -> `produce_from_mongo --once`.
 6. Повторно применить `02_mart.sql` для snapshot качества.
-7. Запустить ETL (`spark-submit jobs/features_etl.py` в `app` контейнере).
+7. Запустить ETL (`spark-submit jobs/features_etl.py` в `app` контейнере, по умолчанию CSV-only).
 8. Проверить smoke-check, Grafana, Airflow, UI/API.
 
 Подробный сценарий и команды: `RUNBOOK_DOCKER.md`.

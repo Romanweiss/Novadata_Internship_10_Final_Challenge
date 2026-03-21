@@ -74,6 +74,13 @@ Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file 
 docker compose --env-file .env exec app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py
 ```
 
+По умолчанию этот шаг делает только CSV-экспорт.
+Если нужен дополнительный parquet-артефакт, запускайте ETL явно с флагом:
+
+```powershell
+docker compose --env-file .env exec app sh -lc "FEATURES_EXPORT_PARQUET=1 spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py"
+```
+
 ## 7) Проверки
 
 ### 7.1 Smoke-check
@@ -117,6 +124,7 @@ docker compose --env-file .env exec app python src/loader/load_to_mongo.py
 docker compose --env-file .env exec app python src/streaming/produce_from_mongo.py --once
 Start-Sleep -Seconds 5
 Get-Content docker/clickhouse/init/02_mart.sql -Raw | docker compose --env-file .env exec -T clickhouse clickhouse-client --multiquery
+# CSV-only by default. Add FEATURES_EXPORT_PARQUET=1 only when parquet is explicitly needed.
 docker compose --env-file .env exec app spark-submit --master local[*] --jars /opt/jars/clickhouse-jdbc-0.9.6-all-dependencies.jar jobs/features_etl.py
 docker compose --env-file .env exec app python scripts/smoke_check.py
 docker compose --env-file .env exec app python scripts/pii_hash_selfcheck.py
