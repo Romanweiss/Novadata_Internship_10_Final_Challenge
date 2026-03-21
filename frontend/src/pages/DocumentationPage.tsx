@@ -78,17 +78,17 @@ export function DocumentationPage() {
         {content.sections.map((section, index) => {
           const Icon = sectionIconById[section.id as keyof typeof sectionIconById] ?? BookOpenText;
           return (
-            <Card
-              key={section.id}
-              className={cn(
-                'scroll-mt-24 p-5 md:p-6',
-                index === 0 ? 'border-[var(--border-strong)]' : '',
-              )}
-            >
-              <div id={section.id} className="space-y-5">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-2.5">
-                    <Icon className={sectionIconClassName} />
+            <div key={section.id} id={section.id} className="scroll-mt-44 md:scroll-mt-48">
+              <Card
+                className={cn(
+                  'p-5 md:p-6',
+                  index === 0 ? 'border-[var(--border-strong)]' : '',
+                )}
+              >
+                <div className="space-y-5">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-2.5">
+                      <Icon className={sectionIconClassName} />
                   </div>
                   <div>
                     <h2 className="text-2xl font-extrabold tracking-tight">{section.title}</h2>
@@ -110,8 +110,9 @@ export function DocumentationPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-            </Card>
+                </div>
+              </Card>
+            </div>
           );
         })}
       </section>
