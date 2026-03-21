@@ -38,6 +38,16 @@ ALLOWED_ACTIONS = {
 }
 
 
+def _truthy_param(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return False
+
+
 def _job_workdir() -> Path:
     return Path(env_str("JOB_WORKDIR", "/workspace")).resolve()
 
@@ -160,6 +170,8 @@ def _build_command(job_name: str, params: dict[str, Any]) -> str:
     if job_name == JobRun.JobName.RUN_PRODUCER:
         return "python src/streaming/produce_from_mongo.py --once"
     if job_name == JobRun.JobName.RUN_ETL:
+        if _truthy_param(params.get("export_parquet")):
+            return "FEATURES_EXPORT_PARQUET=1 python jobs/features_etl.py"
         return "python jobs/features_etl.py"
     raise ServiceError("ACTION_BUILD_FAILED", f"No command mapping for '{job_name}'.", 400)
 

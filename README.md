@@ -57,6 +57,18 @@ Monitoring/Control:
 - ETL (30 бинарных признаков): `jobs/features_etl.py`
 - Проверки: `scripts/smoke_check.py`, `scripts/pii_hash_selfcheck.py`
 
+### Экспорт результатов ETL
+
+- По умолчанию `jobs/features_etl.py` формирует и загружает только CSV.
+- Parquet поддерживается как дополнительный формат, но выключен по умолчанию, потому что заметно замедляет ETL.
+- Включение Parquet:
+
+```bash
+FEATURES_EXPORT_PARQUET=1 spark-submit jobs/features_etl.py
+```
+
+При включении флага ETL сохраняет обычный CSV и дополнительно выгружает parquet dataset со `snappy` compression.
+
 ## Почему в проекте используются Bash-команды
 
 Проект полностью работает в Docker-контуре, а Airflow используется как оркестратор шагов, а не как вычислительный движок.  

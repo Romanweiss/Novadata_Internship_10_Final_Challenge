@@ -154,6 +154,17 @@ def _optional_any_env(default: str, *names: str) -> str:
     return default
 
 
+def _parquet_export_enabled() -> bool:
+    """Возвращает True только при явном включении parquet-экспорта."""
+    value = _optional_env("FEATURES_EXPORT_PARQUET", "0").lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+def _parquet_export_warning_message() -> str:
+    """Возвращает предупреждение для медленного optional parquet-экспорта."""
+    return "WARNING: Parquet export is enabled. This may significantly slow down ETL execution."
+
+
 def _build_spark_session() -> SparkSession:
     """Создаёт и конфигурирует SparkSession для ETL.
 
@@ -754,19 +765,26 @@ def main() -> None:
 
         export_dt = datetime.now(timezone.utc)
         temp_csv_path = _write_single_csv(features_df)
-        temp_parquet_dir = _write_parquet_dataset(features_df)
         csv_object_key = _upload_to_s3(temp_csv_path, export_dt)
-        parquet_object_prefix = _upload_parquet_to_s3(temp_parquet_dir, export_dt)
 
-        logging.info(
-            "Upload completed successfully: csv=%s parquet=%s",
-            csv_object_key,
-            parquet_object_prefix,
-        )
-        print(
-            "Uploaded features files: "
-            f"csv={csv_object_key}, parquet={parquet_object_prefix}"
-        )
+        if _parquet_export_enabled():
+            warning_message = _parquet_export_warning_message()
+            logging.warning(warning_message)
+            print(warning_message)
+
+            temp_parquet_dir = _write_parquet_dataset(features_df)
+            parquet_object_prefix = _upload_parquet_to_s3(temp_parquet_dir, export_dt)
+
+            logging.info(
+                "Upload completed successfully: csv=%s parquet=%s",
+                csv_object_key,
+                parquet_object_prefix,
+            )
+            print(f"Uploaded features file: {csv_object_key}")
+            print(f"Uploaded features parquet dataset: {parquet_object_prefix}")
+        else:
+            logging.info("Upload completed successfully: csv=%s", csv_object_key)
+            print(f"Uploaded features file: {csv_object_key}")
     finally:
         # Явно освобождаем кэш перед остановкой Spark.
         for df in reversed(persisted_dfs):

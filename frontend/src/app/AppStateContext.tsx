@@ -34,7 +34,7 @@ interface AppContextValue extends AppState {
   toggleLanguage: () => void;
   t: (key: string, params?: Record<string, string | number>) => string;
   setSafeMode: (value: boolean) => Promise<void>;
-  runJob: (job: JobAction) => Promise<JobRunStatus>;
+  runJob: (job: JobAction, params?: Record<string, unknown>) => Promise<JobRunStatus>;
   dismissToast: (id: string) => void;
 }
 
@@ -216,7 +216,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'DISMISS_TOAST', payload: id });
   }, []);
 
-  const runJob = useCallback(async (job: JobAction) => {
+  const runJob = useCallback(async (job: JobAction, params?: Record<string, unknown>) => {
     const translatedJobTitleRaw = translate(state.language, `jobs.${job.key}`);
     const translatedJobTitle =
       translatedJobTitleRaw === `jobs.${job.key}` ? job.title : translatedJobTitleRaw;
@@ -234,7 +234,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const started = await apiClient.triggerAction(job.key, {});
+      const started = await apiClient.triggerAction(job.key, params ?? {});
       const runId = started.run_id;
 
       dispatch({

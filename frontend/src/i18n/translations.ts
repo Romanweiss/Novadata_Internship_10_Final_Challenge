@@ -158,6 +158,9 @@ const translations: Record<AppLanguage, DictionaryNode> = {
       runJob: 'Run Job',
       runningTitle: 'Job is running',
       runningDescription: 'Please wait until the pipeline action completes.',
+      parquetOptionTitle: 'Also export Parquet',
+      parquetOptionDescription: 'CSV remains the default output. Enable Parquet only when you explicitly need it.',
+      parquetWarning: 'WARNING: Parquet export is enabled. This may significantly slow down ETL execution.',
     },
     toast: {
       safeModeUpdatedTitle: 'Safe mode updated',
@@ -495,6 +498,9 @@ const translations: Record<AppLanguage, DictionaryNode> = {
       runJob: 'Запустить задачу',
       runningTitle: 'Задача выполняется',
       runningDescription: 'Подождите, пока действие пайплайна завершится.',
+      parquetOptionTitle: 'Дополнительно выгрузить Parquet',
+      parquetOptionDescription: 'CSV остаётся основным форматом. Включайте Parquet только если он действительно нужен.',
+      parquetWarning: 'WARNING: Включён экспорт Parquet. Это может заметно замедлить выполнение ETL.',
     },
     toast: {
       safeModeUpdatedTitle: 'Safe Mode обновлен',

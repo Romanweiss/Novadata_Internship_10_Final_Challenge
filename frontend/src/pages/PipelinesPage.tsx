@@ -22,14 +22,17 @@ export function PipelinesPage() {
     setSelectedAction(null);
   };
 
-  const handleRun = async (action: JobAction) => {
+  const handleRun = async (action: JobAction, options?: { exportParquet?: boolean }) => {
     if (safeMode && action.key === 'mart-refresh') {
       setSelectedAction(null);
       return;
     }
     setIsRunning(true);
     try {
-      await runJob(action);
+      await runJob(
+        action,
+        action.key === 'run-etl' && options?.exportParquet ? { export_parquet: true } : undefined,
+      );
       setSelectedAction(null);
     } finally {
       setIsRunning(false);

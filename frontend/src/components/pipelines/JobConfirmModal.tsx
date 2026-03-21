@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Play, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 
 import { useAppState } from '../../app/useAppState';
 import { PageLoader } from '../common/PageLoader';
@@ -11,14 +12,16 @@ interface JobConfirmModalProps {
   open: boolean;
   running: boolean;
   onClose: () => void;
-  onConfirm: (action: JobAction) => Promise<void>;
+  onConfirm: (action: JobAction, options?: { exportParquet?: boolean }) => Promise<void>;
 }
 
 export function JobConfirmModal({ action, open, running, onClose, onConfirm }: JobConfirmModalProps) {
   const { t } = useAppState();
+  const [exportParquet, setExportParquet] = useState(false);
 
   const titleKey = action ? t(`actions.${action.key}.title`) : '';
   const descriptionKey = action ? t(`actions.${action.key}.description`) : '';
+  const isRunEtl = action?.key === 'run-etl';
   const actionTitle = action
     ? titleKey === `actions.${action.key}.title`
       ? action.title
@@ -29,6 +32,12 @@ export function JobConfirmModal({ action, open, running, onClose, onConfirm }: J
       ? action.description
       : descriptionKey
     : '';
+
+  useEffect(() => {
+    if (!open || action?.key !== 'run-etl') {
+      setExportParquet(false);
+    }
+  }, [action?.key, open]);
 
   const modal = (
     <AnimatePresence>
@@ -76,6 +85,30 @@ export function JobConfirmModal({ action, open, running, onClose, onConfirm }: J
                   {t('modal.warning')}
                 </div>
 
+                {isRunEtl ? (
+                  <div className="mb-5 space-y-3">
+                    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={exportParquet}
+                        disabled={running}
+                        onChange={(event) => setExportParquet(event.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-[var(--border-strong)] text-[#111827] focus:ring-[#111827]"
+                      />
+                      <div>
+                        <p className="font-semibold text-[var(--text)]">{t('modal.parquetOptionTitle')}</p>
+                        <p className="mt-1 text-[var(--text-muted)]">{t('modal.parquetOptionDescription')}</p>
+                      </div>
+                    </label>
+
+                    {exportParquet ? (
+                      <div className="rounded-2xl border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                        {t('modal.parquetWarning')}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <div className="flex justify-end gap-2.5">
                   <button
                     type="button"
@@ -86,7 +119,7 @@ export function JobConfirmModal({ action, open, running, onClose, onConfirm }: J
                   </button>
                   <button
                     type="button"
-                    onClick={() => onConfirm(action)}
+                    onClick={() => onConfirm(action, isRunEtl ? { exportParquet } : undefined)}
                     className="inline-flex items-center gap-2 rounded-full bg-[#111827] px-4 py-2 font-semibold text-white hover:bg-[#0b1220] dark:bg-white dark:text-[#111827]"
                   >
                     <Play className="h-4 w-4" />
