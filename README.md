@@ -14,9 +14,27 @@
 - Django + DRF backend API,
 - React frontend control panel.
 
+## Quickstart (кратко)
+
+1. Подготовить `.env` вручную из `.env.example` (не перезаписывать существующий).
+2. Поднять стек Docker.
+3. Дождаться `SELECT 1` от ClickHouse.
+4. Применить SQL в строгом порядке: `01_init.sql` -> `02_mart.sql`.
+5. Запустить: `generate_data` -> `load_to_mongo` -> `produce_from_mongo --once`.
+6. Повторно применить `02_mart.sql` для snapshot качества.
+7. Запустить ETL (`spark-submit jobs/features_etl.py` в `app` контейнере, по умолчанию CSV-only).
+8. Проверить smoke-check, Grafana, Airflow, UI/API.
+
+Подробный сценарий и команды: `RUNBOOK_DOCKER.md`.
+
 ## Что это за проект
 
 Платформа имитирует реальную работу с заказчиком: от приема сырых данных до очистки, витринных метрик, feature-матрицы и выгрузки результата в объектное хранилище.
+
+Сейчас это уже не только pipeline-репозиторий, но и полноценный control panel:
+- с ручными one-click действиями для основных шагов пайплайна;
+- с managed ingestion/staging слоем, batch-статусами, ошибками и replay;
+- с UI для feature mart, exports, качества данных и документации.
 
 ## Архитектура (1 блок)
 
@@ -55,6 +73,7 @@ Monitoring/Control:
 - RAW init: `docker/clickhouse/init/01_init.sql`
 - MART init: `docker/clickhouse/init/02_mart.sql`
 - ETL (30 бинарных признаков): `jobs/features_etl.py`
+- Backend job runner + imports: `backend/api/services/actions.py`, `backend/api/services/imports.py`
 - Проверки: `scripts/smoke_check.py`, `scripts/pii_hash_selfcheck.py`
 
 ### Экспорт результатов ETL
@@ -68,6 +87,17 @@ FEATURES_EXPORT_PARQUET=1 spark-submit jobs/features_etl.py
 ```
 
 При включении флага ETL сохраняет обычный CSV и дополнительно выгружает parquet dataset со `snappy` compression.
+
+## Что доступно в UI
+
+- `Overview` — KPI, ingestion activity, services health, платежный breakdown и последние запуски.
+- `Pipelines` — one-click действия, managed ingestion, staging и replay batch.
+- `Data Quality` — duplicate ratio, trend и MART quality stats.
+- `Feature Mart` — summary признаков и раскрываемая таблица customer-by-feature.
+- `Exports` — список файлов в S3-compatible storage.
+- `Settings` — Safe Mode и overview подключений.
+- `About Project` — краткое описание платформы и архитектуры.
+- `Documentation` — встроенная справочная страница, открываемая из шапки в отдельной вкладке.
 
 ## Почему в проекте используются Bash-команды
 
@@ -111,19 +141,6 @@ Airflow
 - файл: `demo-preview/index.html` (полностью автономный, inline CSS/JS);
 - запуск: открыть файл напрямую в браузере или через Live Server;
 - описание и возможности: `demo-preview/README.md`.
-
-## Quickstart (кратко)
-
-1. Подготовить `.env` вручную из `.env.example` (не перезаписывать существующий).
-2. Поднять стек Docker.
-3. Дождаться `SELECT 1` от ClickHouse.
-4. Применить SQL в строгом порядке: `01_init.sql` -> `02_mart.sql`.
-5. Запустить: `generate_data` -> `load_to_mongo` -> `produce_from_mongo --once`.
-6. Повторно применить `02_mart.sql` для snapshot качества.
-7. Запустить ETL (`spark-submit jobs/features_etl.py` в `app` контейнере, по умолчанию CSV-only).
-8. Проверить smoke-check, Grafana, Airflow, UI/API.
-
-Подробный сценарий и команды: `RUNBOOK_DOCKER.md`.
 
 ## Документация
 
