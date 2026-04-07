@@ -7,6 +7,12 @@ import { apiClient } from '../api/client';
 import { mapFeatureMart } from '../api/mappers';
 import { Card } from '../components/common/Card';
 import { PageLoader } from '../components/common/PageLoader';
+import { FeatureDefinitionModal } from '../components/feature-mart/FeatureDefinitionModal';
+import {
+  SUGGESTED_FEATURE_REGISTRY,
+  getFeatureLabel as getMetadataFeatureLabel,
+  getLocalizedFeatureDefinition,
+} from '../constants/featureDefinitions';
 import type { FeatureMartData } from '../types/ui';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
@@ -27,14 +33,14 @@ function toFlag(value: unknown): number {
   return parsed === 1 ? 1 : 0;
 }
 
-function getFeatureLabel(feature: string, t: (key: string) => string): string {
+function getTranslatedFeatureLabel(feature: string, t: (key: string) => string): string {
   const key = `featureMart.featureNames.${feature}`;
   const translated = t(key);
   return translated === key ? feature : translated;
 }
 
 export function FeatureMartPage() {
-  const { t } = useAppState();
+  const { language, t } = useAppState();
   const [data, setData] = useState<FeatureMartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -42,6 +48,7 @@ export function FeatureMartPage() {
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const [isTableOpen, setIsTableOpen] = useState(false);
+  const [selectedFeatureKey, setSelectedFeatureKey] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -94,6 +101,60 @@ export function FeatureMartPage() {
         .sort((a, b) => b.onesCount - a.onesCount),
     [data?.featureSummary],
   );
+
+  const currentFeatureDefinitions = useMemo(
+    () =>
+      featureColumns
+        .map((feature) => getLocalizedFeatureDefinition(feature, language))
+        .filter((item): item is NonNullable<typeof item> => Boolean(item)),
+    [featureColumns, language],
+  );
+
+  const suggestedFeatureDefinitions = useMemo(
+    () =>
+      SUGGESTED_FEATURE_REGISTRY.map((item) => getLocalizedFeatureDefinition(item.key, language)).filter(
+        (item): item is NonNullable<typeof item> => Boolean(item),
+      ),
+    [language],
+  );
+
+  const selectedDefinition = selectedFeatureKey ? getLocalizedFeatureDefinition(selectedFeatureKey, language) : null;
+
+  const uiText =
+    language === 'ru'
+      ? {
+          summaryHint:
+            '\u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u043d\u0430 \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0443 \u0444\u0438\u0447\u0438, \u0447\u0442\u043e\u0431\u044b \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0442\u043e\u0447\u043d\u043e\u0435 \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u0435, \u043f\u0440\u0430\u0432\u0438\u043b\u043e \u0440\u0430\u0441\u0447\u0451\u0442\u0430 \u0438 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438 \u0434\u0430\u043d\u043d\u044b\u0445.',
+          summaryKnownHint:
+            '\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u044b\u0435 \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u044f \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b \u0434\u043b\u044f \u0442\u0435\u043a\u0443\u0449\u0438\u0445 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0445 \u0444\u0438\u0447 \u0438 \u0434\u043b\u044f \u043e\u043a\u043e\u043d\u043d\u044b\u0445 category / activity-\u0444\u043b\u0430\u0433\u043e\u0432.',
+          detailsTitle: '\u0420\u0435\u0435\u0441\u0442\u0440 \u0442\u0435\u043a\u0443\u0449\u0438\u0445 \u0444\u0438\u0447',
+          detailsSubtitle:
+            '\u0415\u0434\u0438\u043d\u044b\u0439 \u0441\u043b\u043e\u0439 \u043c\u0435\u0442\u0430\u0434\u0430\u043d\u043d\u044b\u0445, \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u0441 \u0442\u0435\u043a\u0443\u0449\u0435\u0439 \u043b\u043e\u0433\u0438\u043a\u043e\u0439 ETL.',
+          suggestedTitle: '\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0435 \u043f\u043e\u043b\u0435\u0437\u043d\u044b\u0435 \u0444\u0438\u0447\u0438',
+          suggestedSubtitle:
+            '\u0418\u0434\u0435\u0438 \u0434\u043b\u044f \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u0439 \u0438\u0442\u0435\u0440\u0430\u0446\u0438\u0438 \u0432\u0438\u0442\u0440\u0438\u043d\u044b. \u041d\u0435\u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u0443\u0436\u0435 \u0447\u0430\u0441\u0442\u0438\u0447\u043d\u043e \u043f\u043e\u043a\u0440\u044b\u0432\u0430\u044e\u0442\u0441\u044f \u0442\u0435\u043a\u0443\u0449\u0438\u043c\u0438 proxy-\u0444\u0438\u0447\u0430\u043c\u0438.',
+          openDetails: '\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u0435',
+          implemented: '\u0420\u0435\u0430\u043b\u0438\u0437\u043e\u0432\u0430\u043d\u043e',
+          metadataOnly: '\u041c\u0435\u0442\u0430\u0434\u0430\u043d\u043d\u044b\u0435',
+          future: '\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0439 ETL \u0448\u0430\u0433',
+        }
+      : {
+          summaryHint: 'Click a feature card to open the exact definition, calculation rule, and source fields.',
+          summaryKnownHint: 'Detailed definitions are available for the current binary features and for window-based category / activity flags.',
+          detailsTitle: 'Current feature registry',
+          detailsSubtitle: 'A single metadata layer aligned with the current ETL logic.',
+          suggestedTitle: 'Suggested next features',
+          suggestedSubtitle: 'Ideas for the next mart iteration. Some are already partially covered by current proxy features.',
+          openDetails: 'Open details',
+          implemented: 'Implemented',
+          metadataOnly: 'Metadata only',
+          future: 'Next ETL step',
+        };
+  function getStatusLabel(status: 'implemented' | 'metadata-only' | 'future-recommendation') {
+    if (status === 'implemented') return uiText.implemented;
+    if (status === 'metadata-only') return uiText.metadataOnly;
+    return uiText.future;
+  }
 
   const showEmpty = !loading && !errorMessage && (!data?.fileName || rows.length === 0);
 
@@ -170,27 +231,98 @@ export function FeatureMartPage() {
 
           <Card className="p-5">
             <h3 className="mb-4 text-xl font-bold">{t('featureMart.summaryTitle')}</h3>
+            <p className="mb-1 text-sm text-[var(--text-muted)]">{uiText.summaryHint}</p>
+            <p className="mb-4 text-xs text-[var(--text-muted)]">{uiText.summaryKnownHint}</p>
             {featureSummary.length === 0 ? (
               <p className="text-sm text-[var(--text-muted)]">{t('featureMart.noNonZeroSummary')}</p>
             ) : (
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {featureSummary.map((item) => {
                   const percent = data.rowsCount > 0 ? (item.onesCount / data.rowsCount) * 100 : 0;
+                  const isKnown = Boolean(getLocalizedFeatureDefinition(item.feature, language));
                   return (
-                    <div key={item.feature} className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3">
+                    <button
+                      type="button"
+                      key={item.feature}
+                      onClick={() => setSelectedFeatureKey(item.feature)}
+                      className="app-transition rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-left hover:border-[var(--border-strong)] hover:bg-black/5 dark:hover:bg-white/10"
+                    >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-sm font-semibold">{getFeatureLabel(item.feature, t)}</p>
+                        <p className="truncate text-sm font-semibold">
+                          {isKnown ? getMetadataFeatureLabel(item.feature, language) : getTranslatedFeatureLabel(item.feature, t)}
+                        </p>
                         <span className="text-sm font-bold tabular-nums">{formatNumber(item.onesCount)}</span>
                       </div>
                       <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
                         <div className="h-full rounded-full bg-[var(--accent-blue)]" style={{ width: `${Math.min(percent, 100)}%` }} />
                       </div>
-                      <p className="mt-1 text-xs text-[var(--text-muted)]">{percent.toFixed(1)}%</p>
-                    </div>
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <p className="text-xs text-[var(--text-muted)]">{percent.toFixed(1)}%</p>
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{uiText.openDetails}</span>
+                      </div>
+                    </button>
                   );
                 })}
               </div>
             )}
+          </Card>
+
+          <Card className="p-5">
+            <h3 className="text-xl font-bold">{uiText.detailsTitle}</h3>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">{uiText.detailsSubtitle}</p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {currentFeatureDefinitions.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setSelectedFeatureKey(item.key)}
+                  className="app-transition rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left hover:border-[var(--border-strong)] hover:bg-black/5 dark:hover:bg-white/10"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">{item.label}</p>
+                      <p className="mt-1 text-xs text-[var(--text-muted)]">{item.key}</p>
+                    </div>
+                    <span className="rounded-full bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
+                      {item.category}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">{item.shortDescription}</p>
+                </button>
+              ))}
+              {!currentFeatureDefinitions.length ? (
+                <p className="text-sm text-[var(--text-muted)]">{t('featureMart.noNonZeroSummary')}</p>
+              ) : null}
+            </div>
+          </Card>
+
+          <Card className="p-5">
+            <h3 className="text-xl font-bold">{uiText.suggestedTitle}</h3>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">{uiText.suggestedSubtitle}</p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {suggestedFeatureDefinitions.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setSelectedFeatureKey(item.key)}
+                  className="app-transition rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left hover:border-[var(--border-strong)] hover:bg-black/5 dark:hover:bg-white/10"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">{item.label}</p>
+                      <p className="mt-1 text-xs text-[var(--text-muted)]">{item.category}</p>
+                    </div>
+                    <span className="rounded-full bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
+                      {getStatusLabel(item.status)}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">{item.shortDescription}</p>
+                  {item.currentProxyFeatureKeys?.length ? (
+                    <p className="mt-3 text-xs text-[var(--text-muted)]">{item.currentProxyFeatureKeys.join(', ')}</p>
+                  ) : null}
+                </button>
+              ))}
+            </div>
           </Card>
 
           <Card className="overflow-hidden p-0">
@@ -311,6 +443,14 @@ export function FeatureMartPage() {
           </Card>
         </>
       ) : null}
+
+      <FeatureDefinitionModal
+        open={Boolean(selectedFeatureKey)}
+        definition={selectedDefinition}
+        language={language}
+        onClose={() => setSelectedFeatureKey(null)}
+      />
     </motion.div>
   );
 }
+
