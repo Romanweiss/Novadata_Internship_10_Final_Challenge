@@ -34,7 +34,8 @@
 Сейчас это уже не только pipeline-репозиторий, но и полноценный control panel:
 - с ручными one-click действиями для основных шагов пайплайна;
 - с managed ingestion/staging слоем, batch-статусами, ошибками и replay;
-- с UI для feature mart, exports, качества данных и документации.
+- с UI для feature mart, exports, качества данных и документации;
+- с metadata-driven drill-down по feature mart, где можно открыть описание фичи, логику расчёта, окна и пороги.
 
 ## Архитектура (1 блок)
 
@@ -93,7 +94,7 @@ FEATURES_EXPORT_PARQUET=1 spark-submit jobs/features_etl.py
 - `Overview` — KPI, ingestion activity, services health, платежный breakdown и последние запуски.
 - `Pipelines` — one-click действия, managed ingestion, staging и replay batch.
 - `Data Quality` — duplicate ratio, trend и MART quality stats.
-- `Feature Mart` — summary признаков и раскрываемая таблица customer-by-feature.
+- `Feature Mart` — summary признаков, drill-down с определениями фич и раскрываемая таблица customer-by-feature.
 - `Exports` — список файлов в S3-compatible storage.
 - `Settings` — Safe Mode и overview подключений.
 - `About Project` — краткое описание платформы и архитектуры.
