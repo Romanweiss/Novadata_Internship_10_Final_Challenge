@@ -1,4 +1,4 @@
-﻿# RUNBOOK_DOCKER.md
+# RUNBOOK_DOCKER.md
 
 Единый runbook проекта ProbablyFresh (PowerShell + Docker-only).
 
@@ -6,13 +6,13 @@
 
 - ОС: Windows + PowerShell.
 - Docker Desktop запущен.
-- Рабочая папка: `F:\DE_intern\probablyfresh-analytics-platform`.
+- Рабочая папка: корень репозитория `probablyfresh-analytics-platform`.
 - Файл `.env` создается и заполняется вручную (автокопирование запрещено).
 
 Проверка:
 
 ```powershell
-cd F:\DE_intern\probablyfresh-analytics-platform
+cd <repo_root>\probablyfresh-analytics-platform
 if (!(Test-Path .env)) { throw ".env не найден. Создай вручную из .env.example и заполни секреты." }
 ```
 
@@ -354,7 +354,7 @@ docker compose --env-file .env exec airflow airflow dags list-runs -d etl_to_s3_
 ## 8. Быстрый copy/paste сценарий
 
 ```powershell
-cd F:\DE_intern\probablyfresh-analytics-platform
+cd <repo_root>\probablyfresh-analytics-platform
 if (!(Test-Path .env)) { throw ".env не найден. Создай вручную из .env.example и заполни секреты." }
 docker compose --env-file .env build app
 docker compose --env-file .env down -v

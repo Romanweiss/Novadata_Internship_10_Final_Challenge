@@ -16,7 +16,7 @@
 ## 1. Обязательная команда в начале: остановить проект
 
 ```powershell
-cd F:\DE_intern\probablyfresh-analytics-platform
+cd <repo_root>\probablyfresh-analytics-platform
 docker compose --env-file .env down
 ```
 
@@ -117,7 +117,7 @@ docker compose --env-file .env exec airflow airflow dags list-runs -d etl_to_s3_
 ## 8. Полный copy/paste блок
 
 ```powershell
-cd F:\DE_intern\probablyfresh-analytics-platform
+cd <repo_root>\probablyfresh-analytics-platform
 docker compose --env-file .env down
 $volumes = @(
   "probablyfresh-analytics-platform_mongodb_data",

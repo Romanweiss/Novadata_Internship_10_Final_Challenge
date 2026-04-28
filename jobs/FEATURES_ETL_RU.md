@@ -2,7 +2,7 @@
 
 ## Что делает этот ETL
 
-Файл [jobs/features_etl.py](f:\DE_intern\probablyfresh-analytics-platform\jobs\features_etl.py) строит финальную витрину клиентских признаков для аналитики и downstream-задач.
+Файл `jobs/features_etl.py` строит финальную витрину клиентских признаков для аналитики и downstream-задач.
 
 Сценарий работы такой:
 
